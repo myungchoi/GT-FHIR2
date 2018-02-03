@@ -41,9 +41,9 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 	@Override
 	public Organization toFHIR(IdType id) {
 		MyOrganization organization = new MyOrganization();
-		String organizationName = ResourceType.Organization.getPath();
+		String organizationResourceName = ResourceType.Organization.getPath();
 		Long id_long_part = id.getIdPartAsLong();
-		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, organizationName);
+		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, organizationResourceName);
 		
 		CareSite careSite = (CareSite) myOmopService.findById(myId);
 		if (careSite == null) return null;
@@ -54,7 +54,7 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 		// fhir.type = omop.place_of_service_concept_id
 		// address = location_id
 
-		Long fhirId = IdMapping.getFHIRfromOMOP(myId, organizationName);
+		Long fhirId = IdMapping.getFHIRfromOMOP(myId, organizationResourceName);
 		organization.setId(new IdType (fhirId));
 		
 		if (careSite.getCareSiteName() != null && careSite.getCareSiteName() != "") {

@@ -55,7 +55,6 @@ public class OrganizationResourceProvider implements IResourceProvider {
 	
 	public OrganizationResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
-//		careSiteService = myAppCtx.getBean(CareSiteService.class);
 		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
 		if (myDbType.equalsIgnoreCase("omopv5") == true) {
 			myMapper = new OmopOrganization(myAppCtx);
