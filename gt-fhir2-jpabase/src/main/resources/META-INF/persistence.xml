@@ -1,0 +1,20 @@
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+	version="2.0">
+	<persistence-unit name="entityManager">
+		<provider>org.hibernate.ejb.HibernatePersistence</provider>
+		<!-- Annotated entity classes -->
+		<!-- <class>com.jvmhub.tutorial.entity.AppUser</class> -->
+		<properties>
+
+			<property name="hibernate.connection.url" value="jdbc:postgresql://localhost/omop_v5" />
+			<property name="hibernate.connection.driver_class" value="org.postgresql.Driver" />
+			<property name="hibernate.connection.username" value="omop_v5" />
+			<property name="hibernate.connection.password" value="i3lworks" />
+
+			<property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect" />
+			<property name="hibernate.hbm2ddl.auto" value="create-drop" />
+		</properties>
+	</persistence-unit>
+</persistence>
