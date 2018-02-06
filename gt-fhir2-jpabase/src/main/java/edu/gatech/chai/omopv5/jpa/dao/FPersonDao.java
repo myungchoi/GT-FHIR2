@@ -2,24 +2,24 @@ package edu.gatech.chai.omopv5.jpa.dao;
 
 import org.springframework.stereotype.Repository;
 
-import edu.gatech.chai.omopv5.jpa.entity.CareSite;
+import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 
 @Repository
-public class CareSiteDao extends BaseEntityDao<CareSite> {
+public class FPersonDao extends BaseEntityDao<FPerson> {
 	@Override
-	public void add(CareSite baseEntity) {
+	public void add(FPerson baseEntity) {
 		getEntityManager().persist(baseEntity);
 	}
 
 	@Override
-	public void update(CareSite baseEntity) {
+	public void update(FPerson baseEntity) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public CareSite findById(Long id) {
-		return getEntityManager().find(CareSite.class, id);
+	public FPerson findById(Long id) {
+		return getEntityManager().find(FPerson.class, id);
 	}
 
 	@Override
@@ -29,7 +29,8 @@ public class CareSiteDao extends BaseEntityDao<CareSite> {
 	}
 
 	@Override
-	public void merge(CareSite baseEntity) {
+	public void merge(FPerson baseEntity) {
 		getEntityManager().merge(baseEntity);
 	}
+
 }

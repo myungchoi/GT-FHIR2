@@ -85,8 +85,7 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 	}
 
 	@Override
-	public void toDbase(Organization Fhir) {
-		// TODO Auto-generated method stub
-		
+	public Long toDbase(Organization Fhir) {
+		return 0L;
 	}
 }

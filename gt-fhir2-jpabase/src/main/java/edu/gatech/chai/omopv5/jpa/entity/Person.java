@@ -30,7 +30,7 @@ public class Person extends BaseEntity {
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	
-	@ManyToOne(fetch=FetchType.LAZY, cascade={CascadeType.MERGE})
+	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name="gender_concept_id", nullable= false)
 	private Concept genderConcept;
 	
@@ -58,11 +58,11 @@ public class Person extends BaseEntity {
 	@JoinColumn(name="location_id")
 	private Location location;
 	
-	@ManyToOne(fetch=FetchType.LAZY, cascade={CascadeType.ALL})
+	@ManyToOne(cascade={CascadeType.ALL})
 	@JoinColumn(name="provider_id")
 	private Provider provider;
 
-	@ManyToOne(fetch=FetchType.LAZY, cascade={CascadeType.MERGE})
+	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name="care_site_id")
 	private CareSite careSite;
 	
