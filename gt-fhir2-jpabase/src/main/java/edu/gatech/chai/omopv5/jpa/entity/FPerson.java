@@ -1,10 +1,5 @@
 package edu.gatech.chai.omopv5.jpa.entity;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.PrimaryKeyJoinColumn;
@@ -18,7 +13,7 @@ import javax.persistence.Table;
 @Entity
 @Table(name="f_person")
 @PrimaryKeyJoinColumn(name="person_id")
-public class Fperson extends Person {
+public class FPerson extends Person {
 	@Column(name="family_name")
 	private String familyName;
 	
@@ -55,7 +50,7 @@ public class Fperson extends Person {
 	@Column(name="contact_point3")
 	String contactPoint3;
 	
-	public Fperson() {
+	public FPerson() {
 		super();
 	}
 

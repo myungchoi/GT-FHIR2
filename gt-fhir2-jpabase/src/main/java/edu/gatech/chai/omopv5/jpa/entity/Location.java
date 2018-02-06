@@ -12,14 +12,11 @@ import javax.persistence.InheritanceType;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
-
 @Entity
 @Table(name="location")
 @Inheritance(strategy=InheritanceType.JOINED)
 public class Location extends BaseEntity { 
 	
-	public static final String DATA_TYPE = "AddressDt";
-
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="location_seq_gen")
 	@SequenceGenerator(name="location_seq_gen", sequenceName="location_id_seq", allocationSize=1)

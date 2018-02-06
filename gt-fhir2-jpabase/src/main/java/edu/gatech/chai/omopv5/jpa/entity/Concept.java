@@ -10,20 +10,15 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 @Entity
 @Table(name="concept")
-@NamedQueries(value = { 
-		@NamedQuery(name = "findConceptByCode", 
-				query = "select c.id from Concept c where c.conceptCode like :code"),
-		@NamedQuery(name = "findDomainByCode",
-				query = "select c.domain from Concept c where c.conceptCode like :code")
-		})
+@Inheritance(strategy=InheritanceType.JOINED)
 public class Concept extends BaseEntity {
 	
 	@Id

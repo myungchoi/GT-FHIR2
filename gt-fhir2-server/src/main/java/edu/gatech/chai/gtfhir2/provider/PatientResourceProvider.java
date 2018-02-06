@@ -54,6 +54,9 @@ private OmopPatient myMapper;
 	@Create()
 	public MethodOutcome createPatient(@ResourceParam Patient thePatient) {
 		validateResource(thePatient);
+		
+		myMapper.toDbase(thePatient);
+		
 		long id = 1L;
 		return new MethodOutcome(new IdDt(id));
 	}
