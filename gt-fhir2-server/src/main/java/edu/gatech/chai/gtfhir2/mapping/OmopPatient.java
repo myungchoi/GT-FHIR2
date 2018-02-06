@@ -321,7 +321,9 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			index++;
 		}
 		
-		return myOmopService.createOrUpdate(fperson).getId();
+		Long omopRecordId = myOmopService.createOrUpdate(fperson).getId();
+		Long fhirId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Patient.getPath());
+		return fhirId;
 	}
 	
 	public Provider searchAndUpdate (Reference generalPractitioner) {
