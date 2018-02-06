@@ -9,9 +9,10 @@ package edu.gatech.chai.gtfhir2.mapping;
 public class IdMapping {
 	
 	public static Long getFHIRfromOMOP(Long omop_id, String omop_table_name) {
-		// We use the same ID now.
+		// We use the same ID for now.
 		// TODO: Develop the ID mapping so that we do not reveal native
-		//       OMOP ID.
+		//       OMOP ID. If the mapping exists, send it. If not, create a new
+		//       mapping.
 		
 		return omop_id;
 	}
