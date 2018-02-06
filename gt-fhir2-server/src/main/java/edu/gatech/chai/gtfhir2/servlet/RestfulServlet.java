@@ -38,13 +38,6 @@ public class RestfulServlet extends RestfulServer {
 	 */
 	@Override
 	public void initialize() {
-//		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
-//		CareSiteService careSite = myAppCtx.getBean(CareSiteService.class);
-//		if (careSite == null) {
-//			System.out.println("ERROR");
-//			System.exit(0);
-//		}
-
 		/*
 		 * Two resource providers are defined. Each one handles a specific
 		 * type of resource.

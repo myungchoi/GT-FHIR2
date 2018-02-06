@@ -6,6 +6,8 @@ import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.ResourceType;
 
+import java.util.List;
+
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -87,5 +89,11 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 	@Override
 	public Long toDbase(Organization Fhir) {
 		return 0L;
+	}
+
+	@Override
+	public List<Organization> getAllResources() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
