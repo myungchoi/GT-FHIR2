@@ -351,6 +351,12 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		}
 	}
 	
+	@Override
+	public List<Patient> getAllResources() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	public Location searchAndUpdate (Address address, Location location) {
 		if (address == null) return null;
 		
