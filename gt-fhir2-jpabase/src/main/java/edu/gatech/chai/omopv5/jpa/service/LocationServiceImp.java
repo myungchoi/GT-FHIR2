@@ -75,4 +75,14 @@ public class LocationServiceImp implements LocationService {
 		return entity;
 	}
 
+	@Transactional(readOnly = true)
+	@Override
+	public Long getSize() {
+		EntityManager em = locationDao.getEntityManager();
+		
+		String query = "SELECT COUNT(t) FROM Location t";
+		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
+		return totalSize;
+	}
+
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.gatech.chai.omopv5.jpa.dao.ProviderDao;
+import edu.gatech.chai.omopv5.jpa.entity.CareSite;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
 
 @Service
@@ -47,6 +48,16 @@ public class ProviderServiceImp implements ProviderService {
 			providerDao.add(entity);
 		}
 		return entity;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Long getSize() {
+		EntityManager em = providerDao.getEntityManager();
+		
+		String query = "SELECT COUNT(t) FROM Provider t";
+		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
+		return totalSize;
 	}
 	
 }

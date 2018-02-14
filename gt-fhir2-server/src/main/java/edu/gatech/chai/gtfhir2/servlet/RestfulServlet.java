@@ -2,20 +2,19 @@ package edu.gatech.chai.gtfhir2.servlet;
 
 import java.util.*;
 
-import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.cors.CorsConfiguration;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.narrative.DefaultThymeleafNarrativeGenerator;
 import ca.uhn.fhir.narrative.INarrativeGenerator;
+import ca.uhn.fhir.rest.server.FifoMemoryPagingProvider;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
 import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
-import edu.gatech.chai.omopv5.jpa.service.CareSiteServiceImp;
 
 /**
  * This servlet is the actual FHIR server itself
@@ -47,6 +46,14 @@ public class RestfulServlet extends RestfulServer {
 		providers.add(new OrganizationResourceProvider());
 		setResourceProviders(providers);
 		
+		/*
+		 * Add page provider. Use memory based on for now.
+		 */
+		FifoMemoryPagingProvider pp = new FifoMemoryPagingProvider(10);
+        pp.setDefaultPageSize(10);
+        pp.setMaximumPageSize(100);
+        setPagingProvider(pp);
+        
 		/*
 		 * Use a narrative generator. This is a completely optional step, 
 		 * but can be useful as it causes HAPI to generate narratives for
