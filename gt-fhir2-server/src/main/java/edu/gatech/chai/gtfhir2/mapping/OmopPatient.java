@@ -20,8 +20,10 @@ import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.dstu3.model.codesystems.V3MaritalStatus;
 import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.model.api.IResource;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
@@ -53,7 +55,6 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	 */
 	@Override
 	public Patient toFHIR(IdType id) {
-		Patient patient = new Patient();
 		String patientResourceName = ResourceType.Patient.getPath();
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, patientResourceName);
@@ -62,6 +63,12 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		if (fPerson == null) return null;
 		
 		Long fhirId = IdMapping.getFHIRfromOMOP(myId, patientResourceName);
+
+		return constructPatient(fhirId, fPerson);
+	}
+	
+	private Patient constructPatient(Long fhirId, FPerson fPerson) {
+		Patient patient = new Patient();
 		patient.setId(new IdType(fhirId));
 
 		// Start mapping Person/FPerson table to Patient Resource.
@@ -326,6 +333,29 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		return fhirId;
 	}
 	
+	public void searchWithoutParams (int fromIndex, int toIndex, List<IBaseResource> listResources) {
+		List<FPerson> fPersons = myOmopService.searchWithoutParams(fromIndex, toIndex);
+		
+		// We got the results back from OMOP database. Now, we need to construct the list of
+		// FHIR Patient resources to be included in the bundle.
+		for (FPerson fPerson : fPersons) {
+			Long omopId = fPerson.getId();
+			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+			listResources.add(constructPatient(fhirId, fPerson));
+		}
+	}
+	
+	/**
+	 * searchAndUpdate: search the database for general Practitioner. This is
+	 *                  provider table in OMOP. If exist, return it. We may have
+	 *                  this received before, in this case, search it from source
+	 *                  column and return it. Otherwise, create a new one.
+	 *                  
+	 *                  Returns provider entity in OMOP.
+	 *                  
+	 * @param generalPractitioner
+	 * @return
+	 */
 	public Provider searchAndUpdate (Reference generalPractitioner) {
 		if (generalPractitioner == null) return null;
 		
@@ -352,9 +382,8 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	}
 	
 	@Override
-	public List<Patient> getAllResources() {
-		// TODO Auto-generated method stub
-		return null;
+	public Long getSize() {
+		return myOmopService.getSize();
 	}
 
 	public Location searchAndUpdate (Address address, Location location) {

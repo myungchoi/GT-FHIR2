@@ -21,7 +21,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @Configuration
 @EnableTransactionManagement
 @ComponentScans(value = { @ComponentScan("edu.gatech.chai.omopv5.jpa.dao"),
-		@ComponentScan("edu.gatech.chai.omopv5.jpa.service") })
+		@ComponentScan("edu.gatech.chai.omopv5.jpa.service"),
+		@ComponentScan("edu.gatech.chai.fhir.jpa.service") })
 public class FhirServerConfig {
 	@Bean(destroyMethod = "close")
 	public DataSource dataSource() {
@@ -38,7 +39,7 @@ public class FhirServerConfig {
 		LocalContainerEntityManagerFactoryBean retVal = new LocalContainerEntityManagerFactoryBean();
 		retVal.setPersistenceUnitName("GT-FHIR2");
 		retVal.setDataSource(dataSource());
-		retVal.setPackagesToScan("edu.gatech.chai.omopv5.jpa.entity");
+		retVal.setPackagesToScan("edu.gatech.chai.omopv5.jpa.entity", "edu.gatech.chai.fhir.jpa.entity");
 		retVal.setPersistenceProvider(new HibernatePersistenceProvider());
 		retVal.setJpaProperties(jpaProperties());
 		return retVal;

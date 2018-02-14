@@ -48,4 +48,14 @@ public class CareSiteServiceImp implements CareSiteService {
 		return entity;
 	}
 
+	@Transactional(readOnly = true)
+	@Override
+	public Long getSize() {
+		EntityManager em = careSiteDao.getEntityManager();
+		
+		String query = "SELECT COUNT(t) FROM CareSite t";
+		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
+		return totalSize;
+	}
+
 }

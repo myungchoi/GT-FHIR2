@@ -47,7 +47,7 @@ public class FPersonServiceImp implements FPersonService {
 	@Override
 	public FPerson searchByNameAndLocation(String familyName, String given1Name, String given2Name, Location location) {
 		EntityManager em = fPersonDao.getEntityManager();
-		String queryString = "SELECT p FROM PersonComplement p WHERE";
+		String queryString = "SELECT t FROM FPerson t WHERE";
 		
 		// Construct where clause here.
 		String where_clause = "";
@@ -69,7 +69,7 @@ public class FPersonServiceImp implements FPersonService {
 		}
 		
 		queryString += " "+where_clause;
-		System.out.println("Query for Person"+queryString);
+		System.out.println("Query for FPerson"+queryString);
 		
 		TypedQuery<? extends FPerson> query = em.createQuery(queryString, FPerson.class);
 		if (familyName != null) query = query.setParameter("fname", familyName);
@@ -94,5 +94,30 @@ public class FPersonServiceImp implements FPersonService {
 			fPersonDao.add(entity);
 		}
 		return entity;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Long getSize() {
+		EntityManager em = fPersonDao.getEntityManager();
+		
+		String query = "SELECT COUNT(p) FROM FPerson p";
+		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
+		return totalSize;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public List<FPerson> searchWithoutParams(int fromIndex, int toIndex) {
+		int length = toIndex - fromIndex;
+		EntityManager em = fPersonDao.getEntityManager();
+		
+		String query = "SELECT p FROM FPerson p ORDER BY id ASC";
+		List<FPerson> retvals = (List<FPerson>) em.createQuery(query, FPerson.class)
+				.setFirstResult(fromIndex)
+				.setMaxResults(length)
+				.getResultList();
+		
+		return retvals;
 	}
 }

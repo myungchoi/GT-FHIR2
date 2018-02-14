@@ -1,15 +1,20 @@
 package edu.gatech.chai.gtfhir2.provider;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.model.primitive.StringDt;
@@ -21,6 +26,7 @@ import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
@@ -35,6 +41,7 @@ public class PatientResourceProvider implements IResourceProvider {
 private WebApplicationContext myAppCtx;
 private String myDbType;
 private OmopPatient myMapper;
+private int preferredPageSize = 30;
 
 	public PatientResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
@@ -43,6 +50,14 @@ private OmopPatient myMapper;
 			myMapper = new OmopPatient(myAppCtx);
 		} else {
 			myMapper = new OmopPatient(myAppCtx);
+		}
+		
+		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
+		if (pageSizeStr != null && pageSizeStr.isEmpty() == false) {
+			int pageSize = Integer.parseInt(pageSizeStr);
+			if (pageSize > 0) {
+				preferredPageSize = pageSize;
+			} 
 		}
 	}
 
@@ -90,15 +105,42 @@ private OmopPatient myMapper;
 	}
 
 	@Search
-	public List<Patient> findPatientsUsingArbitraryCtriteria() {
-		LinkedList<Patient> retVal = new LinkedList<Patient>();
+	public IBundleProvider getAllPatients() {
+		final InstantType searchTime = InstantType.withCurrentTime();
+		final Long totalSize = myMapper.getSize();
 
-//		for (Deque<Patient> nextPatientList : myIdToPatientVersions.values()) {
-//			Patient nextPatient = nextPatientList.getLast();
-//			retVal.add(nextPatient);
-//		}
-	
-		return retVal;
+		return new IBundleProvider() {
+
+			@Override
+			public IPrimitiveType<Date> getPublished() {
+				return searchTime;
+			}
+
+			@Override
+			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+				List<IBaseResource> retv = new ArrayList<IBaseResource>();
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv);
+				
+				return retv;
+			}
+
+			@Override
+			public String getUuid() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public Integer preferredPageSize() {
+				return preferredPageSize;
+			}
+
+			@Override
+			public Integer size() {
+				return totalSize.intValue();
+			}
+			
+		};
 	}
 	
 	

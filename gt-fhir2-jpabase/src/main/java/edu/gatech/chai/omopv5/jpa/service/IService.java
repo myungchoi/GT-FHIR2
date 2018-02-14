@@ -1,5 +1,7 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
+import java.util.List;
+
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 
 public interface IService<v extends BaseEntity> {
@@ -8,4 +10,5 @@ public interface IService<v extends BaseEntity> {
 	v findById (Long id);
 	v searchByColumnString (String column, String value);
 	v createOrUpdate (v entity);
+	Long getSize();
 }
