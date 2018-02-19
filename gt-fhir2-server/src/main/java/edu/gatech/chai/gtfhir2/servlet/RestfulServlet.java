@@ -8,6 +8,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.narrative.DefaultThymeleafNarrativeGenerator;
 import ca.uhn.fhir.narrative.INarrativeGenerator;
+import ca.uhn.fhir.rest.api.EncodingEnum;
 import ca.uhn.fhir.rest.server.FifoMemoryPagingProvider;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.RestfulServer;
@@ -88,6 +89,10 @@ public class RestfulServlet extends RestfulServer {
 		 */
 		setDefaultPrettyPrint(true);
 		
+		/*
+		 * Set response encoding.
+		 */
+		setDefaultResponseEncoding(EncodingEnum.JSON);
 	}
 
 }

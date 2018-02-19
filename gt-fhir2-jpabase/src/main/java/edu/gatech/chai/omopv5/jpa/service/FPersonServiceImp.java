@@ -1,9 +1,15 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -119,5 +125,41 @@ public class FPersonServiceImp implements FPersonService {
 				.getResultList();
 		
 		return retvals;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
+		// Construct predicate from this map.
+		EntityManager em = fPersonDao.getEntityManager();
+		CriteriaBuilder builder = em.getCriteriaBuilder();
+		CriteriaQuery<Long> fPersonQuery = builder.createQuery(Long.class);
+		Root<FPerson> fPersonRoot = fPersonQuery.from(FPerson.class);
+
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, fPersonRoot);		
+		if (predicates == null || predicates.isEmpty()) return 0L;
+
+		fPersonQuery.select(builder.count(fPersonRoot));
+		fPersonQuery.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
+		
+		return em.createQuery(fPersonQuery).getSingleResult();
+	}
+
+	@Override
+	public List<FPerson> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
+		// Construct predicate from this map.
+		EntityManager em = fPersonDao.getEntityManager();
+		CriteriaBuilder builder = em.getCriteriaBuilder();
+		CriteriaQuery<FPerson> fPersonQuery = builder.createQuery(FPerson.class);
+		Root<FPerson> fPersonRoot = fPersonQuery.from(FPerson.class);
+		
+		List<FPerson> fPersons = new ArrayList<FPerson>();
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, fPersonRoot);		
+		if (predicates == null || predicates.isEmpty()) return fPersons; // Nothing. return empty list
+	
+		fPersonQuery.select(fPersonRoot);
+		fPersonQuery.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
+
+		return em.createQuery(fPersonQuery).getResultList();
 	}
 }
