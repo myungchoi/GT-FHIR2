@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -20,14 +21,19 @@ import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.dstu3.model.codesystems.V3MaritalStatus;
 import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.model.api.IResource;
+import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
 import edu.gatech.chai.omopv5.jpa.service.FPersonService;
 import edu.gatech.chai.omopv5.jpa.service.LocationService;
+import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 
 public class OmopPatient implements ResourceMapping<Patient> {
@@ -53,7 +59,6 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	 */
 	@Override
 	public Patient toFHIR(IdType id) {
-		Patient patient = new Patient();
 		String patientResourceName = ResourceType.Patient.getPath();
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, patientResourceName);
@@ -62,6 +67,12 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		if (fPerson == null) return null;
 		
 		Long fhirId = IdMapping.getFHIRfromOMOP(myId, patientResourceName);
+
+		return constructPatient(fhirId, fPerson);
+	}
+	
+	private Patient constructPatient(Long fhirId, FPerson fPerson) {
+		Patient patient = new Patient();
 		patient.setId(new IdType(fhirId));
 
 		// Start mapping Person/FPerson table to Patient Resource.
@@ -326,6 +337,45 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		return fhirId;
 	}
 	
+	/**
+	 * 
+	 * @param fromIndex
+	 * @param toIndex
+	 * @param listResources
+	 */
+	public void searchWithoutParams (int fromIndex, int toIndex, List<IBaseResource> listResources) {
+		List<FPerson> fPersons = myOmopService.searchWithoutParams(fromIndex, toIndex);
+		
+		// We got the results back from OMOP database. Now, we need to construct the list of
+		// FHIR Patient resources to be included in the bundle.
+		for (FPerson fPerson : fPersons) {
+			Long omopId = fPerson.getId();
+			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+			listResources.add(constructPatient(fhirId, fPerson));
+		}
+	}
+	
+	public void searchWithParams (int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map, List<IBaseResource> listResources) {
+		List<FPerson> fPersons = myOmopService.searchWithParams(fromIndex, toIndex, map);
+		
+		for (FPerson fPerson : fPersons) {
+			Long omopId = fPerson.getId();
+			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+			listResources.add(constructPatient(fhirId, fPerson));
+		}
+	}
+	
+	/**
+	 * searchAndUpdate: search the database for general Practitioner. This is
+	 *                  provider table in OMOP. If exist, return it. We may have
+	 *                  this received before, in this case, search it from source
+	 *                  column and return it. Otherwise, create a new one.
+	 *                  
+	 *                  Returns provider entity in OMOP.
+	 *                  
+	 * @param generalPractitioner
+	 * @return
+	 */
 	public Provider searchAndUpdate (Reference generalPractitioner) {
 		if (generalPractitioner == null) return null;
 		
@@ -352,11 +402,55 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	}
 	
 	@Override
-	public List<Patient> getAllResources() {
-		// TODO Auto-generated method stub
-		return null;
+	public Long getSize() {
+		return myOmopService.getSize();
 	}
 
+	public Long getSize(Map<String, List<ParameterWrapper>> map) {
+		return myOmopService.getSize(map);
+	}
+	
+	/**
+	 * mapParameter: This maps the FHIR parameter to OMOP column name.
+	 * @param parameter
+	 * 		FHIR parameter name.
+	 * @param value
+	 * 		FHIR value for the parameter
+	 * @return
+	 * 		returns ParameterWrapper class, which contains OMOP column name
+	 * 		and value with operator.
+	 */
+	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
+		ParameterWrapper paramWrapper = new ParameterWrapper();
+		switch (parameter) {
+		case Patient.SP_ACTIVE:
+			// True of False in FHIR. In OMOP, this is 1 or 0.
+			String activeValue = ((TokenParam) value).getValue();
+			String activeString;
+			if (activeValue.equalsIgnoreCase("true")) activeString = "1";
+			else activeString = "0";
+			paramWrapper.setParameterType("Short");
+			paramWrapper.setParameter("active");
+			paramWrapper.setOperator("=");
+			paramWrapper.setValue(activeString);
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_FAMILY:
+			// This is family name, which is string. use like.
+			String familyString = ((StringParam) value).getValue();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameter("familyName");
+			paramWrapper.setOperator("like");
+			paramWrapper.setValue(familyString);
+			mapList.add(paramWrapper);
+			break;
+		default: mapList = null;
+		}
+		
+		return mapList;
+	}
+	
 	public Location searchAndUpdate (Address address, Location location) {
 		if (address == null) return null;
 		

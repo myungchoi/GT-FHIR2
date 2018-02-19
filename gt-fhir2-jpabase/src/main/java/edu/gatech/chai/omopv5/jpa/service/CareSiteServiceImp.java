@@ -1,6 +1,7 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
 
@@ -46,6 +47,34 @@ public class CareSiteServiceImp implements CareSiteService {
 			careSiteDao.add(entity);
 		}
 		return entity;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Long getSize() {
+		EntityManager em = careSiteDao.getEntityManager();
+		
+		String query = "SELECT COUNT(t) FROM CareSite t";
+		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
+		return totalSize;
+	}
+
+	@Override
+	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<CareSite> searchWithoutParams(int fromIndex, int toIndex) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<CareSite> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

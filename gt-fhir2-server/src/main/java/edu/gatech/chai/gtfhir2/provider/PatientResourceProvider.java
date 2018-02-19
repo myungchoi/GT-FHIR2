@@ -1,30 +1,45 @@
 package edu.gatech.chai.gtfhir2.provider;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.model.primitive.StringDt;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
+import ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum;
+
 import edu.gatech.chai.gtfhir2.mapping.OmopPatient;
+import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
+
 
 /**
  * This is a resource provider which stores Patient resources in memory using a HashMap. This is obviously not a production-ready solution for many reasons, 
@@ -35,6 +50,7 @@ public class PatientResourceProvider implements IResourceProvider {
 private WebApplicationContext myAppCtx;
 private String myDbType;
 private OmopPatient myMapper;
+private int preferredPageSize = 30;
 
 	public PatientResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
@@ -43,6 +59,14 @@ private OmopPatient myMapper;
 			myMapper = new OmopPatient(myAppCtx);
 		} else {
 			myMapper = new OmopPatient(myAppCtx);
+		}
+		
+		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
+		if (pageSizeStr != null && pageSizeStr.isEmpty() == false) {
+			int pageSize = Integer.parseInt(pageSizeStr);
+			if (pageSize > 0) {
+				preferredPageSize = pageSize;
+			} 
 		}
 	}
 
@@ -65,13 +89,83 @@ private OmopPatient myMapper;
 	 * 
 	 * @param theFamilyName
 	 *            This operation takes one parameter which is the search criteria. It is annotated with the "@Required" annotation. This annotation takes one argument, a string containing the name of
-	 *            the search criteria. The datatype here is StringDt, but there are other possible parameter types depending on the specific search criteria.
-	 * @return This method returns a list of Patients. This list may contain multiple matching resources, or it may also be empty.
+	 *            the search criteria. The datatype here is StringParam, but there are other possible parameter types depending on the specific search criteria.
+	 * @return This method returns a list of Patients in bundle. This list may contain multiple matching resources, or it may also be empty.
 	 */
 	@Search()
-	public List<Patient> findPatientsByName(@RequiredParam(name = Patient.SP_FAMILY) StringDt theFamilyName) {
-		LinkedList<Patient> retVal = new LinkedList<Patient>();
+	public IBundleProvider findPatientsByParams(
+			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
+			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
+			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName
+			) {
+		final InstantType searchTime = InstantType.withCurrentTime();
 
+		/*
+		 * Create parameter map, which will be used later to construct
+		 * predicate. The predicate construction should depend on the DB schema.
+		 * Therefore, we should let our mpper to do any necessary mapping on the
+		 * parameter(s). If the FHIR parameter is not mappable, the mapper should
+		 * return null, which will be skipped when predicate is constructed.
+		 */
+		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		
+		if (theActive != null) {
+			mapParameter (paramMap, Patient.SP_ACTIVE, theActive);
+		}
+		
+		if (theFamilyName != null) {
+			mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
+		}
+		
+		if (theGivenName != null) {
+			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
+		}
+
+		// if parameter map is empty, then it's to get all.
+		// Get them and retun.
+		System.out.println("map: size="+paramMap.size());
+		if (paramMap.size() == 0) {
+			return getAllPatients();
+		}
+		
+		// Now finalize the parameter map.
+		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
+		final Long totalSize = myMapper.getSize(finalParamMap);
+		System.out.println("Search Patient: "+totalSize);
+		
+		return new IBundleProvider() {
+
+			@Override
+			public IPrimitiveType<Date> getPublished() {
+				return searchTime;
+			}
+
+			@Override
+			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+				List<IBaseResource> retv = new ArrayList<IBaseResource>();
+				myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv);
+				
+				return retv;
+			}
+
+			@Override
+			public String getUuid() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public Integer preferredPageSize() {
+				return preferredPageSize;
+			}
+
+			@Override
+			public Integer size() {
+				return totalSize.intValue();
+			}
+			
+		};
+		
 //		/*
 //		 * Look for all patients matching the name
 //		 */
@@ -86,19 +180,52 @@ private OmopPatient myMapper;
 //			}
 //		}
 
-		return retVal;
 	}
 
-	@Search
-	public List<Patient> findPatientsUsingArbitraryCtriteria() {
-		LinkedList<Patient> retVal = new LinkedList<Patient>();
+	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
+		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
+		if (paramList != null) {
+			paramMap.put(FHIRparam, paramList);
+		}
+	}
 
-//		for (Deque<Patient> nextPatientList : myIdToPatientVersions.values()) {
-//			Patient nextPatient = nextPatientList.getLast();
-//			retVal.add(nextPatient);
-//		}
-	
-		return retVal;
+
+	private IBundleProvider getAllPatients() {
+		final InstantType searchTime = InstantType.withCurrentTime();
+		final Long totalSize = myMapper.getSize();
+
+		return new IBundleProvider() {
+
+			@Override
+			public IPrimitiveType<Date> getPublished() {
+				return searchTime;
+			}
+
+			@Override
+			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+				List<IBaseResource> retv = new ArrayList<IBaseResource>();
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv);
+				
+				return retv;
+			}
+
+			@Override
+			public String getUuid() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public Integer preferredPageSize() {
+				return preferredPageSize;
+			}
+
+			@Override
+			public Integer size() {
+				return totalSize.intValue();
+			}
+			
+		};
 	}
 	
 	

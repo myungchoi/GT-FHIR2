@@ -21,6 +21,8 @@
 		<param-value>
 			omopv5
 		</param-value>
+		<param-name>preferredPageSize</param-name>
+		<param-value>30</param-value>
 	</context-param>
 
 
