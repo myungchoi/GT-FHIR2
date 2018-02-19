@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.gatech.chai.omopv5.jpa.dao.CareSiteDao;
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
-import edu.gatech.chai.omopv5.jpa.entity.Location;
 
 @Service
 public class CareSiteServiceImp implements CareSiteService {
@@ -37,19 +36,6 @@ public class CareSiteServiceImp implements CareSiteService {
 			return results.get(0);
 		else
 			return null;	
-	}
-	
-	@Transactional(readOnly = true)
-	@Override
-	public CareSite searchByLocation(Location location) {
-		EntityManager em = careSiteDao.getEntityManager();
-		String query = "SELECT t FROM CareSite t WHERE location_id like :value:";
-		List<? extends CareSite> results = em.createQuery(query, CareSite.class)
-				.setParameter("value",location.getId()).getResultList();
-		if (results.size() > 0) {
-			return results.get(0);
-		} else
-			return null;
 	}
 
 	@Transactional

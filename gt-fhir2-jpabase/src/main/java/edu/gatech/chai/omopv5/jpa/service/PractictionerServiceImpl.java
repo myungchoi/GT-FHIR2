@@ -1,7 +1,6 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
 import java.util.List;
-import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
@@ -53,29 +52,5 @@ public class PractictionerServiceImpl implements PractictionerService {
 			providerDao.add(entity);
 		}
 		return entity;
-	}
-
-	@Override
-	public List<Provider> searchWithoutParams(int fromIndex, int toIndex) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Provider> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Long getSize() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }
