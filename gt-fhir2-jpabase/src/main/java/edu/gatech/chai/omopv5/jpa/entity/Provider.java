@@ -22,6 +22,8 @@ import javax.persistence.Table;
 @Inheritance(strategy=InheritanceType.JOINED)
 public class Provider extends BaseEntity {
 
+	public static final String RES_TYPE = "Provider";
+	
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="provider_seq_gen")
 	@SequenceGenerator(name="provider_seq_gen", sequenceName="provider_id_seq", allocationSize=1)
@@ -30,13 +32,13 @@ public class Provider extends BaseEntity {
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	
-	@Column(name="provider_name")
+	@Column(name="provider_name", length = 50)
 	private String providerName;
 
-	@Column(name="npi")
+	@Column(name="npi", length = 20)
 	private String npi;
 	
-	@Column(name="dea")
+	@Column(name="dea", length = 20)
 	private String dea;
 	
 	@ManyToOne(cascade={CascadeType.MERGE})
@@ -54,17 +56,17 @@ public class Provider extends BaseEntity {
 	@JoinColumn(name="gender_concept_id")
 	private Concept genderConcept;
 
-	@Column(name="provider_source_value")
+	@Column(name="provider_source_value", length = 50)
 	private String providerSourceValue;
 	
-	@Column(name="specialty_source_value")
+	@Column(name="specialty_source_value", length = 50)
 	private String specialtySourceValue;
 	
 	@ManyToOne(fetch=FetchType.LAZY,cascade={CascadeType.MERGE})
 	@JoinColumn(name="specialty_source_concept_id")
 	private Concept specialtySourceConcept;
 
-	@Column(name="gender_source_value")
+	@Column(name="gender_source_value", length = 50)
 	private String genderSourceValue;
 	
 	@ManyToOne(fetch=FetchType.LAZY,cascade={CascadeType.MERGE})
@@ -150,6 +152,14 @@ public class Provider extends BaseEntity {
 		this.yearOfBirth = yearOfBirth;
 	}
 	
+	public Concept getGenderConcept() {
+		return genderConcept;
+	}
+
+	public void setGenderConcept(Concept genderConcept) {
+		this.genderConcept = genderConcept;
+	}
+	
 	public String getProviderSourceValue() {
 		return providerSourceValue;
 	}
@@ -157,7 +167,15 @@ public class Provider extends BaseEntity {
 	public void setProviderSourceValue(String providerSourceValue) {
 		this.providerSourceValue = providerSourceValue;
 	}
-	
+
+	public Concept getSpecialtySourceConcept() {
+		return specialtySourceConcept;
+	}
+
+	public void setSpecialtySourceConcept(Concept specialtySourceConcept) {
+		this.specialtySourceConcept = specialtySourceConcept;
+	}
+
 	public String getSpecialtySourceValue() {
 		return specialtySourceValue;
 	}
@@ -165,5 +183,21 @@ public class Provider extends BaseEntity {
 	public void setSpecialtySourceValue(String specialtySourceValue) {
 		this.specialtySourceValue = specialtySourceValue;
 	}
+	
+	public String getGenderSourceValue() {
+		return genderSourceValue;
+	}
 
+	public void setGenderSourceValue(String genderSourceValue) {
+		this.genderSourceValue = genderSourceValue;
+	}
+
+	public Concept getGenderSourceConcept() {
+		return genderSourceConcept;
+	}
+
+	public void setGenderSourceConcept(Concept genderSourceConcept) {
+		this.genderSourceConcept = genderSourceConcept;
+	}
+	
 }
