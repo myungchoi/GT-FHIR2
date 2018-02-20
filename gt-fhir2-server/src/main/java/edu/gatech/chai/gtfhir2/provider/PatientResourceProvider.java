@@ -97,11 +97,10 @@ private int preferredPageSize = 30;
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
 			
-			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization"})
-			Set<Include> theIncludes
+			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
+			final Set<Include> theIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
-		final Set<Include> theIncludesFinal = theIncludes;
 		
 		/*
 		 * Create parameter map, which will be used later to construct
@@ -126,14 +125,19 @@ private int preferredPageSize = 30;
 
 		// if parameter map is empty, then it's to get all.
 		// Get them and retun.
-		System.out.println("map: size="+paramMap.size());
-		if (paramMap.size() == 0) {
-			return getAllPatients();
-		}
+//		System.out.println("map: size="+paramMap.size());
+//		if (paramMap.size() == 0) {
+//			return getAllPatients(theIncludesFinal);
+//		}
 		
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize = myMapper.getSize(finalParamMap);
+		final Long totalSize;
+		if (paramMap.size() == 0) {
+			totalSize = myMapper.getSize();
+		} else {
+			totalSize = myMapper.getSize(finalParamMap);
+		}
 
 		return new IBundleProvider() {
 
@@ -148,15 +152,23 @@ private int preferredPageSize = 30;
 
 				// _Include
 				List<String> includes = new ArrayList<String>();
-				if (theIncludesFinal.contains(new Include("Patient:general-practitioner"))) {
+				if (theIncludes.contains(new Include("Patient:general-practitioner"))) {
 					includes.add("Patient:general-practitioner");
 				}
 				
-				if (theIncludesFinal.contains(new Include("Patient:organization"))) {
+				if (theIncludes.contains(new Include("Patient:organization"))) {
 					includes.add("Patient:organization");
 				}
 				
-				myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
+				if (theIncludes.contains(new Include("Patient:link"))) {
+					includes.add("Patient:link");
+				}
+
+				if (finalParamMap.size() == 0) {
+					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+				} else {
+					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
+				}
 				
 				return retv;
 			}
@@ -188,45 +200,6 @@ private int preferredPageSize = 30;
 		}
 	}
 
-
-	private IBundleProvider getAllPatients() {
-		final InstantType searchTime = InstantType.withCurrentTime();
-		final Long totalSize = myMapper.getSize();
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				myMapper.searchWithoutParams(fromIndex, toIndex, retv);
-				
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-			
-		};
-	}
-	
 	
 	/**
 	 * The getResourceType method comes from IResourceProvider, and must be overridden to indicate what type of resource this provider supplies.
