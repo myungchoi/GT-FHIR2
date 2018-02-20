@@ -1,7 +1,10 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
+import org.hl7.fhir.dstu3.model.BooleanType;
+import org.hl7.fhir.dstu3.model.CodeType;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.ResourceType;
@@ -39,8 +42,7 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 	 * @return
 	 */
 	@Override
-	public Organization toFHIR(IdType id) {
-		MyOrganization organization = new MyOrganization();
+	public MyOrganization toFHIR(IdType id) {
 		String organizationResourceName = ResourceType.Organization.getPath();
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, organizationResourceName);
@@ -53,8 +55,14 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 		// fhir.name = omop.care_site_name
 		// fhir.type = omop.place_of_service_concept_id
 		// address = location_id
-
 		Long fhirId = IdMapping.getFHIRfromOMOP(myId, organizationResourceName);
+
+		return constructFHIR(fhirId, careSite);
+	}
+	
+	public static MyOrganization constructFHIR(Long fhirId, CareSite careSite) {
+		MyOrganization organization = new MyOrganization();
+
 		organization.setId(new IdType (fhirId));
 		
 		if (careSite.getCareSiteName() != null && careSite.getCareSiteName() != "") {
@@ -81,6 +89,16 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 //				.setPeriod(period);
 		}
 		
+		// TODO: Static Extensions for sample. Remove this later.
+		// Populate the first, primitive extension
+		organization.setBillingCode(new CodeType("00102-1"));
+		
+		// The second extension is repeatable and takes a block type
+		MyOrganization.EmergencyContact contact = new MyOrganization.EmergencyContact();
+		contact.setActive(new BooleanType(true));
+		contact.setContact(new ContactPoint());
+		organization.getEmergencyContact().add(contact);
+
 		return organization; 
 	}
 

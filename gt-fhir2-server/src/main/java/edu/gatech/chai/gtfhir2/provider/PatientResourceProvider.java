@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
@@ -17,9 +18,11 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
@@ -92,10 +95,14 @@ private int preferredPageSize = 30;
 	public IBundleProvider findPatientsByParams(
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
-			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName
+			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
+			
+			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization"})
+			Set<Include> theIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
-
+		final Set<Include> theIncludesFinal = theIncludes;
+		
 		/*
 		 * Create parameter map, which will be used later to construct
 		 * predicate. The predicate construction should depend on the DB schema.
@@ -127,8 +134,7 @@ private int preferredPageSize = 30;
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize = myMapper.getSize(finalParamMap);
-		System.out.println("Search Patient: "+totalSize);
-		
+
 		return new IBundleProvider() {
 
 			@Override
@@ -139,7 +145,18 @@ private int preferredPageSize = 30;
 			@Override
 			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
 				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv);
+
+				// _Include
+				List<String> includes = new ArrayList<String>();
+				if (theIncludesFinal.contains(new Include("Patient:general-practitioner"))) {
+					includes.add("Patient:general-practitioner");
+				}
+				
+				if (theIncludesFinal.contains(new Include("Patient:organization"))) {
+					includes.add("Patient:organization");
+				}
+				
+				myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
 				
 				return retv;
 			}
@@ -162,20 +179,6 @@ private int preferredPageSize = 30;
 			
 		};
 		
-//		/*
-//		 * Look for all patients matching the name
-//		 */
-//		for (Deque<Patient> nextPatientList : myIdToPatientVersions.values()) {
-//			Patient nextPatient = nextPatientList.getLast();
-//			for (HumanName nextName : nextPatient.getName()) {
-//				String nextFamily = nextName.getFamily();
-//				if (theFamilyName.equals(nextFamily)) {
-//					retVal.add(nextPatient);
-//					break;
-//				}
-//			}
-//		}
-
 	}
 
 	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
