@@ -21,8 +21,6 @@ import javax.persistence.Table;
 @Inheritance(strategy=InheritanceType.JOINED)
 public class Person extends BaseEntity {
 
-	public static final String RES_TYPE = "Patient";
-	
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="person_id_seq")
 	@SequenceGenerator(name="person_id_seq", sequenceName="person_id_seq", allocationSize=1)

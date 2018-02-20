@@ -1,5 +1,7 @@
 package edu.gatech.chai.omopv5.jpa.entity;
 
+import java.util.Date;
+
 import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.CascadeType;
@@ -12,8 +14,6 @@ import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 
 public class ConditionOccurrence extends BaseEntity{
-	
-	public static final String RES_TYPE = "Patient";
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="condition_occurrence_id_seq")
