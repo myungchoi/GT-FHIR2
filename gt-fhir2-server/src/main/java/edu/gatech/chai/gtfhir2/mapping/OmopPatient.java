@@ -1,6 +1,7 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
@@ -41,36 +42,36 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	private FPersonService myOmopService;
 	private LocationService locationService;
 	private ProviderService providerService;
-	
+
 	public OmopPatient(WebApplicationContext context) {
 		myOmopService = context.getBean(FPersonService.class);
 		locationService = context.getBean(LocationService.class);
 		providerService = context.getBean(ProviderService.class);
 	}
-	
+
 	/**
 	 * Omop on FHIR mapping - from OMOP to FHIR.
 	 * 
-	 * @param patient ID
-	 * 	The Patient Resource ID in IdType variable type.
+	 * @param patient
+	 *            ID The Patient Resource ID in IdType variable type.
 	 * 
-	 * @return Patient
-	 * 	Returns Patient Resource mapped from OMOP Person table.
+	 * @return Patient Returns Patient Resource mapped from OMOP Person table.
 	 */
 	@Override
 	public Patient toFHIR(IdType id) {
 		String patientResourceName = ResourceType.Patient.getPath();
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, patientResourceName);
-		
+
 		FPerson fPerson = (FPerson) myOmopService.findById(myId);
-		if (fPerson == null) return null;
-		
+		if (fPerson == null)
+			return null;
+
 		Long fhirId = IdMapping.getFHIRfromOMOP(myId, patientResourceName);
 
 		return constructPatient(fhirId, fPerson);
 	}
-	
+
 	private Patient constructPatient(Long fhirId, FPerson fPerson) {
 		Patient patient = new Patient();
 		patient.setId(new IdType(fhirId));
@@ -78,34 +79,36 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		// Start mapping Person/FPerson table to Patient Resource.
 		Calendar calendar = Calendar.getInstance();
 		int yob, mob, dob;
-		if (fPerson.getYearOfBirth() != null) 
-			yob = fPerson.getYearOfBirth(); 
-		else 
+		if (fPerson.getYearOfBirth() != null)
+			yob = fPerson.getYearOfBirth();
+		else
 			yob = 1;
-		if (fPerson.getMonthOfBirth() != null) 
-			mob = fPerson.getMonthOfBirth(); 
-		else 
+		if (fPerson.getMonthOfBirth() != null)
+			mob = fPerson.getMonthOfBirth();
+		else
 			mob = 1;
-		if (fPerson.getDayOfBirth() != null) 
-			dob = fPerson.getDayOfBirth(); 
-		else 
+		if (fPerson.getDayOfBirth() != null)
+			dob = fPerson.getDayOfBirth();
+		else
 			dob = 1;
-		
-		calendar.set(yob, mob-1, dob);
+
+		calendar.set(yob, mob - 1, dob);
 		patient.setBirthDate(calendar.getTime());
-		
-		if(fPerson.getLocation() != null && fPerson.getLocation().getId() != 0L){
-			patient.addAddress()
-				.setUse(AddressUse.HOME)
-				.addLine(fPerson.getLocation().getAddress1())
-				.addLine(fPerson.getLocation().getAddress2())//WARNING check if mapping for lines are correct
-				.setCity(fPerson.getLocation().getCity())
-				.setPostalCode(fPerson.getLocation().getZipCode())
-				.setState(fPerson.getLocation().getState());
+
+		if (fPerson.getLocation() != null && fPerson.getLocation().getId() != 0L) {
+			patient.addAddress().setUse(AddressUse.HOME).addLine(fPerson.getLocation().getAddress1())
+					.addLine(fPerson.getLocation().getAddress2())// WARNING
+																	// check if
+																	// mapping
+																	// for lines
+																	// are
+																	// correct
+					.setCity(fPerson.getLocation().getCity()).setPostalCode(fPerson.getLocation().getZipCode())
+					.setState(fPerson.getLocation().getState());
 		}
-		
+
 		if (fPerson.getGenderConcept() != null) {
-			String gName = fPerson.getGenderConcept().getName().toLowerCase(); 
+			String gName = fPerson.getGenderConcept().getName().toLowerCase();
 			AdministrativeGender gender;
 			try {
 				gender = AdministrativeGender.fromCode(gName);
@@ -114,7 +117,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 				e.printStackTrace();
 			}
 		}
-		
+
 		if (fPerson.getProvider() != null && fPerson.getProvider().getId() != 0L) {
 			Reference generalPractitioner = new Reference(new IdType(fPerson.getProvider().getId()));
 			generalPractitioner.setDisplay(fPerson.getProvider().getProviderName());
@@ -126,7 +129,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		HumanName humanName = new HumanName();
 		humanName.setFamily(fPerson.getFamilyName()).addGiven(fPerson.getGivenName1());
 		patient.addName(humanName);
-		if(fPerson.getGivenName2() != null)
+		if (fPerson.getGivenName2() != null)
 			patient.getName().get(0).addGiven(fPerson.getGivenName2());
 
 		if (fPerson.getActive() == null || fPerson.getActive() == 0)
@@ -139,7 +142,8 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			V3MaritalStatus maritalStatus;
 			try {
 				maritalStatus = V3MaritalStatus.fromCode(fPerson.getMaritalStatus().toUpperCase());
-				Coding coding = new Coding(maritalStatus.getSystem(), maritalStatus.toCode(), maritalStatus.getDisplay());
+				Coding coding = new Coding(maritalStatus.getSystem(), maritalStatus.toCode(),
+						maritalStatus.getDisplay());
 				maritalStatusCode.addCoding(coding);
 				patient.setMaritalStatus(maritalStatusCode);
 			} catch (FHIRException e) {
@@ -147,7 +151,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 				e.printStackTrace();
 			}
 		}
-		
+
 		List<ContactPoint> contactPoints = new ArrayList<ContactPoint>();
 		if (fPerson.getContactPoint1() != null && !fPerson.getContactPoint1().isEmpty()) {
 			String[] contactInfo = fPerson.getContactPoint1().split(":");
@@ -179,38 +183,55 @@ public class OmopPatient implements ResourceMapping<Patient> {
 				contactPoints.add(contactPoint);
 			}
 		}
-		
+
 		patient.setTelecom(contactPoints);
-		
+
 		return patient;
 	}
 
 	/**
 	 * OMOP on FHIR mapping - from FHIR to OMOP
 	 * 
-	 * @param Patient resource.
+	 * @param Patient
+	 *            resource.
 	 * 
-	 * @return Resource ID.
-	 * 	Returns ID in Long. This is what needs to be used to refer 
-	 * 	this resource.
+	 * @return Resource ID. Returns ID in Long. This is what needs to be used to
+	 *         refer this resource.
 	 */
 	@Override
 	public Long toDbase(Patient patient) {
 		FPerson fperson = new FPerson();
 		String personSourceValue = null;
-		
+
 		// Set name
 		Iterator<HumanName> patientIterator = patient.getName().iterator();
-		if(patientIterator.hasNext()){
+		if (patientIterator.hasNext()) {
 			HumanName next = patientIterator.next();
-			fperson.setGivenName1(next.getGiven().get(0).getValue());//the next method was not advancing to the next element, then the need to use the get(index) method
-			if(next.getGiven().size() > 1) //TODO add unit tests, to assure this won't be changed to hasNext
+			fperson.setGivenName1(next.getGiven().get(0).getValue());// the next
+																		// method
+																		// was
+																		// not
+																		// advancing
+																		// to
+																		// the
+																		// next
+																		// element,
+																		// then
+																		// the
+																		// need
+																		// to
+																		// use
+																		// the
+																		// get(index)
+																		// method
+			if (next.getGiven().size() > 1) // TODO add unit tests, to assure
+											// this won't be changed to hasNext
 				fperson.setGivenName2(next.getGiven().get(1).getValue());
 			String family = next.getFamily();
 			fperson.setFamilyName(family);
-			if(next.getSuffix().iterator().hasNext())
+			if (next.getSuffix().iterator().hasNext())
 				fperson.setSuffixName(next.getSuffix().iterator().next().getValue());
-			if(next.getPrefix().iterator().hasNext())
+			if (next.getPrefix().iterator().hasNext())
 				fperson.setPrefixName(next.getPrefix().iterator().next().getValue());
 		}
 
@@ -226,56 +247,61 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			}
 		}
 
-		// In OMOP, we have person source column. 
-		// We will use identifier field as our source column if exists. The identifier better identifies
-		// the identity of this resource across all servers that may have this copy.
+		// In OMOP, we have person source column.
+		// We will use identifier field as our source column if exists. The
+		// identifier better identifies
+		// the identity of this resource across all servers that may have this
+		// copy.
 		//
-		// Identifier has many fields. We can't have them all in OMOP. We only have string field and 
+		// Identifier has many fields. We can't have them all in OMOP. We only
+		// have string field and
 		// size is very limited. So, for now, we only get value part.
 		List<Identifier> identifiers = patient.getIdentifier();
-		
+
 		// TODO: For now, we choose the first identifier if exists.
 		if (identifiers.isEmpty() == false) {
 			Identifier identifier = identifiers.get(0);
 			if (identifier.getValue().isEmpty() == false) {
 				personSourceValue = identifier.getValue();
-				
-				// If ID is not set, then we see if we have existing patient 
+
+				// If ID is not set, then we see if we have existing patient
 				// with this identifier.
 				FPerson person = myOmopService.searchByColumnString("personSourceValue", personSourceValue);
 				fperson.setId(person.getId());
 			}
-		} else if (retLocation != null){
+		} else if (retLocation != null) {
 			// FHIR Patient identifier is empty. Use name and address
 			// to see if we have a patient exits.
 			if (retLocation.getId() != null) {
-				FPerson existingPerson = myOmopService.searchByNameAndLocation(fperson.getFamilyName(), fperson.getGivenName1(), fperson.getGivenName2(), retLocation);
+				FPerson existingPerson = myOmopService.searchByNameAndLocation(fperson.getFamilyName(),
+						fperson.getGivenName1(), fperson.getGivenName2(), retLocation);
 				if (existingPerson != null) {
-					System.out.println("Patient Exists with PID="+existingPerson.getId());
+					System.out.println("Patient Exists with PID=" + existingPerson.getId());
 					fperson.setId(existingPerson.getId());
 				}
-			} 
+			}
 		}
 
 		Concept race = new Concept();
 		race.setId(8552L);
 		fperson.setRaceConcept(race);
-		
-		// Ethnicity is not available in FHIR resource. Set to 0L as there is no unknown ethnicity.
+
+		// Ethnicity is not available in FHIR resource. Set to 0L as there is no
+		// unknown ethnicity.
 		Concept ethnicity = new Concept();
 		ethnicity.setId(0L);
 		fperson.setEthnicityConcept(ethnicity);
 
-		
 		Calendar c = Calendar.getInstance();
 		c.setTime(patient.getBirthDate());
 		fperson.setYearOfBirth(c.get(Calendar.YEAR));
-		fperson.setMonthOfBirth(c.get(Calendar.MONTH)+1);
+		fperson.setMonthOfBirth(c.get(Calendar.MONTH) + 1);
 		fperson.setDayOfBirth(c.get(Calendar.DAY_OF_MONTH));
 
-		//TODO set deceased value in Person; Set gender concept (source value is set); list of addresses (?)
-		//		this.death = patient.getDeceased(); 
-		
+		// TODO set deceased value in Person; Set gender concept (source value
+		// is set); list of addresses (?)
+		// this.death = patient.getDeceased();
+
 		fperson.setGenderConcept(new Concept());
 		String genderCode = patient.getGender().toCode();
 		try {
@@ -283,8 +309,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		} catch (FHIRException e) {
 			e.printStackTrace();
 		}
-		
-		
+
 		List<Reference> generalPractitioners = patient.getGeneralPractitioner();
 		if (generalPractitioners.size() > 0) {
 			// We can handle only one provider.
@@ -293,25 +318,24 @@ public class OmopPatient implements ResourceMapping<Patient> {
 				fperson.setProvider(retProvider);
 			}
 		}
-		
-		
+
 		if (personSourceValue != null)
 			fperson.setPersonSourceValue(personSourceValue);
-		
+
 		if (patient.getActive())
-			fperson.setActive((short)1);
+			fperson.setActive((short) 1);
 		else
-			fperson.setActive((short)0);
-		
+			fperson.setActive((short) 0);
+
 		CodeableConcept maritalStat = patient.getMaritalStatus();
 		if (maritalStat != null) {
 			Coding coding = maritalStat.getCodingFirstRep();
 			if (coding != null) {
-				System.out.println("MARITAL STATUS:"+coding.getCode());
+				System.out.println("MARITAL STATUS:" + coding.getCode());
 				fperson.setMaritalStatus(coding.getCode());
 			}
 		}
-		
+
 		// Get contact information.
 		List<ContactPoint> contactPoints = patient.getTelecom();
 		Iterator<ContactPoint> contactIterator = contactPoints.iterator();
@@ -322,31 +346,32 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			String use = contactPoint.getUse().toCode();
 			String value = contactPoint.getValue();
 			if (index == 0) {
-				fperson.setContactPoint1(system+":"+use+":"+value);
+				fperson.setContactPoint1(system + ":" + use + ":" + value);
 			} else if (index == 1) {
-				fperson.setContactPoint2(system+":"+use+":"+value);
+				fperson.setContactPoint2(system + ":" + use + ":" + value);
 			} else {
-				fperson.setContactPoint3(system+":"+use+":"+value);
+				fperson.setContactPoint3(system + ":" + use + ":" + value);
 				break;
 			}
 			index++;
 		}
-		
+
 		Long omopRecordId = myOmopService.createOrUpdate(fperson).getId();
 		Long fhirId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Patient.getPath());
 		return fhirId;
 	}
-	
+
 	/**
 	 * 
 	 * @param fromIndex
 	 * @param toIndex
 	 * @param listResources
 	 */
-	public void searchWithoutParams (int fromIndex, int toIndex, List<IBaseResource> listResources) {
+	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources) {
 		List<FPerson> fPersons = myOmopService.searchWithoutParams(fromIndex, toIndex);
-		
-		// We got the results back from OMOP database. Now, we need to construct the list of
+
+		// We got the results back from OMOP database. Now, we need to construct
+		// the list of
 		// FHIR Patient resources to be included in the bundle.
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
@@ -354,41 +379,43 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			listResources.add(constructPatient(fhirId, fPerson));
 		}
 	}
-	
-	public void searchWithParams (int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map, List<IBaseResource> listResources) {
+
+	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
+			List<IBaseResource> listResources) {
 		List<FPerson> fPersons = myOmopService.searchWithParams(fromIndex, toIndex, map);
-		
+
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
 			listResources.add(constructPatient(fhirId, fPerson));
 		}
 	}
-	
+
 	/**
 	 * searchAndUpdate: search the database for general Practitioner. This is
-	 *                  provider table in OMOP. If exist, return it. We may have
-	 *                  this received before, in this case, search it from source
-	 *                  column and return it. Otherwise, create a new one.
-	 *                  
-	 *                  Returns provider entity in OMOP.
-	 *                  
+	 * provider table in OMOP. If exist, return it. We may have this received
+	 * before, in this case, search it from source column and return it.
+	 * Otherwise, create a new one.
+	 * 
+	 * Returns provider entity in OMOP.
+	 * 
 	 * @param generalPractitioner
 	 * @return
 	 */
-	public Provider searchAndUpdate (Reference generalPractitioner) {
-		if (generalPractitioner == null) return null;
-		
+	public Provider searchAndUpdate(Reference generalPractitioner) {
+		if (generalPractitioner == null)
+			return null;
+
 		// See if this exists.
 		Long fhirId = generalPractitioner.getReferenceElement().getIdPartAsLong();
 		Long omopId = IdMapping.getOMOPfromFHIR(fhirId, ResourceType.Practitioner.getPath());
-		Provider provider = 
-				(Provider) providerService.findById(omopId);
+		Provider provider = (Provider) providerService.findById(omopId);
 		if (provider != null) {
 			return provider;
 		} else {
 			// Check source column to see if we have received this before.
-			provider = (Provider) providerService.searchByColumnString("providerSourceValue", generalPractitioner.getReferenceElement().getIdPart());
+			provider = (Provider) providerService.searchByColumnString("providerSourceValue",
+					generalPractitioner.getReferenceElement().getIdPart());
 			if (provider != null) {
 				return provider;
 			} else {
@@ -400,7 +427,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			}
 		}
 	}
-	
+
 	@Override
 	public Long getSize() {
 		return myOmopService.getSize();
@@ -409,16 +436,16 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
 		return myOmopService.getSize(map);
 	}
-	
+
 	/**
 	 * mapParameter: This maps the FHIR parameter to OMOP column name.
+	 * 
 	 * @param parameter
-	 * 		FHIR parameter name.
+	 *            FHIR parameter name.
 	 * @param value
-	 * 		FHIR value for the parameter
-	 * @return
-	 * 		returns ParameterWrapper class, which contains OMOP column name
-	 * 		and value with operator.
+	 *            FHIR value for the parameter
+	 * @return returns ParameterWrapper class, which contains OMOP column name
+	 *         and value with operator.
 	 */
 	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
@@ -428,10 +455,12 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			// True of False in FHIR. In OMOP, this is 1 or 0.
 			String activeValue = ((TokenParam) value).getValue();
 			String activeString;
-			if (activeValue.equalsIgnoreCase("true")) activeString = "1";
-			else activeString = "0";
+			if (activeValue.equalsIgnoreCase("true"))
+				activeString = "1";
+			else
+				activeString = "0";
 			paramWrapper.setParameterType("Short");
-			paramWrapper.setParameter("active");
+			paramWrapper.setParameters(Arrays.asList("active"));
 			paramWrapper.setOperator("=");
 			paramWrapper.setValue(activeString);
 			mapList.add(paramWrapper);
@@ -440,20 +469,31 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			// This is family name, which is string. use like.
 			String familyString = ((StringParam) value).getValue();
 			paramWrapper.setParameterType("String");
-			paramWrapper.setParameter("familyName");
+			paramWrapper.setParameters(Arrays.asList("familyName"));
 			paramWrapper.setOperator("like");
 			paramWrapper.setValue(familyString);
 			mapList.add(paramWrapper);
 			break;
-		default: mapList = null;
+		case Patient.SP_GIVEN:
+			// This is given name, which is string. use like.
+			String givenName = ((StringParam) value).getValue();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("givenName1", "givenName2"));
+			paramWrapper.setOperator("like");
+			paramWrapper.setValue(givenName);
+			mapList.add(paramWrapper);
+			break;
+		default:
+			mapList = null;
 		}
-		
+
 		return mapList;
 	}
-	
-	public Location searchAndUpdate (Address address, Location location) {
-		if (address == null) return null;
-		
+
+	public Location searchAndUpdate(Address address, Location location) {
+		if (address == null)
+			return null;
+
 		List<StringType> addressLines = address.getLine();
 		if (addressLines.size() > 0) {
 			String line1 = addressLines.get(0).getValue();
@@ -463,7 +503,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			String zipCode = address.getPostalCode();
 			String city = address.getCity();
 			String state = address.getState();
-			
+
 			Location existingLocation = locationService.searchByAddress(line1, line2, city, state, zipCode);
 			if (existingLocation != null) {
 				return existingLocation;
@@ -478,13 +518,12 @@ public class OmopPatient implements ResourceMapping<Patient> {
 					location.setCity(city);
 					location.setState(state);
 				} else {
-					return new Location (line1, line2, city, state, zipCode);
+					return new Location(line1, line2, city, state, zipCode);
 				}
-			}			
+			}
 		}
-		
+
 		return null;
 	}
-
 
 }
