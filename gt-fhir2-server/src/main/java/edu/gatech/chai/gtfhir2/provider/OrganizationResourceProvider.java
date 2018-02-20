@@ -85,14 +85,14 @@ public class OrganizationResourceProvider implements IResourceProvider {
 			throw new ResourceNotFoundException(theId);
 		}
 		
-		// Populate the first, primitive extension
-		retVal.setBillingCode(new CodeType("00102-1"));
-		
-		// The second extension is repeatable and takes a block type
-		MyOrganization.EmergencyContact contact = new MyOrganization.EmergencyContact();
-		contact.setActive(new BooleanType(true));
-		contact.setContact(new ContactPoint());
-		retVal.getEmergencyContact().add(contact);
+//		// Populate the first, primitive extension
+//		retVal.setBillingCode(new CodeType("00102-1"));
+//		
+//		// The second extension is repeatable and takes a block type
+//		MyOrganization.EmergencyContact contact = new MyOrganization.EmergencyContact();
+//		contact.setActive(new BooleanType(true));
+//		contact.setContact(new ContactPoint());
+//		retVal.getEmergencyContact().add(contact);
 
 		return retVal;		
 	}

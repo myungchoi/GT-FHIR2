@@ -14,6 +14,7 @@ import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
@@ -23,11 +24,13 @@ import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.dstu3.model.codesystems.V3MaritalStatus;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.instance.model.api.IIdType;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.model.api.IResource;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
+import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
@@ -72,6 +75,40 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		return constructPatient(fhirId, fPerson);
 	}
 
+	private Patient constructPatient(Long fhirId, FPerson fPerson, List<String> includes) {
+		Patient patient = constructPatient(fhirId, fPerson);
+		
+		if (!includes.isEmpty()) {
+			if (includes.contains("Patient:general-practitioner")) {
+				if (patient.hasGeneralPractitioner()) {
+					List<Reference> generalPractitioners = patient.getGeneralPractitioner();
+					for (Reference generalPractitioner: generalPractitioners) {
+						if (generalPractitioner.fhirType().equals(ResourceType.Practitioner.getPath())) {
+							IIdType generalPractitionerId = generalPractitioner.getReferenceElement();
+							Long generalPractFhirId = generalPractitionerId.getIdPartAsLong();
+							// TODO: finish this up. This should get FHIR Practitioner from OMOP Provider table.
+						} else {
+							// Omop on FHIR do not support generalPractitioner as an Organization.
+						}
+					}
+				}
+			}
+			
+			System.out.println("Includes have - "+includes.toString());
+			if (includes.contains("Patient:organization")) {
+				if (patient.hasManagingOrganization()) {
+					System.out.println("I should be here");
+					Reference managingOrganization = patient.getManagingOrganization();
+					IIdType managingOrganizationId = managingOrganization.getReferenceElement();
+					Long manageOrgFhirId = managingOrganizationId.getIdPartAsLong();
+					MyOrganization organization = OmopOrganization.constructFHIR(manageOrgFhirId, fPerson.getCareSite());
+					patient.getManagingOrganization().setResource(organization);
+				}
+			}
+		}
+		return patient;
+	}
+	
 	private Patient constructPatient(Long fhirId, FPerson fPerson) {
 		Patient patient = new Patient();
 		patient.setId(new IdType(fhirId));
@@ -119,11 +156,19 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		}
 
 		if (fPerson.getProvider() != null && fPerson.getProvider().getId() != 0L) {
-			Reference generalPractitioner = new Reference(new IdType(fPerson.getProvider().getId()));
+			Long genPracFhirId = IdMapping.getFHIRfromOMOP(fPerson.getProvider().getId(), ResourceType.Practitioner.getPath());
+			Reference generalPractitioner = new Reference(new IdType(genPracFhirId));
 			generalPractitioner.setDisplay(fPerson.getProvider().getProviderName());
 			List<Reference> generalPractitioners = new ArrayList<Reference>();
 			generalPractitioners.add(generalPractitioner);
 			patient.setGeneralPractitioner(generalPractitioners);
+		}
+		
+		if (fPerson.getCareSite() != null && fPerson.getCareSite().getId() != 0L) {
+			Long manageOrgFhirId = IdMapping.getFHIRfromOMOP(fPerson.getCareSite().getId(), ResourceType.Organization.getPath());
+			Reference managingOrganization = new Reference(new IdType(manageOrgFhirId));
+			managingOrganization.setDisplay(fPerson.getCareSite().getCareSiteName());
+			patient.setManagingOrganization(managingOrganization);
 		}
 
 		HumanName humanName = new HumanName();
@@ -381,13 +426,13 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	}
 
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
-			List<IBaseResource> listResources) {
+			List<IBaseResource> listResources, List<String> includes) {
 		List<FPerson> fPersons = myOmopService.searchWithParams(fromIndex, toIndex, map);
 
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructPatient(fhirId, fPerson));
+			listResources.add(constructPatient(fhirId, fPerson, includes));
 		}
 	}
 
