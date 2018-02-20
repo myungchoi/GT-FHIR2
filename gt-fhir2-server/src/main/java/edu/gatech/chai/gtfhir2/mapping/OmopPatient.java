@@ -14,8 +14,8 @@ import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
-import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Patient.PatientLinkComponent;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
@@ -27,7 +27,6 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.springframework.web.context.WebApplicationContext;
 
-import ca.uhn.fhir.model.api.IResource;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyOrganization;
@@ -84,25 +83,47 @@ public class OmopPatient implements ResourceMapping<Patient> {
 					List<Reference> generalPractitioners = patient.getGeneralPractitioner();
 					for (Reference generalPractitioner: generalPractitioners) {
 						if (generalPractitioner.fhirType().equals(ResourceType.Practitioner.getPath())) {
+							// We map generalPractitioner to Provider, which is Practitioner.
 							IIdType generalPractitionerId = generalPractitioner.getReferenceElement();
 							Long generalPractFhirId = generalPractitionerId.getIdPartAsLong();
-							// TODO: finish this up. This should get FHIR Practitioner from OMOP Provider table.
-						} else {
-							// Omop on FHIR do not support generalPractitioner as an Organization.
+							// TODO: finish this up. This should get FHIR Practitioner to OMOP mapping done.
 						}
 					}
 				}
 			}
 			
-			System.out.println("Includes have - "+includes.toString());
 			if (includes.contains("Patient:organization")) {
 				if (patient.hasManagingOrganization()) {
-					System.out.println("I should be here");
 					Reference managingOrganization = patient.getManagingOrganization();
 					IIdType managingOrganizationId = managingOrganization.getReferenceElement();
 					Long manageOrgFhirId = managingOrganizationId.getIdPartAsLong();
 					MyOrganization organization = OmopOrganization.constructFHIR(manageOrgFhirId, fPerson.getCareSite());
 					patient.getManagingOrganization().setResource(organization);
+				}
+			}
+			
+			// TODO: OMOP table cannot handle link patient....
+			// We just put the code assuming somehow linked was made via person table.
+			if (includes.contains("Patient:link")) {
+				if (patient.hasLink()) {
+					List<PatientLinkComponent> patientLinks = patient.getLink();
+					for (PatientLinkComponent patientLink: patientLinks) {
+						if (patientLink.hasOther()) {
+							Reference patientLinkOther = patientLink.getOther();
+							IIdType patientLinkOtherId = patientLinkOther.getReferenceElement();
+							Patient linkedPatient;
+							if (patientLinkOther.fhirType().equals(ResourceType.Patient.getPath())) {
+								Long omopId = IdMapping.getOMOPfromFHIR(patientLinkOtherId.getIdPartAsLong(), ResourceType.Patient.getPath());
+								FPerson linkedPerson = myOmopService.findById(omopId);
+								linkedPatient = constructPatient(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
+							} else {
+								Long omopId = IdMapping.getOMOPfromFHIR(patientLinkOtherId.getIdPartAsLong(), ResourceType.RelatedPerson.getPath());
+								FPerson linkedPerson = myOmopService.findById(omopId);
+								linkedPatient = constructPatient(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
+							}
+							patientLink.getOther().setResource(linkedPatient);
+						}
+					}
 				}
 			}
 		}
@@ -412,7 +433,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 	 * @param toIndex
 	 * @param listResources
 	 */
-	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources) {
+	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes) {
 		List<FPerson> fPersons = myOmopService.searchWithoutParams(fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
@@ -421,7 +442,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructPatient(fhirId, fPerson));
+			listResources.add(constructPatient(fhirId, fPerson, includes));
 		}
 	}
 
@@ -506,8 +527,9 @@ public class OmopPatient implements ResourceMapping<Patient> {
 				activeString = "0";
 			paramWrapper.setParameterType("Short");
 			paramWrapper.setParameters(Arrays.asList("active"));
-			paramWrapper.setOperator("=");
-			paramWrapper.setValue(activeString);
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(activeString));
+			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
 		case Patient.SP_FAMILY:
@@ -515,8 +537,9 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			String familyString = ((StringParam) value).getValue();
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("familyName"));
-			paramWrapper.setOperator("like");
-			paramWrapper.setValue(familyString);
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList(familyString));
+			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
 		case Patient.SP_GIVEN:
@@ -524,8 +547,9 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			String givenName = ((StringParam) value).getValue();
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("givenName1", "givenName2"));
-			paramWrapper.setOperator("like");
-			paramWrapper.setValue(givenName);
+			paramWrapper.setOperators(Arrays.asList("like", "like"));
+			paramWrapper.setValues(Arrays.asList(givenName));
+			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
 		default:
