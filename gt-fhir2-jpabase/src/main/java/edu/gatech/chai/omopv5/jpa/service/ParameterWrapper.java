@@ -12,15 +12,15 @@ import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 
 public class ParameterWrapper {
 	private String parameterType;
-	private String parameter;
+	private List<String> parameters;
 	private String operator;
 	private String value;
 	
 	public ParameterWrapper() {}
 	
-	public ParameterWrapper(String parameterType, String parameter, String operator, String value) {
+	public ParameterWrapper(String parameterType, List<String> parameters, String operator, String value) {
 		this.parameterType = parameterType;
-		this.parameter = parameter;
+		this.parameters = parameters;
 		this.operator = operator;
 		this.value = value;
 	}
@@ -33,12 +33,12 @@ public class ParameterWrapper {
 		this.parameterType = parameterType;
 	}
 
-	public String getParameter() {
-		return parameter;
+	public List<String> getParameters() {
+		return parameters;
 	}
 	
-	public void setParameter(String parameter) {
-		this.parameter = parameter;
+	public void setParameters(List<String> parameters) {
+		this.parameters = parameters;
 	}
 	
 	public String getOperator() {
@@ -65,33 +65,44 @@ public class ParameterWrapper {
 		for (Map.Entry<String, List<ParameterWrapper>>entry: paramMap.entrySet()) {
 			List<ParameterWrapper> paramWrappers = entry.getValue();
 			for (ParameterWrapper param: paramWrappers) {
+				Predicate subWhere = builder.disjunction();
 				switch (param.getParameterType()) {
 				case "Short":
-					if (param.getOperator().equalsIgnoreCase("="))
-						where= builder.and(where, builder.equal(rootUser.get(param.getParameter()), Short.valueOf(param.getValue())));
-					else if (param.getOperator().equalsIgnoreCase("<"))
-						where= builder.and(where, builder.lessThan(rootUser.get(param.getParameter()), Short.valueOf(param.getValue())));
-					else if (param.getOperator().equalsIgnoreCase("<="))
-						where= builder.and(where, builder.lessThanOrEqualTo(rootUser.get(param.getParameter()), Short.valueOf(param.getValue())));
-					else if (param.getOperator().equalsIgnoreCase(">"))
-						where= builder.and(where, builder.greaterThan(rootUser.get(param.getParameter()), Short.valueOf(param.getValue())));
-					else if (param.getOperator().equalsIgnoreCase(">="))
-						where= builder.and(where, builder.greaterThanOrEqualTo(rootUser.get(param.getParameter()), Short.valueOf(param.getValue())));
+					// Convert the value to Short.
+					Short shortValue = Short.valueOf(param.getValue());
+					
+					// We may have multiple columns to compare with 'or'. If so, get them now.
+					for (String columnName : param.getParameters()) {
+						if (param.getOperator().equalsIgnoreCase("="))
+							subWhere = builder.or(subWhere, builder.equal(rootUser.get(columnName), shortValue));
+						else if (param.getOperator().equalsIgnoreCase("<"))
+							subWhere = builder.or(subWhere, builder.lessThan(rootUser.get(columnName), shortValue));
+						else if (param.getOperator().equalsIgnoreCase("<="))
+							subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(rootUser.get(columnName), shortValue));
+						else if (param.getOperator().equalsIgnoreCase(">"))
+							subWhere = builder.or(subWhere, builder.greaterThan(rootUser.get(columnName), shortValue));
+						else if (param.getOperator().equalsIgnoreCase(">="))
+							subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(rootUser.get(columnName), shortValue));
+					}
 					break;
 				case "String":
-					if (param.getOperator().equalsIgnoreCase("like"))
-						where = builder.and(where, builder.like(rootUser.get(param.getParameter()), param.getValue()));
-					else
-						where = builder.and(where, builder.notLike(rootUser.get(param.getParameter()), param.getValue()));
+					// walk thru multiple columns if exists
+					for (String columnName : param.getParameters()) {
+						if (param.getOperator().equalsIgnoreCase("like"))
+							subWhere = builder.or(subWhere, builder.like(rootUser.get(columnName), param.getValue()));
+						else
+							subWhere = builder.or(subWhere, builder.notLike(rootUser.get(columnName), param.getValue()));
+					}
 					break;
 				case "Double":
 					break;
 				}
 				
-				predicates.add(where);
+				where = builder.and(where,  subWhere);				
 			}
 		}
-		
+		predicates.add(where);
+
 		return predicates;
 	}
 }

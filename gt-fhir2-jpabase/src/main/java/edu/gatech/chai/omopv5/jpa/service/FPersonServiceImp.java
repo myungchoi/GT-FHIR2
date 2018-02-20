@@ -147,7 +147,7 @@ public class FPersonServiceImp implements FPersonService {
 
 	@Override
 	public List<FPerson> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
-		// Construct predicate from this map.
+		int length = toIndex - fromIndex;
 		EntityManager em = fPersonDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
 		CriteriaQuery<FPerson> fPersonQuery = builder.createQuery(FPerson.class);
@@ -160,6 +160,10 @@ public class FPersonServiceImp implements FPersonService {
 		fPersonQuery.select(fPersonRoot);
 		fPersonQuery.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
 
-		return em.createQuery(fPersonQuery).getResultList();
+		List<FPerson> retvals = em.createQuery(fPersonQuery)
+				.setFirstResult(fromIndex)
+				.setMaxResults(length)
+				.getResultList();
+		return retvals;
 	}
 }
