@@ -21,8 +21,6 @@ import javax.persistence.Table;
 //})
 public class CareSite extends BaseEntity {
 	
-	public static final String RES_TYPE = "CareSite";
-	
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="caresite_seq_gen")
 	@SequenceGenerator(name="caresite_seq_gen", sequenceName="caresite_id_seq", allocationSize=1)
