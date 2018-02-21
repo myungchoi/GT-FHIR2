@@ -96,6 +96,7 @@ private int preferredPageSize = 30;
 	 */
 	@Search()
 	public IBundleProvider findPatientsByParams(
+			@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
@@ -118,16 +119,30 @@ private int preferredPageSize = 30;
 		 */
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
 		
+		if (thePatientId != null) {
+			mapParameter (paramMap, Patient.SP_RES_ID, thePatientId);
+		}
+		
 		if (theActive != null) {
 			mapParameter (paramMap, Patient.SP_ACTIVE, theActive);
 		}
 		
 		if (theFamilyName != null) {
-			mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
+			if (theFamilyName.isExact()) {
+				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
+			} else {
+				theFamilyName.setValue("%"+theFamilyName.getValue()+"%");
+				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
+			}
 		}
 		
 		if (theGivenName != null) {
-			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
+			if (theGivenName.isExact()) {
+				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
+			} else {
+				theGivenName.setValue("%"+theGivenName.getValue()+"%");
+				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
+			}
 		}
 
 		// TODO: revinclude returns resource that reference the searched patients.
@@ -135,6 +150,20 @@ private int preferredPageSize = 30;
 		// implement revinclude. 
 		
 		
+		// Chain Search.
+		if (theOrganization != null) {
+			String orgChain = theOrganization.getChain();
+			if (orgChain != null) {
+				if (Organization.SP_NAME.equals(orgChain)) {
+					String theOrgName = theOrganization.getValue();
+					mapParameter (paramMap, "Organization:"+Organization.SP_NAME, "%"+theOrgName+"%");
+				} else if ("".equals(orgChain)) {
+					mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getValue());
+				}
+			} else {
+				mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart());
+			}
+		}
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize;
