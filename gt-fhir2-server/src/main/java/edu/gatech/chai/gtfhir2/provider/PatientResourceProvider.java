@@ -12,6 +12,7 @@ import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -30,6 +31,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
@@ -37,6 +39,7 @@ import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 
 import edu.gatech.chai.gtfhir2.mapping.OmopPatient;
+import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 
@@ -96,9 +99,13 @@ private int preferredPageSize = 30;
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
+			@OptionalParam(name = Patient.SP_ORGANIZATION, chainWhitelist={"", Organization.SP_NAME}) ReferenceParam theOrganization,
 			
 			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
-			final Set<Include> theIncludes
+			final Set<Include> theIncludes,
+			
+			@IncludeParam(reverse=true)
+            final Set<Include> theReverseIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 		
@@ -123,12 +130,10 @@ private int preferredPageSize = 30;
 			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
 		}
 
-		// if parameter map is empty, then it's to get all.
-		// Get them and retun.
-//		System.out.println("map: size="+paramMap.size());
-//		if (paramMap.size() == 0) {
-//			return getAllPatients(theIncludesFinal);
-//		}
+		// TODO: revinclude returns resource that reference the searched patients.
+		// it would be observations, encounters, etc... Whenever these are implemented
+		// implement revinclude. 
+		
 		
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
