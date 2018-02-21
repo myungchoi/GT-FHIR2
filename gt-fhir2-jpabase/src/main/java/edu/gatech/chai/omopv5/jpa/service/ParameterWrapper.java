@@ -229,7 +229,7 @@ public class ParameterWrapper {
 					break;
 				case "String":
 					if (param.getParameters().size() > 1) {
-						String valueString = param.getValues().get(0);
+						String valueString = "%"+param.getValues().get(0)+"%";
 						
 						for (Iterator<String> columnIter = param.getParameters().iterator(), operIter = param.getOperators().iterator();
 								columnIter.hasNext() && operIter.hasNext();) {
@@ -254,7 +254,7 @@ public class ParameterWrapper {
 						
 						for (Iterator<String> valueIter = param.getValues().iterator(), operIter = param.getOperators().iterator();
 								valueIter.hasNext() && operIter.hasNext();) {
-							String valueString = valueIter.next();
+							String valueString = "%"+valueIter.next()+"%";
 							String oper = operIter.next();
 							
 							if (oper.equalsIgnoreCase("like"))

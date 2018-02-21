@@ -30,6 +30,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyOrganization;
+import edu.gatech.chai.gtfhir2.utilities.AddressUtil;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
@@ -71,11 +72,11 @@ public class OmopPatient implements ResourceMapping<Patient> {
 
 		Long fhirId = IdMapping.getFHIRfromOMOP(myId, patientResourceName);
 
-		return constructPatient(fhirId, fPerson);
+		return constructFHIR(fhirId, fPerson);
 	}
 
 	private Patient constructPatient(Long fhirId, FPerson fPerson, List<String> includes) {
-		Patient patient = constructPatient(fhirId, fPerson);
+		Patient patient = constructFHIR(fhirId, fPerson);
 		
 		if (!includes.isEmpty()) {
 			if (includes.contains("Patient:general-practitioner")) {
@@ -87,6 +88,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 							IIdType generalPractitionerId = generalPractitioner.getReferenceElement();
 							Long generalPractFhirId = generalPractitionerId.getIdPartAsLong();
 							// TODO: finish this up. This should get FHIR Practitioner to OMOP mapping done.
+							// We need to get constructFHIR static method done to populate this.
 						}
 					}
 				}
@@ -115,11 +117,11 @@ public class OmopPatient implements ResourceMapping<Patient> {
 							if (patientLinkOther.fhirType().equals(ResourceType.Patient.getPath())) {
 								Long omopId = IdMapping.getOMOPfromFHIR(patientLinkOtherId.getIdPartAsLong(), ResourceType.Patient.getPath());
 								FPerson linkedPerson = myOmopService.findById(omopId);
-								linkedPatient = constructPatient(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
+								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							} else {
 								Long omopId = IdMapping.getOMOPfromFHIR(patientLinkOtherId.getIdPartAsLong(), ResourceType.RelatedPerson.getPath());
 								FPerson linkedPerson = myOmopService.findById(omopId);
-								linkedPatient = constructPatient(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
+								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							}
 							patientLink.getOther().setResource(linkedPatient);
 						}
@@ -130,7 +132,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		return patient;
 	}
 	
-	private Patient constructPatient(Long fhirId, FPerson fPerson) {
+	public static Patient constructFHIR(Long fhirId, FPerson fPerson) {
 		Patient patient = new Patient();
 		patient.setId(new IdType(fhirId));
 
@@ -273,23 +275,8 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		Iterator<HumanName> patientIterator = patient.getName().iterator();
 		if (patientIterator.hasNext()) {
 			HumanName next = patientIterator.next();
-			fperson.setGivenName1(next.getGiven().get(0).getValue());// the next
-																		// method
-																		// was
-																		// not
-																		// advancing
-																		// to
-																		// the
-																		// next
-																		// element,
-																		// then
-																		// the
-																		// need
-																		// to
-																		// use
-																		// the
-																		// get(index)
-																		// method
+			// the next method was not advancing to the next element, then the need to use the get(index) method
+			fperson.setGivenName1(next.getGiven().get(0).getValue());
 			if (next.getGiven().size() > 1) // TODO add unit tests, to assure
 											// this won't be changed to hasNext
 				fperson.setGivenName2(next.getGiven().get(1).getValue());
@@ -307,7 +294,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		Location retLocation = null;
 		if (addresses != null && addresses.size() > 0) {
 			Address address = addresses.get(0);
-			retLocation = searchAndUpdate(address, null);
+			retLocation = AddressUtil.searchAndUpdate(locationService, address, null);
 			if (retLocation != null) {
 				fperson.setLocation(retLocation);
 			}
@@ -325,17 +312,21 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		List<Identifier> identifiers = patient.getIdentifier();
 
 		// TODO: For now, we choose the first identifier if exists.
-		if (identifiers.isEmpty() == false) {
-			Identifier identifier = identifiers.get(0);
+		FPerson person = null;
+		for (Identifier identifier : identifiers) {
 			if (identifier.getValue().isEmpty() == false) {
 				personSourceValue = identifier.getValue();
 
-				// If ID is not set, then we see if we have existing patient
+				// See if we have existing patient
 				// with this identifier.
-				FPerson person = myOmopService.searchByColumnString("personSourceValue", personSourceValue);
-				fperson.setId(person.getId());
+				person = myOmopService.searchByColumnString("personSourceValue", personSourceValue);
+				if (person != null) {
+					fperson.setId(person.getId());
+					break;
+				}
 			}
-		} else if (retLocation != null) {
+		}
+		if (retLocation != null && person == null) {
 			// FHIR Patient identifier is empty. Use name and address
 			// to see if we have a patient exits.
 			if (retLocation.getId() != null) {
@@ -559,40 +550,41 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		return mapList;
 	}
 
-	public Location searchAndUpdate(Address address, Location location) {
-		if (address == null)
-			return null;
-
-		List<StringType> addressLines = address.getLine();
-		if (addressLines.size() > 0) {
-			String line1 = addressLines.get(0).getValue();
-			String line2 = null;
-			if (address.getLine().size() > 1)
-				line2 = address.getLine().get(1).getValue();
-			String zipCode = address.getPostalCode();
-			String city = address.getCity();
-			String state = address.getState();
-
-			Location existingLocation = locationService.searchByAddress(line1, line2, city, state, zipCode);
-			if (existingLocation != null) {
-				return existingLocation;
-			} else {
-				// We will return new Location. But, if Location is provided,
-				// then we update the parameters here.
-				if (location != null) {
-					location.setAddress1(line1);
-					if (line2 != null)
-						location.setAddress2(line2);
-					location.setZipCode(zipCode);
-					location.setCity(city);
-					location.setState(state);
-				} else {
-					return new Location(line1, line2, city, state, zipCode);
-				}
-			}
-		}
-
-		return null;
-	}
+//	// Move below to Address 
+//	public Location searchAndUpdate(Address address, Location location) {
+//		if (address == null)
+//			return null;
+//
+//		List<StringType> addressLines = address.getLine();
+//		if (addressLines.size() > 0) {
+//			String line1 = addressLines.get(0).getValue();
+//			String line2 = null;
+//			if (address.getLine().size() > 1)
+//				line2 = address.getLine().get(1).getValue();
+//			String zipCode = address.getPostalCode();
+//			String city = address.getCity();
+//			String state = address.getState();
+//
+//			Location existingLocation = locationService.searchByAddress(line1, line2, city, state, zipCode);
+//			if (existingLocation != null) {
+//				return existingLocation;
+//			} else {
+//				// We will return new Location. But, if Location is provided,
+//				// then we update the parameters here.
+//				if (location != null) {
+//					location.setAddress1(line1);
+//					if (line2 != null)
+//						location.setAddress2(line2);
+//					location.setZipCode(zipCode);
+//					location.setCity(city);
+//					location.setState(state);
+//				} else {
+//					return new Location(line1, line2, city, state, zipCode);
+//				}
+//			}
+//		}
+//
+//		return null;
+//	}
 
 }
