@@ -7,10 +7,12 @@ import javax.sql.DataSource;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.hibernate.jpa.HibernatePersistenceProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ComponentScans;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -23,22 +25,28 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @ComponentScans(value = { @ComponentScan("edu.gatech.chai.omopv5.jpa.dao"),
 		@ComponentScan("edu.gatech.chai.omopv5.jpa.service"),
 		@ComponentScan("edu.gatech.chai.fhir.jpa.service") })
+@ImportResource({
+    "classpath:database-config.xml"
+})
 public class FhirServerConfig {
-	@Bean(destroyMethod = "close")
-	public DataSource dataSource() {
-		BasicDataSource retVal = new BasicDataSource();
-		retVal.setDriver(new org.postgresql.Driver());
-		retVal.setUrl("jdbc:postgresql://localhost:5432/postgres?currentSchema=omop_v5");
-		retVal.setUsername("omop_v5");
-		retVal.setPassword("i3lworks");
-		return retVal;
-	}
+	@Autowired
+	DataSource dataSource;
+//	@Bean(destroyMethod = "close")
+//	public DataSource dataSource() {
+//		BasicDataSource retVal = new BasicDataSource();
+//		retVal.setDriver(new org.postgresql.Driver());
+//		retVal.setUrl("jdbc:postgresql://localhost:5432/postgres?currentSchema=omop_v5");
+//		retVal.setUsername("omop_v5");
+//		retVal.setPassword("i3lworks");
+//		return retVal;
+//	}
 
 	@Bean()
 	public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
 		LocalContainerEntityManagerFactoryBean retVal = new LocalContainerEntityManagerFactoryBean();
 		retVal.setPersistenceUnitName("GT-FHIR2");
-		retVal.setDataSource(dataSource());
+//		retVal.setDataSource(dataSource());
+		retVal.setDataSource(dataSource);
 		retVal.setPackagesToScan("edu.gatech.chai.omopv5.jpa.entity", "edu.gatech.chai.fhir.jpa.entity");
 		retVal.setPersistenceProvider(new HibernatePersistenceProvider());
 		retVal.setJpaProperties(jpaProperties());

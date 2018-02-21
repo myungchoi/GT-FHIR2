@@ -3,41 +3,43 @@ package edu.gatech.chai.gtfhir2.provider;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
-import ca.uhn.fhir.model.primitive.StringDt;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
-import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-import ca.uhn.fhir.rest.api.RestSearchParameterTypeEnum;
 
 import edu.gatech.chai.gtfhir2.mapping.OmopPatient;
+import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 
@@ -96,10 +98,17 @@ private int preferredPageSize = 30;
 	public IBundleProvider findPatientsByParams(
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
-			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName
+			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
+			@OptionalParam(name = Patient.SP_ORGANIZATION, chainWhitelist={"", Organization.SP_NAME}) ReferenceParam theOrganization,
+			
+			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
+			final Set<Include> theIncludes,
+			
+			@IncludeParam(reverse=true)
+            final Set<Include> theReverseIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
-
+		
 		/*
 		 * Create parameter map, which will be used later to construct
 		 * predicate. The predicate construction should depend on the DB schema.
@@ -121,18 +130,20 @@ private int preferredPageSize = 30;
 			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
 		}
 
-		// if parameter map is empty, then it's to get all.
-		// Get them and retun.
-		System.out.println("map: size="+paramMap.size());
-		if (paramMap.size() == 0) {
-			return getAllPatients();
-		}
+		// TODO: revinclude returns resource that reference the searched patients.
+		// it would be observations, encounters, etc... Whenever these are implemented
+		// implement revinclude. 
+		
 		
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize = myMapper.getSize(finalParamMap);
-		System.out.println("Search Patient: "+totalSize);
-		
+		final Long totalSize;
+		if (paramMap.size() == 0) {
+			totalSize = myMapper.getSize();
+		} else {
+			totalSize = myMapper.getSize(finalParamMap);
+		}
+
 		return new IBundleProvider() {
 
 			@Override
@@ -143,7 +154,26 @@ private int preferredPageSize = 30;
 			@Override
 			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
 				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv);
+
+				// _Include
+				List<String> includes = new ArrayList<String>();
+				if (theIncludes.contains(new Include("Patient:general-practitioner"))) {
+					includes.add("Patient:general-practitioner");
+				}
+				
+				if (theIncludes.contains(new Include("Patient:organization"))) {
+					includes.add("Patient:organization");
+				}
+				
+				if (theIncludes.contains(new Include("Patient:link"))) {
+					includes.add("Patient:link");
+				}
+
+				if (finalParamMap.size() == 0) {
+					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+				} else {
+					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
+				}
 				
 				return retv;
 			}
@@ -166,20 +196,6 @@ private int preferredPageSize = 30;
 			
 		};
 		
-//		/*
-//		 * Look for all patients matching the name
-//		 */
-//		for (Deque<Patient> nextPatientList : myIdToPatientVersions.values()) {
-//			Patient nextPatient = nextPatientList.getLast();
-//			for (HumanName nextName : nextPatient.getName()) {
-//				String nextFamily = nextName.getFamily();
-//				if (theFamilyName.equals(nextFamily)) {
-//					retVal.add(nextPatient);
-//					break;
-//				}
-//			}
-//		}
-
 	}
 
 	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
@@ -189,45 +205,6 @@ private int preferredPageSize = 30;
 		}
 	}
 
-
-	private IBundleProvider getAllPatients() {
-		final InstantType searchTime = InstantType.withCurrentTime();
-		final Long totalSize = myMapper.getSize();
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				myMapper.searchWithoutParams(fromIndex, toIndex, retv);
-				
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-			
-		};
-	}
-	
 	
 	/**
 	 * The getResourceType method comes from IResourceProvider, and must be overridden to indicate what type of resource this provider supplies.
