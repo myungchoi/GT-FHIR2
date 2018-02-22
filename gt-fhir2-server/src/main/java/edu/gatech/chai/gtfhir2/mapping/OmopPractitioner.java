@@ -14,12 +14,14 @@ import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.exceptions.FHIRException;
+import org.springframework.web.context.WebApplicationContext;
 
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
 import edu.gatech.chai.omopv5.jpa.service.CareSiteService;
+import edu.gatech.chai.omopv5.jpa.service.FPersonService;
 import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
@@ -27,8 +29,15 @@ import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 public class OmopPractitioner implements ResourceMapping<Practitioner>{
 
 	private CareSiteService careSiteService;
-	private ProviderService providerService;
 	private LocationService locationService;
+	private ProviderService providerService;
+	
+	
+	public OmopPractitioner(WebApplicationContext context) {
+		careSiteService = context.getBean(CareSiteService.class);
+		locationService = context.getBean(LocationService.class);
+		providerService = context.getBean(ProviderService.class);
+	}
 	
 	/**
 	 * Omop on FHIR mapping - from OMOP to FHIR.
@@ -48,7 +57,7 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 		Provider omopProvider = providerService.findById(omopId);
 		if(omopProvider == null) return null;
 		
-		Long fhirId = IdMapping.getFHIRfromOMOP(id_long_part, Provider.RES_TYPE);
+		Long fhirId = IdMapping.getFHIRfromOMOP(id_long_part, practitioncerResourceName);
 		
 		return constructPractitioner(fhirId, omopProvider);
 	}
@@ -126,7 +135,7 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 		}
 		
 		Long omopRecordId = providerService.createOrUpdate(omopProvider).getId();
-		Long fhirId = IdMapping.getFHIRfromOMOP(omopRecordId, Provider.RES_TYPE);
+		Long fhirId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Practitioner.getPath());
 		return null;
 	}
 	
