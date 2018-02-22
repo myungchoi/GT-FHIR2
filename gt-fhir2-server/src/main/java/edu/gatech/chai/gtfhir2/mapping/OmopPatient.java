@@ -14,6 +14,7 @@ import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Patient.PatientLinkComponent;
 import org.hl7.fhir.dstu3.model.Reference;
@@ -540,6 +541,33 @@ public class OmopPatient implements ResourceMapping<Patient> {
 			paramWrapper.setParameters(Arrays.asList("givenName1", "givenName2"));
 			paramWrapper.setOperators(Arrays.asList("like", "like"));
 			paramWrapper.setValues(Arrays.asList(givenName));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_RES_ID:
+			String patientId = ((TokenParam) value).getValue();
+			paramWrapper.setParameterType("Long");
+			paramWrapper.setParameters(Arrays.asList("id"));
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(patientId));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case "Organization:"+Organization.SP_NAME:
+			String orgName = (String) value;
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("careSite.careSiteName"));
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList(orgName));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case "Organization:"+Organization.SP_RES_ID:
+			String orgId = (String) value;
+			paramWrapper.setParameterType("Long");
+			paramWrapper.setParameters(Arrays.asList("careSite.id"));
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(orgId));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
