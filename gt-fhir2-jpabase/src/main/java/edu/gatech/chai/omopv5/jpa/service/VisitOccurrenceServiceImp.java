@@ -73,10 +73,15 @@ public class VisitOccurrenceServiceImp implements VisitOccurrenceService {
 		query.select(root);
 		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
 
-		retvals = em.createQuery(query)
-				.setFirstResult(fromIndex)
-				.setMaxResults(length)
-				.getResultList();
+		if (length <= 0) {
+			retvals = em.createQuery(query)
+					.getResultList();
+		} else {
+			retvals = em.createQuery(query)
+					.setFirstResult(fromIndex)
+					.setMaxResults(length)
+					.getResultList();
+		}
 		return retvals;
 	}
 

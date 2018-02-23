@@ -1,8 +1,12 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -11,9 +15,11 @@ import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.ContactPoint;
+import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Patient.PatientLinkComponent;
@@ -27,6 +33,8 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.rest.param.DateParam;
+import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyOrganization;
@@ -35,21 +43,25 @@ import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
+import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
 import edu.gatech.chai.omopv5.jpa.service.FPersonService;
 import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
+import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
 public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 
 	private FPersonService myOmopService;
 	private LocationService locationService;
 	private ProviderService providerService;
+	private VisitOccurrenceService visitOccurrenceService;
 
 	public OmopPatient(WebApplicationContext context) {
 		myOmopService = context.getBean(FPersonService.class);
 		locationService = context.getBean(LocationService.class);
 		providerService = context.getBean(ProviderService.class);
+		visitOccurrenceService = context.getBean(VisitOccurrenceService.class);
 	}
 
 	/**
@@ -78,6 +90,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 	@Override
 	public Patient constructResource(Long fhirId, FPerson entity, List<String> includes) {
 		Patient patient = constructFHIR(fhirId, entity);
+		Long omopId = entity.getId();
 		
 		if (!includes.isEmpty()) {
 			if (includes.contains("Patient:general-practitioner")) {
@@ -116,11 +129,9 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 							IIdType patientLinkOtherId = patientLinkOther.getReferenceElement();
 							Patient linkedPatient;
 							if (patientLinkOther.fhirType().equals(ResourceType.Patient.getPath())) {
-								Long omopId = IdMapping.getOMOPfromFHIR(patientLinkOtherId.getIdPartAsLong(), ResourceType.Patient.getPath());
 								FPerson linkedPerson = myOmopService.findById(omopId);
 								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							} else {
-								Long omopId = IdMapping.getOMOPfromFHIR(patientLinkOtherId.getIdPartAsLong(), ResourceType.RelatedPerson.getPath());
 								FPerson linkedPerson = myOmopService.findById(omopId);
 								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							}
@@ -451,7 +462,61 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			Long omopId = fPerson.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
 			listResources.add(constructResource(fhirId, fPerson, includes));
+			
+			// Do the rev_include and add the resource to the list.
+			addRevIncludes(fPerson.getId(), includes, listResources);
 		}
+	}
+	
+	private void addRevIncludes(Long omopId, List<String> includes, List<IBaseResource> listResources) {
+		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>> ();
+
+		if (includes.contains("Encounter:subject")) {
+			final ParameterWrapper param = new ParameterWrapper(
+					"Long",
+					Arrays.asList("person.id"),
+					Arrays.asList("="),
+					Arrays.asList(String.valueOf(omopId)),
+					"or"
+					);
+
+			List<ParameterWrapper> revIncludeParams = new ArrayList<ParameterWrapper>();
+			revIncludeParams.add(param);
+			map.put(Encounter.SP_SUBJECT, revIncludeParams);
+
+			List<VisitOccurrence> VisitOccurrences = visitOccurrenceService.searchWithParams(0, 0, map);
+			for (VisitOccurrence visitOccurrence: VisitOccurrences) {
+				Long fhirId = IdMapping.getFHIRfromOMOP(visitOccurrence.getId(), ResourceType.Encounter.getPath());
+				Encounter enc = OmopEncounter.constructFHIR(fhirId, visitOccurrence);
+				if (enc != null) listResources.add(enc);
+			}
+		}
+		if (includes.contains("Observation:subject")) {
+			
+		}
+		if (includes.contains("Device:patient")) {
+			
+		}
+		if (includes.contains("Condition:subject")) {
+			
+		}
+		if (includes.contains("Procedure:subject")) {
+			
+		}
+		if (includes.contains("MedicationRequest:subject")) {
+			
+		}
+		if (includes.contains("MedicationAdministration:subject")) {
+			
+		}
+		if (includes.contains("MedicationDispense:subject")) {
+			
+		}
+		if (includes.contains("MedicationStatement:subject")) {
+			
+		}
+			
+		
 	}
 
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
@@ -462,6 +527,10 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			Long omopId = fPerson.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
 			listResources.add(constructResource(fhirId, fPerson, includes));
+			
+			// Do the rev_include and add the resource to the list.
+			addRevIncludes(fPerson.getId(), includes, listResources);
+
 		}
 	}
 
@@ -539,6 +608,35 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			paramWrapper.setValues(Arrays.asList(activeString));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_BIRTHDATE:
+			// We only compare date (no time). Get year, month, date
+			// form DateParam value.
+			Date date = ((DateParam) value).getValue();
+			ParamPrefixEnum relation = ((DateParam)value).getPrefix();
+			String operator;
+			if (relation.equals(ParamPrefixEnum.LESSTHAN))
+				operator = "<";
+			else if (relation.equals(ParamPrefixEnum.LESSTHAN_OR_EQUALS))
+				operator = "<=";
+			else if (relation.equals(ParamPrefixEnum.GREATERTHAN))
+				operator = ">";
+			else if (relation.equals(ParamPrefixEnum.GREATERTHAN_OR_EQUALS))
+				operator = ">=";
+			else 
+				operator = "=";
+			
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(date);
+			int year = cal.get(Calendar.YEAR);
+			int month = cal.get(Calendar.MONDAY)+1;
+			int day = cal.get(Calendar.DAY_OF_MONTH);
+			paramWrapper.setParameterType("Integer");
+			paramWrapper.setParameters(Arrays.asList("yearOfBirth", "monthOfBirth", "dayOfBirth"));
+			paramWrapper.setOperators(Arrays.asList(operator, operator, operator));
+			paramWrapper.setValues(Arrays.asList(String.valueOf(year), String.valueOf(month), String.valueOf(day)));
+			paramWrapper.setRelationship("and");
+			mapList.add(paramWrapper);			
 			break;
 		case Patient.SP_FAMILY:
 			// This is family name, which is string. use like.
