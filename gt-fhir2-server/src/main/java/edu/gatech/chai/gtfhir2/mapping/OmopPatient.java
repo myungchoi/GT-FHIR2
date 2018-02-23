@@ -264,7 +264,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 	 *         refer this resource.
 	 */
 	@Override
-	public Long toDbase(Patient patient) {
+	public Long toDbase(Patient patient, IdType fhirId) {
 		FPerson fperson = new FPerson();
 		String personSourceValue = null;
 
@@ -307,8 +307,6 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 		// have string field and
 		// size is very limited. So, for now, we only get value part.
 		List<Identifier> identifiers = patient.getIdentifier();
-
-		// TODO: For now, we choose the first identifier if exists.
 		FPerson person = null;
 		for (Identifier identifier : identifiers) {
 			if (identifier.getValue().isEmpty() == false) {
@@ -323,18 +321,42 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 				}
 			}
 		}
-		if (retLocation != null && person == null) {
-			// FHIR Patient identifier is empty. Use name and address
-			// to see if we have a patient exits.
-			if (retLocation.getId() != null) {
-				FPerson existingPerson = myOmopService.searchByNameAndLocation(fperson.getFamilyName(),
-						fperson.getGivenName1(), fperson.getGivenName2(), retLocation);
-				if (existingPerson != null) {
-					System.out.println("Patient Exists with PID=" + existingPerson.getId());
-					fperson.setId(existingPerson.getId());
-				}
+		
+		// If we have match in identifier, then we can update or create since
+		// we have the patient. If we have no match, but fhirId is not null,
+		// then this is update with fhirId. We need to do another search.
+		if (person == null && fhirId != null) {
+			// Search for this ID.
+			Long omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ResourceType.Patient.getPath());
+			if (omopId == null) {
+				// This is update. We don't have this patient. Return null.
+				return null;
+			}
+			
+			// See if we have this in our database.
+			person = myOmopService.findById(omopId);
+			if (person == null) {
+				// We don't have this patient
+				return null;
+			} else {
+				fperson.setId(person.getId());
 			}
 		}
+		
+		// Now check if we have
+		// WE DO NOT CHECK NAMES FOR EXISTENCE. TOO DANGEROUS.
+//		if (retLocation != null && person == null) {
+//			// FHIR Patient identifier is empty. Use name and address
+//			// to see if we have a patient exits.
+//			if (retLocation.getId() != null) {
+//				FPerson existingPerson = myOmopService.searchByNameAndLocation(fperson.getFamilyName(),
+//						fperson.getGivenName1(), fperson.getGivenName2(), retLocation);
+//				if (existingPerson != null) {
+//					System.out.println("Patient Exists with PID=" + existingPerson.getId());
+//					fperson.setId(existingPerson.getId());
+//				}
+//			}
+//		}
 
 		Concept race = new Concept();
 		race.setId(8552L);
@@ -392,10 +414,8 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 
 		// Get contact information.
 		List<ContactPoint> contactPoints = patient.getTelecom();
-		Iterator<ContactPoint> contactIterator = contactPoints.iterator();
 		int index = 0;
-		while (contactIterator.hasNext()) {
-			ContactPoint contactPoint = contactIterator.next();
+		for (ContactPoint contactPoint: contactPoints) {
 			String system = contactPoint.getSystem().getSystem();
 			String use = contactPoint.getUse().toCode();
 			String value = contactPoint.getValue();
@@ -411,8 +431,8 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 		}
 
 		Long omopRecordId = myOmopService.createOrUpdate(fperson).getId();
-		Long fhirId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Patient.getPath());
-		return fhirId;
+		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Patient.getPath());
+		return fhirRecordId;
 	}
 
 	/**

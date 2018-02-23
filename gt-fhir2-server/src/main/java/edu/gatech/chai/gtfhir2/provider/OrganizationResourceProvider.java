@@ -81,7 +81,7 @@ public class OrganizationResourceProvider implements IResourceProvider {
 	public MethodOutcome createPatient(@ResourceParam MyOrganization theOrganization) {
 		// validateResource(thePatient);
 
-		Long id = myMapper.toDbase(theOrganization);
+		Long id = myMapper.toDbase(theOrganization, null);
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -222,21 +222,10 @@ public class OrganizationResourceProvider implements IResourceProvider {
 	public MethodOutcome updateOrganization(@IdParam IdType theId, @ResourceParam MyOrganization theOrganization) {
 		validateResource(theOrganization);
 
-//		Long id;
-//		try {
-//			id = theId.getIdPartAsLong();
-//		} catch (DataFormatException e) {
-//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
-//		}
-//
-//		/*
-//		 * Throw an exception (HTTP 404) if the ID is not known
-//		 */
-//		if (!myIdToPatientVersions.containsKey(id)) {
-//			throw new ResourceNotFoundException(theId);
-//		}
-//
-//		addNewVersion(thePatient, id);
+		Long fhirId = myMapper.toDbase(theOrganization, theId);
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
 		return new MethodOutcome();
 	}

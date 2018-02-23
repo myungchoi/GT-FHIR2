@@ -81,7 +81,7 @@ private int preferredPageSize = 30;
 	public MethodOutcome createPatient(@ResourceParam Patient thePatient) {
 		validateResource(thePatient);
 		
-		Long id = myMapper.toDbase(thePatient);		
+		Long id = myMapper.toDbase(thePatient, null);		
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -278,21 +278,10 @@ private int preferredPageSize = 30;
 	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Patient thePatient) {
 		validateResource(thePatient);
 
-//		Long id;
-//		try {
-//			id = theId.getIdPartAsLong();
-//		} catch (DataFormatException e) {
-//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
-//		}
-//
-//		/*
-//		 * Throw an exception (HTTP 404) if the ID is not known
-//		 */
-//		if (!myIdToPatientVersions.containsKey(id)) {
-//			throw new ResourceNotFoundException(theId);
-//		}
-//
-//		addNewVersion(thePatient, id);
+		Long fhirId = myMapper.toDbase(thePatient, theId);
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
 		return new MethodOutcome();
 	}
@@ -307,7 +296,6 @@ private int preferredPageSize = 30;
 		/*
 		 * Our server will have a rule that patients must have a family name or we will reject them
 		 */
-//		if (thePatient.getNameFirstRep().getFamilyFirstRep().isEmpty()) {
 		if (thePatient.getNameFirstRep().getFamily().isEmpty()) {
 			OperationOutcome outcome = new OperationOutcome();
 			CodeableConcept detailCode = new CodeableConcept();

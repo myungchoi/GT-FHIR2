@@ -156,7 +156,7 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 	}
 	
 	@Override
-	public Long toDbase(Encounter Fhir) {
+	public Long toDbase(Encounter fhirResource, IdType fhirId) {
 		// TODO Auto-generated method stub
 		return null;
 	}

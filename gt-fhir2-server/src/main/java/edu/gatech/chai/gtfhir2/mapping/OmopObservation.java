@@ -183,7 +183,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			}
 		}
 		if (fObservationView.getPerson() != null) {
-			Reference personRef = new Reference(new IdType(fObservationView.getPerson().getId()));
+			Reference personRef = new Reference(new IdType(ResourceType.Patient.getPath(), fObservationView.getPerson().getId()));
 			personRef.setDisplay(fObservationView.getPerson().getNameAsSingleString());
 			observation.setSubject(personRef);
 		}
@@ -236,7 +236,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 	}
 
 	@Override
-	public Long toDbase(Observation Fhir) {
+	public Long toDbase(Observation fhirResource, IdType fhirId) {
 		// TODO Auto-generated method stub
 		return null;
 	}
