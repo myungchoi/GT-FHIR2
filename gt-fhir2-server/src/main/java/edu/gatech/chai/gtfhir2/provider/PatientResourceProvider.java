@@ -32,6 +32,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
@@ -100,6 +101,8 @@ private int preferredPageSize = 30;
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
+			@OptionalParam(name = Patient.SP_BIRTHDATE) DateParam theBirthDate,
+			
 			@OptionalParam(name = Patient.SP_ORGANIZATION, chainWhitelist={"", Organization.SP_NAME}) ReferenceParam theOrganization,
 			
 			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
@@ -145,10 +148,9 @@ private int preferredPageSize = 30;
 			}
 		}
 
-		// TODO: revinclude returns resource that reference the searched patients.
-		// it would be observations, encounters, etc... Whenever these are implemented
-		// implement revinclude. 
-		
+		if (theBirthDate != null) {
+			mapParameter (paramMap, Patient.SP_BIRTHDATE, theBirthDate);
+		}
 		
 		// Chain Search.
 		if (theOrganization != null) {
@@ -199,6 +201,47 @@ private int preferredPageSize = 30;
 					includes.add("Patient:link");
 				}
 
+				if (theReverseIncludes.contains(new Include("*"))) {
+					// This is to include all the reverse includes...
+					includes.add("Encounter:subject");
+					includes.add("Observation:subject");
+					includes.add("Device:patient");
+					includes.add("Condition:subject");
+					includes.add("Procedure:subject");
+					includes.add("MedicationRequest:subject");
+					includes.add("MedicationAdministration:subject");
+					includes.add("MedicationDispense:subject");
+					includes.add("MedicationStatement:subject");
+				} else {
+					if (theReverseIncludes.contains(new Include("Encounter:subject"))) {
+						includes.add("Encounter:subject");						
+					}
+					if (theReverseIncludes.contains(new Include("Observation:subject"))) {
+						includes.add("Observation:subject");
+					}
+					if (theReverseIncludes.contains(new Include("Device:patient"))) {
+						includes.add("Device:patient");
+					}
+					if (theReverseIncludes.contains(new Include("Condition:subject"))) {
+						includes.add("Condition:subject");
+					}
+					if (theReverseIncludes.contains(new Include("Procedure:subject"))) {
+						includes.add("Procedure:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationRequest:subject"))) {
+						includes.add("MedicationRequest:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationAdministration:subject"))) {
+						includes.add("MedicationAdministration:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationDispense:subject"))) {
+						includes.add("MedicationDispense:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationStatement:subject"))) {
+						includes.add("MedicationStatement:subject");
+					}
+				}
+				
 				if (finalParamMap.size() == 0) {
 					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
 				} else {

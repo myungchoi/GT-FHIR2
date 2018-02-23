@@ -248,7 +248,8 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			"Long",
 			Arrays.asList("observationConcept.id"),
 			Arrays.asList("!="),
-			Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID))
+			Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)),
+			"or"
 			);
 	
 	@Override
