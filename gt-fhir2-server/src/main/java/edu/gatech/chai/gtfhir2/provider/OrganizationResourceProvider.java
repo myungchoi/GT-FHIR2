@@ -7,31 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.persistence.Entity;
-import javax.persistence.Table;
-
-//import ca.uhn.fhir.model.primitive.BooleanDt;
-
-import org.hl7.fhir.dstu3.model.BooleanType;
-import org.hl7.fhir.dstu3.model.CodeType;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.ContactPoint;
-import org.hl7.fhir.dstu3.model.DomainResource;
 //import org.hl7.fhir.dstu3.model.ContactPoint.ContactPointUse;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
-import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
-import org.hl7.fhir.dstu3.model.Address.AddressUse;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
@@ -46,20 +28,15 @@ import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.StringParam;
-import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import edu.gatech.chai.gtfhir2.config.FhirServerConfig;
-import edu.gatech.chai.gtfhir2.mapping.IdMapping;
+
 import edu.gatech.chai.gtfhir2.mapping.OmopOrganization;
-import edu.gatech.chai.gtfhir2.mapping.IResourceMapping;
-//import edu.gatech.chai.gtfhir2.mapping.OmopForOrganization;
 import edu.gatech.chai.gtfhir2.model.MyOrganization;
-import edu.gatech.chai.omopv5.jpa.entity.CareSite;
-import edu.gatech.chai.omopv5.jpa.service.CareSiteService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 /**
@@ -209,6 +186,63 @@ public class OrganizationResourceProvider implements IResourceProvider {
 		if (paramList != null) {
 			paramMap.put(FHIRparam, paramList);
 		}
+	}
+
+	/**
+	 * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
+	 * <p>
+	 * Read operations take a single parameter annotated with the {@link IdParam} paramater, and should return a single resource instance.
+	 * </p>
+	 * 
+	 * @param theId
+	 *            The read operation takes one parameter, which must be of type IdDt and must be annotated with the "@Read.IdParam" annotation.
+	 * @return Returns a resource matching this identifier, or null if none exists.
+	 */
+	@Read()
+	public MyOrganization readOrganization(@IdParam IdType theId) {
+		MyOrganization retval = (MyOrganization) myMapper.toFHIR(theId);
+		if (retval == null) {
+			throw new ResourceNotFoundException(theId);
+		}
+			
+		return retval;
+	}
+
+	/**
+	 * The "@Update" annotation indicates that this method supports replacing an existing 
+	 * resource (by ID) with a new instance of that resource.
+	 * 
+	 * @param theId
+	 *            This is the ID of the patient to update
+	 * @param thePatient
+	 *            This is the actual resource to save
+	 * @return This method returns a "MethodOutcome"
+	 */
+	@Update()
+	public MethodOutcome updateOrganization(@IdParam IdType theId, @ResourceParam MyOrganization theOrganization) {
+		validateResource(theOrganization);
+
+//		Long id;
+//		try {
+//			id = theId.getIdPartAsLong();
+//		} catch (DataFormatException e) {
+//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
+//		}
+//
+//		/*
+//		 * Throw an exception (HTTP 404) if the ID is not known
+//		 */
+//		if (!myIdToPatientVersions.containsKey(id)) {
+//			throw new ResourceNotFoundException(theId);
+//		}
+//
+//		addNewVersion(thePatient, id);
+
+		return new MethodOutcome();
+	}
+	
+	// TODO: Add more validation code here.
+	private void validateResource(MyOrganization theOrganization) {
 	}
 
 
