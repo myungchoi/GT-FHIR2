@@ -19,6 +19,7 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
+import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
@@ -39,7 +40,6 @@ import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 
 import edu.gatech.chai.gtfhir2.mapping.OmopPatient;
-import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 
@@ -164,6 +164,7 @@ private int preferredPageSize = 30;
 				mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart());
 			}
 		}
+		
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize;
@@ -312,7 +313,7 @@ private int preferredPageSize = 30;
 			CodeableConcept detailCode = new CodeableConcept();
 			detailCode.setText("No family name provided, Patient resources must have at least one family name.");
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-			throw new UnprocessableEntityException(outcome);
+			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
 		}
 	}
 

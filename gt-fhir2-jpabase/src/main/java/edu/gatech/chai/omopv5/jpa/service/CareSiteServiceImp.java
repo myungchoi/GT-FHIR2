@@ -33,14 +33,14 @@ public class CareSiteServiceImp implements CareSiteService {
 
 	@Transactional(readOnly = true)
 	@Override
-	public CareSite searchByColumnString(String column, String value) {
+	public List<CareSite> searchByColumnString(String column, String value) {
 		EntityManager em = careSiteDao.getEntityManager();
 		
 		String query = "SELECT t FROM CareSite t WHERE "+column+" like :value";
-		List<? extends CareSite> results = em.createQuery(query, CareSite.class)
+		List<CareSite> results = em.createQuery(query, CareSite.class)
 				.setParameter("value", value).getResultList();
 		if (results.size() > 0)
-			return results.get(0);
+			return results;
 		else
 			return null;	
 	}
@@ -71,16 +71,16 @@ public class CareSiteServiceImp implements CareSiteService {
 		// Construct predicate from this map.
 		EntityManager em = careSiteDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<Long> careSiteQuery = builder.createQuery(Long.class);
-		Root<CareSite> careSiteRoot = careSiteQuery.from(CareSite.class);
+		CriteriaQuery<Long> query = builder.createQuery(Long.class);
+		Root<CareSite> root = query.from(CareSite.class);
 
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, careSiteRoot);		
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
 		if (predicates == null || predicates.isEmpty()) return 0L;
 
-		careSiteQuery.select(builder.count(careSiteRoot));
-		careSiteQuery.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
+		query.select(builder.count(root));
+		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
 		
-		return em.createQuery(careSiteQuery).getSingleResult();
+		return em.createQuery(query).getSingleResult();
 	}
 
 	@Override
@@ -102,17 +102,17 @@ public class CareSiteServiceImp implements CareSiteService {
 		int length = toIndex - fromIndex;
 		EntityManager em = careSiteDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<CareSite> careSiteQuery = builder.createQuery(CareSite.class);
-		Root<CareSite> careSiteRoot = careSiteQuery.from(CareSite.class);
+		CriteriaQuery<CareSite> query = builder.createQuery(CareSite.class);
+		Root<CareSite> root = query.from(CareSite.class);
 		
-		List<CareSite> careSite = new ArrayList<CareSite>();
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, careSiteRoot);		
-		if (predicates == null || predicates.isEmpty()) return careSite; // Nothing. return empty list
+		List<CareSite> retvals = new ArrayList<CareSite>();
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
+		if (predicates == null || predicates.isEmpty()) return retvals; // Nothing. return empty list
 	
-		careSiteQuery.select(careSiteRoot);
-		careSiteQuery.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
+		query.select(root);
+		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
 
-		List<CareSite> retvals = em.createQuery(careSiteQuery)
+		retvals = em.createQuery(query)
 				.setFirstResult(fromIndex)
 				.setMaxResults(length)
 				.getResultList();

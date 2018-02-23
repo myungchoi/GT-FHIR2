@@ -19,7 +19,6 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Patient.PatientLinkComponent;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.dstu3.model.codesystems.V3MaritalStatus;
@@ -41,7 +40,7 @@ import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 
-public class OmopPatient implements ResourceMapping<Patient> {
+public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 
 	private FPersonService myOmopService;
 	private LocationService locationService;
@@ -76,8 +75,9 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		return constructFHIR(fhirId, fPerson);
 	}
 
-	private Patient constructPatient(Long fhirId, FPerson fPerson, List<String> includes) {
-		Patient patient = constructFHIR(fhirId, fPerson);
+	@Override
+	public Patient constructResource(Long fhirId, FPerson entity, List<String> includes) {
+		Patient patient = constructFHIR(fhirId, entity);
 		
 		if (!includes.isEmpty()) {
 			if (includes.contains("Patient:general-practitioner")) {
@@ -100,7 +100,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 					Reference managingOrganization = patient.getManagingOrganization();
 					IIdType managingOrganizationId = managingOrganization.getReferenceElement();
 					Long manageOrgFhirId = managingOrganizationId.getIdPartAsLong();
-					MyOrganization organization = OmopOrganization.constructFHIR(manageOrgFhirId, fPerson.getCareSite());
+					MyOrganization organization = OmopOrganization.constructFHIR(manageOrgFhirId, entity.getCareSite());
 					patient.getManagingOrganization().setResource(organization);
 				}
 			}
@@ -157,13 +157,9 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		patient.setBirthDate(calendar.getTime());
 
 		if (fPerson.getLocation() != null && fPerson.getLocation().getId() != 0L) {
+			// WARNING check if mapping for lines are correct
 			patient.addAddress().setUse(AddressUse.HOME).addLine(fPerson.getLocation().getAddress1())
-					.addLine(fPerson.getLocation().getAddress2())// WARNING
-																	// check if
-																	// mapping
-																	// for lines
-																	// are
-																	// correct
+					.addLine(fPerson.getLocation().getAddress2()) 
 					.setCity(fPerson.getLocation().getCity()).setPostalCode(fPerson.getLocation().getZipCode())
 					.setState(fPerson.getLocation().getState());
 		}
@@ -320,7 +316,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 
 				// See if we have existing patient
 				// with this identifier.
-				person = myOmopService.searchByColumnString("personSourceValue", personSourceValue);
+				person = myOmopService.searchByColumnString("personSourceValue", personSourceValue).get(0);
 				if (person != null) {
 					fperson.setId(person.getId());
 					break;
@@ -434,7 +430,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructPatient(fhirId, fPerson, includes));
+			listResources.add(constructResource(fhirId, fPerson, includes));
 		}
 	}
 
@@ -445,7 +441,7 @@ public class OmopPatient implements ResourceMapping<Patient> {
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructPatient(fhirId, fPerson, includes));
+			listResources.add(constructResource(fhirId, fPerson, includes));
 		}
 	}
 

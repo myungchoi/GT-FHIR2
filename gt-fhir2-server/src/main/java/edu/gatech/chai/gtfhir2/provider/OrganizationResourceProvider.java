@@ -55,7 +55,7 @@ import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import edu.gatech.chai.gtfhir2.config.FhirServerConfig;
 import edu.gatech.chai.gtfhir2.mapping.IdMapping;
 import edu.gatech.chai.gtfhir2.mapping.OmopOrganization;
-import edu.gatech.chai.gtfhir2.mapping.ResourceMapping;
+import edu.gatech.chai.gtfhir2.mapping.IResourceMapping;
 //import edu.gatech.chai.gtfhir2.mapping.OmopForOrganization;
 import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
