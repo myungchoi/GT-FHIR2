@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
@@ -21,14 +22,18 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
+import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopObservation;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
@@ -175,6 +180,59 @@ public class ObservationResourceProvider implements IResourceProvider {
 				return totalSize.intValue();
 			}
 		};
+	}
+	
+	/**
+	 * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
+	 * <p>
+	 * Read operations take a single parameter annotated with the {@link IdParam} paramater, and should return a single resource instance.
+	 * </p>
+	 * 
+	 * @param theId
+	 *            The read operation takes one parameter, which must be of type IdDt and must be annotated with the "@Read.IdParam" annotation.
+	 * @return Returns a resource matching this identifier, or null if none exists.
+	 */
+	@Read()
+	public Observation readObservation(@IdParam IdType theId) {
+		Observation retval = (Observation) myMapper.toFHIR(theId);
+		if (retval == null) {
+			throw new ResourceNotFoundException(theId);
+		}
+			
+		return retval;
+	}
+
+	/**
+	 * The "@Update" annotation indicates that this method supports replacing an existing 
+	 * resource (by ID) with a new instance of that resource.
+	 * 
+	 * @param theId
+	 *            This is the ID of the patient to update
+	 * @param thePatient
+	 *            This is the actual resource to save
+	 * @return This method returns a "MethodOutcome"
+	 */
+	@Update()
+	public MethodOutcome updateObservation(@IdParam IdType theId, @ResourceParam Observation theObservation) {
+		validateResource(theObservation);
+
+//		Long id;
+//		try {
+//			id = theId.getIdPartAsLong();
+//		} catch (DataFormatException e) {
+//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
+//		}
+//
+//		/*
+//		 * Throw an exception (HTTP 404) if the ID is not known
+//		 */
+//		if (!myIdToPatientVersions.containsKey(id)) {
+//			throw new ResourceNotFoundException(theId);
+//		}
+//
+//		addNewVersion(thePatient, id);
+
+		return new MethodOutcome();
 	}
 
 	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
