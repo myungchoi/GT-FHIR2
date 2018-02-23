@@ -32,7 +32,7 @@ import edu.gatech.chai.omopv5.jpa.service.CareSiteService;
 import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-public class OmopOrganization implements ResourceMapping<Organization> {
+public class OmopOrganization implements IResourceMapping<Organization, CareSite> {
 	private CareSiteService myOmopService;
 	private LocationService locationService;
 	private WebApplicationContext myAppCtx;
@@ -119,7 +119,7 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 			if (identifier.getValue().isEmpty() == false) {
 				careSiteSourceValue = identifier.getValue();
 				
-				existingCareSite = myOmopService.searchByColumnString("careSiteSourceValue", careSiteSourceValue);
+				existingCareSite = myOmopService.searchByColumnString("careSiteSourceValue", careSiteSourceValue).get(0);
 				if (existingCareSite != null) {
 					careSite.setId(existingCareSite.getId());
 					break;
@@ -183,8 +183,10 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 		return myOmopService.getSize(map);
 	}
 	
-	private MyOrganization constructOrganization(Long fhirId, CareSite careSite, List<String> includes) {
-		MyOrganization myOrganization = constructFHIR(fhirId, careSite);
+
+	@Override
+	public Organization constructResource(Long fhirId, CareSite entity, List<String> includes) {
+		MyOrganization myOrganization = constructFHIR(fhirId, entity);
 		
 		if (!includes.isEmpty()) {
 			if (includes.contains("Organization:partof")) {
@@ -203,7 +205,7 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 
 		return myOrganization;
 	}
-	
+
 	/**
 	 * 
 	 * @param fromIndex
@@ -219,7 +221,7 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 		for (CareSite careSite : careSites) {
 			Long omopId = careSite.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructOrganization(fhirId, careSite, includes));
+			listResources.add(constructResource(fhirId, careSite, includes));
 		}
 	}
 
@@ -230,7 +232,7 @@ public class OmopOrganization implements ResourceMapping<Organization> {
 		for (CareSite careSite : careSites) {
 			Long omopId = careSite.getId();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructOrganization(fhirId, careSite, includes));
+			listResources.add(constructResource(fhirId, careSite, includes));
 		}
 	}
 

@@ -37,14 +37,14 @@ public class FPersonServiceImp implements FPersonService {
 
 	@Transactional(readOnly = true)
 	@Override
-	public FPerson searchByColumnString(String column, String value) {
+	public List<FPerson> searchByColumnString(String column, String value) {
 		EntityManager em = fPersonDao.getEntityManager();
 		
 		String query = "SELECT t FROM FPerson t WHERE "+column+" like :value";
-		List<? extends FPerson> results = em.createQuery(query, FPerson.class)
+		List<FPerson> results = em.createQuery(query, FPerson.class)
 				.setParameter("value",  value).getResultList();
 		if (results.size() > 0)
-			return results.get(0);
+			return results;
 		else
 			return null;	
 	}

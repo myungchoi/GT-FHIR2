@@ -149,6 +149,12 @@ public class ParameterWrapper {
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, shortValue));
 								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, shortValue));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, shortValue));
+								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 									subWhere = builder.or(subWhere, builder.lessThan(path, shortValue));
@@ -194,6 +200,12 @@ public class ParameterWrapper {
 									subWhere = builder.or(subWhere, builder.equal(path, Short.valueOf(valueString)));
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, Short.valueOf(valueString)));
+								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, Short.valueOf(valueString)));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, Short.valueOf(valueString)));
 								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
@@ -311,6 +323,12 @@ public class ParameterWrapper {
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, longValue));
 								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, longValue));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, longValue));
+								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 									subWhere = builder.or(subWhere, builder.lessThan(path, longValue));
@@ -356,6 +374,12 @@ public class ParameterWrapper {
 									subWhere = builder.or(subWhere, builder.equal(path, Long.valueOf(valueString)));
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, Long.valueOf(valueString)));
+								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, Long.valueOf(valueString)));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, Long.valueOf(valueString)));
 								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
@@ -412,6 +436,12 @@ public class ParameterWrapper {
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, doubleValue));
 								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, doubleValue));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, doubleValue));
+								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 									subWhere = builder.or(subWhere, builder.lessThan(path, doubleValue));
@@ -457,6 +487,12 @@ public class ParameterWrapper {
 									subWhere = builder.or(subWhere, builder.equal(path, Double.valueOf(valueString)));
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, Double.valueOf(valueString)));
+								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, Double.valueOf(valueString)));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, Double.valueOf(valueString)));
 								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
@@ -513,6 +549,12 @@ public class ParameterWrapper {
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, integerValue));
 								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, integerValue));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, integerValue));
+								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 									subWhere = builder.or(subWhere, builder.lessThan(path, integerValue));
@@ -558,6 +600,12 @@ public class ParameterWrapper {
 									subWhere = builder.or(subWhere, builder.equal(path, Integer.valueOf(valueString)));
 								} else {
 									subWhere = builder.and(subWhere, builder.equal(path, Integer.valueOf(valueString)));
+								}
+							} else if (oper.equalsIgnoreCase("!=")) {
+								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+									subWhere = builder.or(subWhere, builder.notEqual(path, Integer.valueOf(valueString)));
+								} else {
+									subWhere = builder.and(subWhere, builder.notEqual(path, Integer.valueOf(valueString)));
 								}
 							} else if (oper.equalsIgnoreCase("<"))
 								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
