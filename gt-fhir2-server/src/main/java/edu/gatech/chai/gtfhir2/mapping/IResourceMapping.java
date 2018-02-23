@@ -13,7 +13,7 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public interface IResourceMapping<v extends DomainResource, t extends BaseEntity> {
 	public v toFHIR(IdType id);
-	public Long toDbase(v Fhir);
+	public Long toDbase(v fhirResource, IdType fhirId);
 	public Long getSize();
 	public Long getSize(Map<String, List<ParameterWrapper>> map);
 

@@ -66,7 +66,7 @@ public class EncounterResourceProvider implements IResourceProvider {
 	public MethodOutcome createPatient(@ResourceParam Encounter theEncounter) {
 		validateResource(theEncounter);
 		
-		Long id = myMapper.toDbase(theEncounter);		
+		Long id = myMapper.toDbase(theEncounter, null);		
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -223,22 +223,11 @@ public class EncounterResourceProvider implements IResourceProvider {
 	public MethodOutcome updateObservation(@IdParam IdType theId, @ResourceParam Encounter theEncounter) {
 		validateResource(theEncounter);
 
-//		Long id;
-//		try {
-//			id = theId.getIdPartAsLong();
-//		} catch (DataFormatException e) {
-//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
-//		}
-//
-//		/*
-//		 * Throw an exception (HTTP 404) if the ID is not known
-//		 */
-//		if (!myIdToPatientVersions.containsKey(id)) {
-//			throw new ResourceNotFoundException(theId);
-//		}
-//
-//		addNewVersion(thePatient, id);
-
+		Long fhirId = myMapper.toDbase(theEncounter, theId);
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
+		
 		return new MethodOutcome();
 	}
 

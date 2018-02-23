@@ -105,7 +105,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 	}
 
 	@Override
-	public Long toDbase(Organization organization) {
+	public Long toDbase(Organization organization, IdType fhirId) {
 		CareSite careSite = new CareSite();
 		String careSiteSourceValue = null;
 		
@@ -136,6 +136,8 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 				}
 			}
 		}
+		
+		// TODO: Implement Update case. This is when fhirId is not null
 
 		// Organization.name to CareSiteName
 		careSite.setCareSiteName(myOrganization.getName());
@@ -170,8 +172,8 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 		}
 
 		Long omopRecordId = myOmopService.createOrUpdate(careSite).getId();
-		Long fhirId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Organization.getPath());
-		return fhirId;
+		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Organization.getPath());
+		return fhirRecordId;
 	}
 
 	@Override

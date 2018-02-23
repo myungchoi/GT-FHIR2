@@ -71,7 +71,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 	public MethodOutcome createPatient(@ResourceParam Observation theObservation) {
 		validateResource(theObservation);
 		
-		Long id = myMapper.toDbase(theObservation);		
+		Long id = myMapper.toDbase(theObservation, null);		
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -215,22 +215,12 @@ public class ObservationResourceProvider implements IResourceProvider {
 	@Update()
 	public MethodOutcome updateObservation(@IdParam IdType theId, @ResourceParam Observation theObservation) {
 		validateResource(theObservation);
+		
+		Long fhirId = myMapper.toDbase(theObservation, theId);
 
-//		Long id;
-//		try {
-//			id = theId.getIdPartAsLong();
-//		} catch (DataFormatException e) {
-//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
-//		}
-//
-//		/*
-//		 * Throw an exception (HTTP 404) if the ID is not known
-//		 */
-//		if (!myIdToPatientVersions.containsKey(id)) {
-//			throw new ResourceNotFoundException(theId);
-//		}
-//
-//		addNewVersion(thePatient, id);
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
 		return new MethodOutcome();
 	}
