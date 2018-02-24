@@ -101,8 +101,16 @@ private int preferredPageSize = 30;
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
+			@OptionalParam(name = Patient.SP_NAME) StringParam theName,
 			@OptionalParam(name = Patient.SP_BIRTHDATE) DateParam theBirthDate,
-			
+			@OptionalParam(name = Patient.SP_ADDRESS) StringParam theAddress,
+			@OptionalParam(name = Patient.SP_ADDRESS_CITY) StringParam theAddressCity,
+			@OptionalParam(name = Patient.SP_ADDRESS_STATE) StringParam theAddressState,
+			@OptionalParam(name = Patient.SP_ADDRESS_POSTALCODE) StringParam theAddressZip,
+			@OptionalParam(name = Patient.SP_EMAIL) TokenParam theEmail,
+			@OptionalParam(name = Patient.SP_PHONE) TokenParam thePhone,
+			@OptionalParam(name = Patient.SP_TELECOM) TokenParam theTelecom,
+
 			@OptionalParam(name = Patient.SP_ORGANIZATION, chainWhitelist={"", Organization.SP_NAME}) ReferenceParam theOrganization,
 			
 			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
@@ -125,11 +133,18 @@ private int preferredPageSize = 30;
 		if (thePatientId != null) {
 			mapParameter (paramMap, Patient.SP_RES_ID, thePatientId);
 		}
-		
 		if (theActive != null) {
 			mapParameter (paramMap, Patient.SP_ACTIVE, theActive);
 		}
-		
+		if (theEmail != null) {
+			mapParameter (paramMap, Patient.SP_EMAIL, theEmail);
+		}
+		if (thePhone != null) {
+			mapParameter (paramMap, Patient.SP_PHONE, thePhone);
+		}
+		if (theTelecom != null) {
+			mapParameter (paramMap, Patient.SP_TELECOM, theTelecom);
+		}
 		if (theFamilyName != null) {
 			if (theFamilyName.isExact()) {
 				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
@@ -138,7 +153,14 @@ private int preferredPageSize = 30;
 				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
 			}
 		}
-		
+		if (theName != null) {
+			if (theName.isExact()) {
+				mapParameter (paramMap, Patient.SP_NAME, theName);
+			} else {
+				theName.setValue("%"+theName.getValue()+"%");
+				mapParameter (paramMap, Patient.SP_NAME, theName);
+			}
+		}
 		if (theGivenName != null) {
 			if (theGivenName.isExact()) {
 				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
@@ -147,12 +169,46 @@ private int preferredPageSize = 30;
 				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
 			}
 		}
-
 		if (theBirthDate != null) {
 			mapParameter (paramMap, Patient.SP_BIRTHDATE, theBirthDate);
 		}
+		if (theAddress != null) {
+			if (theAddress.isExact()) {
+				mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
+			} else {
+				theAddress.setValue("%"+theAddress.getValue()+"%");
+				mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
+			}
+		}
+		if (theAddressCity != null) {
+			if (theAddressCity.isExact()) {
+				mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
+			} else {
+				theAddressCity.setValue("%"+theAddressCity.getValue()+"%");
+				mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
+			}
+		}
+		if (theAddressState != null) {
+			if (theAddressState.isExact()) {
+				mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
+			} else {
+				theAddressState.setValue("%"+theAddressState.getValue()+"%");
+				mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
+			}
+		}
+		if (theAddressZip != null) {
+			if (theAddressZip.isExact()) {
+				mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
+			} else {
+				theAddressZip.setValue("%"+theAddressZip.getValue()+"%");
+				mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
+			}
+		}
 		
 		// Chain Search.
+		// Chain search is a searching by reference with specific field name (including reference ID).
+		// As SP names are not unique across the FHIR resources, we need to tag the name
+		// of the resource in front to indicate our OMOP* can handle these parameters.
 		if (theOrganization != null) {
 			String orgChain = theOrganization.getChain();
 			if (orgChain != null) {

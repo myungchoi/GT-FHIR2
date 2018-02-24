@@ -427,7 +427,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 		List<ContactPoint> contactPoints = patient.getTelecom();
 		int index = 0;
 		for (ContactPoint contactPoint: contactPoints) {
-			String system = contactPoint.getSystem().getSystem();
+			String system = contactPoint.getSystem().toCode();
 			String use = contactPoint.getUse().toCode();
 			String value = contactPoint.getValue();
 			if (index == 0) {
@@ -609,6 +609,36 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
+		case Patient.SP_EMAIL:
+			String emailValue = ((TokenParam) value).getValue();
+			String emailSystemValue = ContactPoint.ContactPointSystem.EMAIL.toCode();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("contactPoint1", "contactPoint2", "contactPoint3"));
+			paramWrapper.setOperators(Arrays.asList("like", "like", "like"));
+			paramWrapper.setValues(Arrays.asList("%"+emailSystemValue+":%:%"+emailValue+"%"));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_PHONE:
+			String phoneValue = ((TokenParam) value).getValue();
+			String phoneSystemValue = ContactPoint.ContactPointSystem.PHONE.toCode();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("contactPoint1", "contactPoint2", "contactPoint3"));
+			paramWrapper.setOperators(Arrays.asList("like", "like", "like"));
+			paramWrapper.setValues(Arrays.asList("%"+phoneSystemValue+":%:%"+phoneValue+"%"));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_TELECOM:
+			String telecomValue = ((TokenParam) value).getValue();
+			String telecomSystemValue = ((TokenParam) value).getSystem();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("contactPoint1", "contactPoint2", "contactPoint3"));
+			paramWrapper.setOperators(Arrays.asList("like", "like", "like"));
+			paramWrapper.setValues(Arrays.asList("%"+telecomSystemValue+":%:%"+telecomValue+"%"));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
 		case Patient.SP_BIRTHDATE:
 			// We only compare date (no time). Get year, month, date
 			// form DateParam value.
@@ -658,12 +688,58 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
+		case Patient.SP_NAME:
+			// This is family name, which is string. use like.
+			String nameString = ((StringParam) value).getValue();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("familyName", "givenName1", "givenName2", "prefixName", "suffixName"));
+			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
+			paramWrapper.setValues(Arrays.asList(nameString));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
 		case Patient.SP_RES_ID:
 			String patientId = ((TokenParam) value).getValue();
 			paramWrapper.setParameterType("Long");
 			paramWrapper.setParameters(Arrays.asList("id"));
 			paramWrapper.setOperators(Arrays.asList("="));
 			paramWrapper.setValues(Arrays.asList(patientId));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_ADDRESS:
+			String addressName = ((StringParam) value).getValue();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("location.address1", "location.address2", "location.city", "location.state", "location.zipCode"));
+			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
+			paramWrapper.setValues(Arrays.asList(addressName));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_ADDRESS_CITY:
+			String addressCityName = ((StringParam) value).getValue();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("location.city"));
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList(addressCityName));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_ADDRESS_STATE:
+			String addressStateName = ((StringParam) value).getValue();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("location.state"));
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList(addressStateName));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_ADDRESS_POSTALCODE:
+			String addressZipName = ((StringParam) value).getValue();
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("location.zipCode"));
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList(addressZipName));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
