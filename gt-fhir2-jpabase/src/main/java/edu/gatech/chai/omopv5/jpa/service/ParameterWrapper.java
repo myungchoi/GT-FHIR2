@@ -148,15 +148,15 @@ public class ParameterWrapper {
 
 						if (oper.equalsIgnoreCase("like"))
 							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-								subWhere = builder.or(subWhere, builder.like(path, valueName));
+								subWhere = builder.or(subWhere, builder.like(builder.lower(path), valueName.toLowerCase()));
 							} else {
-								subWhere = builder.and(subWhere, builder.like(path, valueName));
+								subWhere = builder.and(subWhere, builder.like(builder.lower(path), valueName.toLowerCase()));
 							}
 						else
 							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-								subWhere = builder.or(subWhere, builder.notLike(path, valueName));
+								subWhere = builder.or(subWhere, builder.notLike(builder.lower(path), valueName.toLowerCase()));
 							} else {
-								subWhere = builder.and(subWhere, builder.notLike(path, valueName));
+								subWhere = builder.and(subWhere, builder.notLike(builder.lower(path), valueName.toLowerCase()));
 							}
 					}
 					break;
@@ -176,7 +176,7 @@ public class ParameterWrapper {
 		return predicates;
 	}
 	
-	public static <T extends Number> Predicate numbericPredicateBuidler (
+	public static Predicate numbericPredicateBuidler (
 			CriteriaBuilder builder,
 			ParameterWrapper param, 
 			Root<? extends BaseEntity> rootUser,
@@ -212,7 +212,7 @@ public class ParameterWrapper {
 				value = Integer.valueOf(valueName);
 			}
 			
-			Path<T> path;
+			Path<Number> path;
 			String[] columnPath = columnName.split("\\.");
 			if (columnPath.length == 2) {
 				path = rootUser.get(columnPath[0]).get(columnPath[1]);
