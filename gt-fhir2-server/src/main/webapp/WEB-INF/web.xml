@@ -18,11 +18,11 @@
 	</context-param>
 	<context-param>
 		<param-name>backendDbType</param-name>
-		<param-value>
-			omopv5
-		</param-value>
+		<param-value>omopv5</param-value>
+	</context-param>
+	<context-param>
 		<param-name>preferredPageSize</param-name>
-		<param-value>30</param-value>
+		<param-value>20</param-value>
 	</context-param>
 
 
