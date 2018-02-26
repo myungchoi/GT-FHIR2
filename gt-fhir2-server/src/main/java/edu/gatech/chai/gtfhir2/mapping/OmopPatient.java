@@ -266,16 +266,67 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 	 * OMOP on FHIR mapping - from FHIR to OMOP
 	 * 
 	 * @param Patient
-	 *            resource.
+	 *        resource.
+	 * @param IdType
+	 *        fhirId that you want to update
 	 * 
 	 * @return Resource ID. Returns ID in Long. This is what needs to be used to
 	 *         refer this resource.
 	 */
 	@Override
 	public Long toDbase(Patient patient, IdType fhirId) {
-		FPerson fperson = new FPerson();
+		FPerson fperson = null;
 		String personSourceValue = null;
+		Long omopId;
+		
+		if (fhirId != null) {
+			//update
+			omopId = fhirId.getIdPartAsLong();
+			if (omopId == null) {
+				// Invalid fhirId.
+				return null;
+			}
+			
+			fperson = myOmopService.findById(omopId);
+			if (fperson == null) {
+				// Does not exist.
+				return null;
+			}
+		} else {
+			// In OMOP, we have person source column.
+			// We will use identifier field as our source column if exists. The
+			// identifier better identifies
+			// the identity of this resource across all servers that may have this
+			// copy.
+			//
+			// Identifier has many fields. We can't have them all in OMOP. We only
+			// have string field and
+			// size is very limited. So, for now, we only get value part.
+			List<Identifier> identifiers = patient.getIdentifier();
+			FPerson person = null;
+			for (Identifier identifier : identifiers) {
+				if (identifier.getValue().isEmpty() == false) {
+					personSourceValue = identifier.getValue();
 
+					// See if we have existing patient
+					// with this identifier.
+					person = myOmopService.searchByColumnString("personSourceValue", personSourceValue).get(0);
+					if (person != null) {
+						break;
+					}
+				}
+			}
+			
+			// If we have match in identifier, then we can update or create since
+			// we have the patient. If we have no match, but fhirId is not null,
+			// then this is update with fhirId. We need to do another search.
+			if (person == null) {
+				fperson = new FPerson();
+			} else {
+				fperson = person;
+			}
+		}
+		
 		// Set name
 		Iterator<HumanName> patientIterator = patient.getName().iterator();
 		if (patientIterator.hasNext()) {
@@ -305,52 +356,6 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			}
 		}
 
-		// In OMOP, we have person source column.
-		// We will use identifier field as our source column if exists. The
-		// identifier better identifies
-		// the identity of this resource across all servers that may have this
-		// copy.
-		//
-		// Identifier has many fields. We can't have them all in OMOP. We only
-		// have string field and
-		// size is very limited. So, for now, we only get value part.
-		List<Identifier> identifiers = patient.getIdentifier();
-		FPerson person = null;
-		for (Identifier identifier : identifiers) {
-			if (identifier.getValue().isEmpty() == false) {
-				personSourceValue = identifier.getValue();
-
-				// See if we have existing patient
-				// with this identifier.
-				person = myOmopService.searchByColumnString("personSourceValue", personSourceValue).get(0);
-				if (person != null) {
-					fperson.setId(person.getId());
-					break;
-				}
-			}
-		}
-		
-		// If we have match in identifier, then we can update or create since
-		// we have the patient. If we have no match, but fhirId is not null,
-		// then this is update with fhirId. We need to do another search.
-		if (person == null && fhirId != null) {
-			// Search for this ID.
-			Long omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ResourceType.Patient.getPath());
-			if (omopId == null) {
-				// This is update. We don't have this patient. Return null.
-				return null;
-			}
-			
-			// See if we have this in our database.
-			person = myOmopService.findById(omopId);
-			if (person == null) {
-				// We don't have this patient
-				return null;
-			} else {
-				fperson.setId(person.getId());
-			}
-		}
-		
 		// Now check if we have
 		// WE DO NOT CHECK NAMES FOR EXISTENCE. TOO DANGEROUS.
 //		if (retLocation != null && person == null) {
