@@ -16,7 +16,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import net.jcip.annotations.Immutable;
+
 @Entity
+@Immutable
 @Table(name="concept")
 @Inheritance(strategy=InheritanceType.JOINED)
 public class Concept extends BaseEntity {
@@ -38,7 +41,7 @@ public class Concept extends BaseEntity {
 	private String domain;
 
 	@Column(name="concept_class_id", updatable=false)
-	private String conceptClassId;
+	private String conceptClass;
 	
 	@Column(name="standard_concept", updatable=false)
 	private Character standardConcept;
@@ -74,14 +77,14 @@ public class Concept extends BaseEntity {
 		this.name = name;
 	}
 
-	public Concept(Long id, String name, String domain, String conceptClassId, Character standardConcept,
+	public Concept(Long id, String name, String domain, String conceptClass, Character standardConcept,
 			Vocabulary vocabulary, String conceptCode, Date validStartDate,
 			Date validEndDate, String invalidReason) {
 		super();
 		this.id = id;
 		this.name = name;
 		this.domain = domain;
-		this.conceptClassId = conceptClassId;
+		this.conceptClass = conceptClass;
 		this.standardConcept = standardConcept;
 		this.vocabulary = vocabulary;
 		this.conceptCode = conceptCode;
@@ -106,20 +109,20 @@ public class Concept extends BaseEntity {
 		this.name = name;
 	}
 
-	public String getDomainId() {
+	public String getDomain() {
 		return domain;
 	}
 
-	public void setDomainId(String domain) {
+	public void setDomain(String domain) {
 		this.domain = domain;
 	}
 
-	public String getConceptClassId() {
-		return conceptClassId;
+	public String getConceptClass() {
+		return conceptClass;
 	}
 
-	public void setConceptClassId(String conceptClassId) {
-		this.conceptClassId = conceptClassId;
+	public void setConceptClass(String conceptClass) {
+		this.conceptClass = conceptClass;
 	}
 
 	public Character getStandardConcept() {
@@ -175,8 +178,8 @@ public class Concept extends BaseEntity {
 		//Since this is an omop v.4 based model, all the information below is expected to be not null.
 		return this.getId() + ", "
 				+ this.getName() + ", "
-				+ this.getDomainId() + ", "
-				+ this.getConceptClassId() + ", "
+				+ this.getDomain() + ", "
+				+ this.getConceptClass() + ", "
 				+ this.getStandardConcept() + ", "
 				+ this.getVocabulary() + ", "
 				+ this.getConceptCode() + ", "
