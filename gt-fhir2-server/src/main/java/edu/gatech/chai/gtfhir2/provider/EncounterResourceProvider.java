@@ -7,10 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-//import org.hl7.fhir.dstu3.model.ContactPoint.ContactPointUse;
+import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
-import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
@@ -19,10 +18,6 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
-//import ca.uhn.fhir.model.dstu2.composite.ContactPointDt;
-//import ca.uhn.fhir.model.dstu2.valueset.ContactPointUseEnum;
-//import ca.uhn.fhir.model.primitive.CodeDt;
-//import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -32,109 +27,70 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-
-import edu.gatech.chai.gtfhir2.mapping.OmopOrganization;
-import edu.gatech.chai.gtfhir2.model.MyOrganization;
+import edu.gatech.chai.gtfhir2.mapping.OmopEncounter;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-/**
- * This is a simple resource provider which only implements "read/GET" methods,
- * but which uses a custom subclassed resource definition to add statically
- * bound extensions.
- * 
- * See the MyOrganization definition to see how the custom resource definition
- * works.
- */
-public class OrganizationResourceProvider implements IResourceProvider {
-	// private CareSiteService careSiteService;
+public class EncounterResourceProvider implements IResourceProvider {
+
 	private WebApplicationContext myAppCtx;
 	private String myDbType;
-	private OmopOrganization myMapper;
+	private OmopEncounter myMapper;
 	private int preferredPageSize = 30;
 
-	public OrganizationResourceProvider() {
+	public EncounterResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
 		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
 		if (myDbType.equalsIgnoreCase("omopv5") == true) {
-			myMapper = new OmopOrganization(myAppCtx);
+			myMapper = new OmopEncounter(myAppCtx);
 		} else {
-			myMapper = new OmopOrganization(myAppCtx);
+			myMapper = new OmopEncounter(myAppCtx);
 		}
-
+		
 		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
 		if (pageSizeStr != null && pageSizeStr.isEmpty() == false) {
 			int pageSize = Integer.parseInt(pageSizeStr);
 			if (pageSize > 0) {
 				preferredPageSize = pageSize;
-			}
-		}
-
+			} 
+		}		
 	}
-
+	
 	/**
-	 * The "@Create" annotation indicates that this method implements
-	 * "create=type", which adds a new instance of a resource to the server.
+	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
+	 * new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createPatient(@ResourceParam MyOrganization theOrganization) {
-		// validateResource(thePatient);
-
-		Long id = myMapper.toDbase(theOrganization, null);
+	public MethodOutcome createPatient(@ResourceParam Encounter theEncounter) {
+		validateResource(theEncounter);
+		
+		Long id = myMapper.toDbase(theEncounter, null);		
 		return new MethodOutcome(new IdDt(id));
 	}
 
-	/**
-	 * The getResourceType method comes from IResourceProvider, and must be
-	 * overridden to indicate what type of resource this provider supplies.
-	 */
-	@Override
-	public Class<MyOrganization> getResourceType() {
-		return MyOrganization.class;
-	}
-
-	/**
-	 * The "@Read" annotation indicates that this method supports the read
-	 * operation. It takes one argument, the Resource type being returned.
-	 * 
-	 * @param theId
-	 *            The read operation takes one parameter, which must be of type
-	 *            IdDt and must be annotated with the "@Read.IdParam"
-	 *            annotation.
-	 * @return Returns a resource matching this identifier, or null if none
-	 *         exists.
-	 */
-	@Read()
-	public MyOrganization getResourceById(@IdParam IdType theId) {
-		MyOrganization retVal = (MyOrganization) myMapper.toFHIR(theId);
-		if (retVal == null) {
-			throw new ResourceNotFoundException(theId);
-		}
-
-		return retVal;
-	}
-
 	@Search()
-	public IBundleProvider findOrganizationByParams(
-			@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
-			@OptionalParam(name = MyOrganization.SP_NAME) StringParam theName,
+	public IBundleProvider findPatientsByParams(
+			@OptionalParam(name=Encounter.SP_RES_ID) TokenParam theEncounterId,
+
+			@IncludeParam(allow={"Encounter:appointment", "Encounter:diagnosis", 
+					"Encounter:episodeofcare", "Encounter:incomingreferral", "Encounter:location", 
+					"Encounter:part-of", "Encounter:participant", "Encounter:service-provider",
+					"Encounter:patient", "Encounter:practitioner", "Encounter:subject"})
+			final Set<Include> theIncludes,
 			
-			@IncludeParam(allow={"Organization:partof"})
-			final Set<Include> theIncludes
+			@IncludeParam(reverse=true)
+            final Set<Include> theReverseIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
+		
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
 
-		if (thePatientId != null) {
-			mapParameter (paramMap, MyOrganization.SP_RES_ID, thePatientId);
+		if (theEncounterId != null) {
+			mapParameter (paramMap, Encounter.SP_RES_ID, theEncounterId);
 		}
-		if (theName != null) {
-			mapParameter (paramMap, MyOrganization.SP_NAME, theName);
-		}
-		
+
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize;
@@ -154,13 +110,50 @@ public class OrganizationResourceProvider implements IResourceProvider {
 			@Override
 			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
 				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-
+				
 				// _Include
 				List<String> includes = new ArrayList<String>();
-				if (theIncludes.contains(new Include("Organization:partof"))) {
-					includes.add("Organization:partof");
+				
+				if (theIncludes.contains(new Include("Encounter:appointment"))) {
+					includes.add("Encounter:appointment");
+				}
+				
+				if (theIncludes.contains(new Include("Encounter:diagnosis"))) {
+					includes.add("Encounter:diagnosis");
 				}
 
+				if (theIncludes.contains(new Include("Encounter:incomingreferral"))) {
+					includes.add("Encounter:incomingreferral");
+				}
+				
+				if (theIncludes.contains(new Include("Encounter:location"))) {
+					includes.add("Encounter:location");
+				}
+
+				if (theIncludes.contains(new Include("Encounter:part-of"))) {
+					includes.add("Encounter:part-of");
+				}
+
+				if (theIncludes.contains(new Include("Encounter:participant"))) {
+					includes.add("Encounter:participant");
+				}
+
+				if (theIncludes.contains(new Include("Encounter:service-provider"))) {
+					includes.add("Encounter:service-provider");
+				}
+
+				if (theIncludes.contains(new Include("Encounter:patient"))) {
+					includes.add("Encounter:patient");
+				}
+
+				if (theIncludes.contains(new Include("Encounter:practitioner"))) {
+					includes.add("Encounter:practitioner");
+				}
+				
+				if (theIncludes.contains(new Include("Encounter:subject"))) {
+					includes.add("Encounter:subject");
+				}
+				
 				if (finalParamMap.size() == 0) {
 					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
 				} else {
@@ -184,7 +177,9 @@ public class OrganizationResourceProvider implements IResourceProvider {
 			@Override
 			public Integer size() {
 				return totalSize.intValue();
-			}};
+			}
+		
+		};
 	}
 	
 	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
@@ -193,7 +188,7 @@ public class OrganizationResourceProvider implements IResourceProvider {
 			paramMap.put(FHIRparam, paramList);
 		}
 	}
-
+	
 	/**
 	 * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
 	 * <p>
@@ -205,8 +200,8 @@ public class OrganizationResourceProvider implements IResourceProvider {
 	 * @return Returns a resource matching this identifier, or null if none exists.
 	 */
 	@Read()
-	public MyOrganization readOrganization(@IdParam IdType theId) {
-		MyOrganization retval = (MyOrganization) myMapper.toFHIR(theId);
+	public Encounter readEncounter(@IdParam IdType theId) {
+		Encounter retval = (Encounter) myMapper.toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);
 		}
@@ -225,20 +220,25 @@ public class OrganizationResourceProvider implements IResourceProvider {
 	 * @return This method returns a "MethodOutcome"
 	 */
 	@Update()
-	public MethodOutcome updateOrganization(@IdParam IdType theId, @ResourceParam MyOrganization theOrganization) {
-		validateResource(theOrganization);
+	public MethodOutcome updateObservation(@IdParam IdType theId, @ResourceParam Encounter theEncounter) {
+		validateResource(theEncounter);
 
-		Long fhirId = myMapper.toDbase(theOrganization, theId);
+		Long fhirId = myMapper.toDbase(theEncounter, theId);
 		if (fhirId == null) {
 			throw new ResourceNotFoundException(theId);
 		}
-
+		
 		return new MethodOutcome();
 	}
-	
+
 	// TODO: Add more validation code here.
-	private void validateResource(MyOrganization theOrganization) {
+	private void validateResource(Encounter theEncounter) {
 	}
 
+	@Override
+	public Class<Encounter> getResourceType() {
+		// TODO Auto-generated method stub
+		return Encounter.class;
+	}
 
 }

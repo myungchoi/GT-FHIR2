@@ -60,7 +60,7 @@ public class LocationServiceImp implements LocationService {
 
 	@Transactional(readOnly = true)
 	@Override
-	public Location searchByColumnString(String column, String value) {
+	public List<Location> searchByColumnString(String column, String value) {
 		// TODO Auto-generated method stub
 		return null;
 	}

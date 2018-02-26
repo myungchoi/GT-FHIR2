@@ -14,6 +14,8 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
+import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 
@@ -43,14 +45,16 @@ public class RestfulServlet extends RestfulServer {
 		 * type of resource.
 		 */
 		List<IResourceProvider> providers = new ArrayList<IResourceProvider>();
-		providers.add(new PatientResourceProvider());
+		providers.add(new EncounterResourceProvider());
+		providers.add(new ObservationResourceProvider());
 		providers.add(new OrganizationResourceProvider());
+		providers.add(new PatientResourceProvider());
 		setResourceProviders(providers);
 		
 		/*
 		 * Add page provider. Use memory based on for now.
 		 */
-		FifoMemoryPagingProvider pp = new FifoMemoryPagingProvider(10);
+		FifoMemoryPagingProvider pp = new FifoMemoryPagingProvider(5);
         pp.setDefaultPageSize(10);
         pp.setMaximumPageSize(100);
         setPagingProvider(pp);

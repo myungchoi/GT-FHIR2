@@ -26,14 +26,14 @@ public class ProviderServiceImp implements ProviderService {
 
 	@Transactional(readOnly = true)
 	@Override
-	public Provider searchByColumnString(String column, String value) {
+	public List<Provider> searchByColumnString(String column, String value) {
 		EntityManager em = providerDao.getEntityManager();
 		
 		String query = "SELECT t FROM Provider t WHERE "+column+" like :value";
-		List<? extends Provider> results = em.createQuery(query, Provider.class)
+		List<Provider> results = em.createQuery(query, Provider.class)
 				.setParameter("value",  value).getResultList();
 		if (results.size() > 0)
-			return results.get(0);
+			return results;
 		else
 			return null;	
 	}

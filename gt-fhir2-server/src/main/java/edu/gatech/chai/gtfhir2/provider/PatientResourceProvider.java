@@ -19,6 +19,7 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
+import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
@@ -31,6 +32,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
@@ -39,7 +41,6 @@ import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 
 import edu.gatech.chai.gtfhir2.mapping.OmopPatient;
-import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 
@@ -81,7 +82,7 @@ private int preferredPageSize = 30;
 	public MethodOutcome createPatient(@ResourceParam Patient thePatient) {
 		validateResource(thePatient);
 		
-		Long id = myMapper.toDbase(thePatient);		
+		Long id = myMapper.toDbase(thePatient, null);		
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -100,6 +101,16 @@ private int preferredPageSize = 30;
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
+			@OptionalParam(name = Patient.SP_NAME) StringParam theName,
+			@OptionalParam(name = Patient.SP_BIRTHDATE) DateParam theBirthDate,
+			@OptionalParam(name = Patient.SP_ADDRESS) StringParam theAddress,
+			@OptionalParam(name = Patient.SP_ADDRESS_CITY) StringParam theAddressCity,
+			@OptionalParam(name = Patient.SP_ADDRESS_STATE) StringParam theAddressState,
+			@OptionalParam(name = Patient.SP_ADDRESS_POSTALCODE) StringParam theAddressZip,
+			@OptionalParam(name = Patient.SP_EMAIL) TokenParam theEmail,
+			@OptionalParam(name = Patient.SP_PHONE) TokenParam thePhone,
+			@OptionalParam(name = Patient.SP_TELECOM) TokenParam theTelecom,
+
 			@OptionalParam(name = Patient.SP_ORGANIZATION, chainWhitelist={"", Organization.SP_NAME}) ReferenceParam theOrganization,
 			
 			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
@@ -122,41 +133,53 @@ private int preferredPageSize = 30;
 		if (thePatientId != null) {
 			mapParameter (paramMap, Patient.SP_RES_ID, thePatientId);
 		}
-		
 		if (theActive != null) {
 			mapParameter (paramMap, Patient.SP_ACTIVE, theActive);
 		}
-		
+		if (theEmail != null) {
+			mapParameter (paramMap, Patient.SP_EMAIL, theEmail);
+		}
+		if (thePhone != null) {
+			mapParameter (paramMap, Patient.SP_PHONE, thePhone);
+		}
+		if (theTelecom != null) {
+			mapParameter (paramMap, Patient.SP_TELECOM, theTelecom);
+		}
 		if (theFamilyName != null) {
-			if (theFamilyName.isExact()) {
-				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
-			} else {
-				theFamilyName.setValue("%"+theFamilyName.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
-			}
+			mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
 		}
-		
+		if (theName != null) {
+			mapParameter (paramMap, Patient.SP_NAME, theName);
+		}
 		if (theGivenName != null) {
-			if (theGivenName.isExact()) {
-				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
-			} else {
-				theGivenName.setValue("%"+theGivenName.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
-			}
+			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
 		}
-
-		// TODO: revinclude returns resource that reference the searched patients.
-		// it would be observations, encounters, etc... Whenever these are implemented
-		// implement revinclude. 
-		
+		if (theBirthDate != null) {
+			mapParameter (paramMap, Patient.SP_BIRTHDATE, theBirthDate);
+		}
+		if (theAddress != null) {
+			mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
+		}
+		if (theAddressCity != null) {
+			mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
+		}
+		if (theAddressState != null) {
+			mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
+		}
+		if (theAddressZip != null) {
+			mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
+		}
 		
 		// Chain Search.
+		// Chain search is a searching by reference with specific field name (including reference ID).
+		// As SP names are not unique across the FHIR resources, we need to tag the name
+		// of the resource in front to indicate our OMOP* can handle these parameters.
 		if (theOrganization != null) {
 			String orgChain = theOrganization.getChain();
 			if (orgChain != null) {
 				if (Organization.SP_NAME.equals(orgChain)) {
 					String theOrgName = theOrganization.getValue();
-					mapParameter (paramMap, "Organization:"+Organization.SP_NAME, "%"+theOrgName+"%");
+					mapParameter (paramMap, "Organization:"+Organization.SP_NAME, theOrgName);
 				} else if ("".equals(orgChain)) {
 					mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getValue());
 				}
@@ -164,6 +187,7 @@ private int preferredPageSize = 30;
 				mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart());
 			}
 		}
+		
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize;
@@ -198,6 +222,47 @@ private int preferredPageSize = 30;
 					includes.add("Patient:link");
 				}
 
+				if (theReverseIncludes.contains(new Include("*"))) {
+					// This is to include all the reverse includes...
+					includes.add("Encounter:subject");
+					includes.add("Observation:subject");
+					includes.add("Device:patient");
+					includes.add("Condition:subject");
+					includes.add("Procedure:subject");
+					includes.add("MedicationRequest:subject");
+					includes.add("MedicationAdministration:subject");
+					includes.add("MedicationDispense:subject");
+					includes.add("MedicationStatement:subject");
+				} else {
+					if (theReverseIncludes.contains(new Include("Encounter:subject"))) {
+						includes.add("Encounter:subject");						
+					}
+					if (theReverseIncludes.contains(new Include("Observation:subject"))) {
+						includes.add("Observation:subject");
+					}
+					if (theReverseIncludes.contains(new Include("Device:patient"))) {
+						includes.add("Device:patient");
+					}
+					if (theReverseIncludes.contains(new Include("Condition:subject"))) {
+						includes.add("Condition:subject");
+					}
+					if (theReverseIncludes.contains(new Include("Procedure:subject"))) {
+						includes.add("Procedure:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationRequest:subject"))) {
+						includes.add("MedicationRequest:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationAdministration:subject"))) {
+						includes.add("MedicationAdministration:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationDispense:subject"))) {
+						includes.add("MedicationDispense:subject");
+					}
+					if (theReverseIncludes.contains(new Include("MedicationStatement:subject"))) {
+						includes.add("MedicationStatement:subject");
+					}
+				}
+				
 				if (finalParamMap.size() == 0) {
 					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
 				} else {
@@ -277,21 +342,10 @@ private int preferredPageSize = 30;
 	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Patient thePatient) {
 		validateResource(thePatient);
 
-//		Long id;
-//		try {
-//			id = theId.getIdPartAsLong();
-//		} catch (DataFormatException e) {
-//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
-//		}
-//
-//		/*
-//		 * Throw an exception (HTTP 404) if the ID is not known
-//		 */
-//		if (!myIdToPatientVersions.containsKey(id)) {
-//			throw new ResourceNotFoundException(theId);
-//		}
-//
-//		addNewVersion(thePatient, id);
+		Long fhirId = myMapper.toDbase(thePatient, theId);
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
 		return new MethodOutcome();
 	}
@@ -306,13 +360,12 @@ private int preferredPageSize = 30;
 		/*
 		 * Our server will have a rule that patients must have a family name or we will reject them
 		 */
-//		if (thePatient.getNameFirstRep().getFamilyFirstRep().isEmpty()) {
 		if (thePatient.getNameFirstRep().getFamily().isEmpty()) {
 			OperationOutcome outcome = new OperationOutcome();
 			CodeableConcept detailCode = new CodeableConcept();
 			detailCode.setText("No family name provided, Patient resources must have at least one family name.");
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-			throw new UnprocessableEntityException(outcome);
+			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
 		}
 	}
 

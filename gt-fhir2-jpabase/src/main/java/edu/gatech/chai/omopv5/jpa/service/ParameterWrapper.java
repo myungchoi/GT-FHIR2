@@ -59,11 +59,12 @@ public class ParameterWrapper {
 	}
 
 	public ParameterWrapper(String parameterType, List<String> parameters, List<String> operators,
-			List<String> values) {
+			List<String> values, String relationship) {
 		this.parameterType = parameterType;
 		this.parameters = parameters;
 		this.operators = operators;
 		this.values = values;
+		this.relationship = relationship;
 	}
 
 	public String getParameterType() {
@@ -122,139 +123,21 @@ public class ParameterWrapper {
 					subWhere = builder.conjunction();
 
 				switch (param.getParameterType()) {
-				case "Short":
-					if (param.getParameters().size() > 1) {
-						Short shortValue = Short.valueOf(param.getValues().get(0));
-
-						// We may have multiple columns to compare with 'or'. If
-						// so, get them now.
-						// for (String columnName : param.getParameters(),
-						// String oper: param.getOperators()) {
-						for (Iterator<String> columnIter = param.getParameters().iterator(), operIter = param
-								.getOperators().iterator(); columnIter.hasNext() && operIter.hasNext();) {
-							String columnName = columnIter.next();
-							String oper = operIter.next();
-
-							Path<Short> path;
-							String[] columnPath = columnName.split("\\.");
-							if (columnPath.length == 2) {
-								path = rootUser.get(columnPath[0]).get(columnPath[1]);
-							} else {
-								path = rootUser.get(columnName);
-							}
-							
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, shortValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, shortValue));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, shortValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, shortValue));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, shortValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, shortValue));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, shortValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, shortValue));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, shortValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, shortValue));
-								}
-							}
-						}
-					} else {
-						String columnName = param.getParameters().get(0);
-						Path<Short> path;
-						String[] columnPath = columnName.split("\\.");
-						if (columnPath.length == 2) {
-							path = rootUser.get(columnPath[0]).get(columnPath[1]);
-						} else {
-							path = rootUser.get(columnName);
-						}
-
-						for (Iterator<String> valueIter = param.getValues().iterator(), operIter = param.getOperators()
-								.iterator(); valueIter.hasNext() && operIter.hasNext();) {
-							String oper = operIter.next();
-							String valueString = valueIter.next();
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, Short.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, Short.valueOf(valueString)));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, Short.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, Short.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, Short.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, Short.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, Short.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, Short.valueOf(valueString)));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, Short.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, Short.valueOf(valueString)));
-								}
-							}
-						}
-					}
-					break;
 				case "String":
-					if (param.getParameters().size() > 1) {
-						String valueString = param.getValues().get(0);
-						
-						for (Iterator<String> columnIter = param.getParameters().iterator(), operIter = param.getOperators().iterator();
-								columnIter.hasNext() && operIter.hasNext();) {
-							String columnName = columnIter.next();
-							String oper = operIter.next();
-							
-							Path<String> path;
-							String[] columnPath = columnName.split("\\.");
-							if (columnPath.length == 2) {
-								path = rootUser.get(columnPath[0]).get(columnPath[1]);
-							} else {
-								path = rootUser.get(columnName);
-							}
+					String columnName = null;
+					String valueName = null;
+					for (Iterator<String> columnIter = param.getParameters().iterator(), 
+							operIter = param.getOperators().iterator(),
+							valueIter = param.getValues().iterator();
+							(columnIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();
+						) {
 
-							if (oper.equalsIgnoreCase("like"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.like(path, valueString));
-								} else {
-									subWhere = builder.and(subWhere, builder.like(path, valueString));
-								}
-							else
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.notLike(path, valueString));
-								} else {
-									subWhere = builder.and(subWhere, builder.notLike(path, valueString));
-								}
-						}
-					} else {
-						String columnName = param.getParameters().get(0);
+						if (columnIter.hasNext())
+							columnName = columnIter.next();
+						if (valueIter.hasNext())
+							valueName = valueIter.next();
+						String oper = operIter.next();						
+						
 						Path<String> path;
 						String[] columnPath = columnName.split("\\.");
 						if (columnPath.length == 2) {
@@ -263,329 +146,25 @@ public class ParameterWrapper {
 							path = rootUser.get(columnName);
 						}
 
-						for (Iterator<String> valueIter = param.getValues().iterator(), operIter = param.getOperators().iterator();
-								valueIter.hasNext() && operIter.hasNext();) {
-							String valueString = valueIter.next();
-							String oper = operIter.next();
-							
-							if (oper.equalsIgnoreCase("like"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.like(path, valueString));
-								} else {
-									subWhere = builder.and(subWhere, builder.like(path, valueString));
-								}
-							else {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.notLike(path, valueString));
-								} else {
-									subWhere = builder.and(subWhere, builder.notLike(path, valueString));
-								}
+						if (oper.equalsIgnoreCase("like"))
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.like(builder.lower(path), valueName.toLowerCase()));
+							} else {
+								subWhere = builder.and(subWhere, builder.like(builder.lower(path), valueName.toLowerCase()));
 							}
-						}
+						else
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.notLike(builder.lower(path), valueName.toLowerCase()));
+							} else {
+								subWhere = builder.and(subWhere, builder.notLike(builder.lower(path), valueName.toLowerCase()));
+							}
 					}
 					break;
+				case "Short":
 				case "Long":
-					if (param.getParameters().size() > 1) {
-						Long longValue = Long.valueOf(param.getValues().get(0));
-
-						// We may have multiple columns to compare with 'or'. If
-						// so, get them now.
-						// for (String columnName : param.getParameters(),
-						// String oper: param.getOperators()) {
-						for (Iterator<String> columnIter = param.getParameters().iterator(), operIter = param
-								.getOperators().iterator(); columnIter.hasNext() && operIter.hasNext();) {
-							String columnName = columnIter.next();
-							String oper = operIter.next();
-
-							Path<Long> path;
-							String[] columnPath = columnName.split("\\.");
-							if (columnPath.length == 2) {
-								path = rootUser.get(columnPath[0]).get(columnPath[1]);
-							} else {
-								path = rootUser.get(columnName);
-							}
-							
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, longValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, longValue));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, longValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, longValue));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, longValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, longValue));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, longValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, longValue));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, longValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, longValue));
-								}
-							}
-						}
-					} else {
-						String columnName = param.getParameters().get(0);
-						Path<Long> path;
-						String[] columnPath = columnName.split("\\.");
-						if (columnPath.length == 2) {
-							path = rootUser.get(columnPath[0]).get(columnPath[1]);
-						} else {
-							path = rootUser.get(columnName);
-						}
-
-						for (Iterator<String> valueIter = param.getValues().iterator(), operIter = param.getOperators()
-								.iterator(); valueIter.hasNext() && operIter.hasNext();) {
-							String oper = operIter.next();
-							String valueString = valueIter.next();
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, Long.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, Long.valueOf(valueString)));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, Long.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, Long.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, Long.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, Long.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, Long.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, Long.valueOf(valueString)));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, Long.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, Long.valueOf(valueString)));
-								}
-							}
-						}
-					}
-					break;
 				case "Double":
-					if (param.getParameters().size() > 1) {
-						Double doubleValue = Double.valueOf(param.getValues().get(0));
-
-						// We may have multiple columns to compare with 'or'. If
-						// so, get them now.
-						// for (String columnName : param.getParameters(),
-						// String oper: param.getOperators()) {
-						for (Iterator<String> columnIter = param.getParameters().iterator(), operIter = param
-								.getOperators().iterator(); columnIter.hasNext() && operIter.hasNext();) {
-							String columnName = columnIter.next();
-							String oper = operIter.next();
-
-							Path<Double> path;
-							String[] columnPath = columnName.split("\\.");
-							if (columnPath.length == 2) {
-								path = rootUser.get(columnPath[0]).get(columnPath[1]);
-							} else {
-								path = rootUser.get(columnName);
-							}
-							
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, doubleValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, doubleValue));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, doubleValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, doubleValue));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, doubleValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, doubleValue));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, doubleValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, doubleValue));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, doubleValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, doubleValue));
-								}
-							}
-						}
-					} else {
-						String columnName = param.getParameters().get(0);
-						Path<Double> path;
-						String[] columnPath = columnName.split("\\.");
-						if (columnPath.length == 2) {
-							path = rootUser.get(columnPath[0]).get(columnPath[1]);
-						} else {
-							path = rootUser.get(columnName);
-						}
-
-						for (Iterator<String> valueIter = param.getValues().iterator(), operIter = param.getOperators()
-								.iterator(); valueIter.hasNext() && operIter.hasNext();) {
-							String oper = operIter.next();
-							String valueString = valueIter.next();
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, Double.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, Double.valueOf(valueString)));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, Double.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, Double.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, Double.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, Double.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, Double.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, Double.valueOf(valueString)));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, Double.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, Double.valueOf(valueString)));
-								}
-							}
-						}
-					}
-					break;
 				case "Integer":
-					if (param.getParameters().size() > 1) {
-						Integer integerValue = Integer.valueOf(param.getValues().get(0));
-
-						// We may have multiple columns to compare with 'or'. If
-						// so, get them now.
-						// for (String columnName : param.getParameters(),
-						// String oper: param.getOperators()) {
-						for (Iterator<String> columnIter = param.getParameters().iterator(), operIter = param
-								.getOperators().iterator(); columnIter.hasNext() && operIter.hasNext();) {
-							String columnName = columnIter.next();
-							String oper = operIter.next();
-
-							Path<Integer> path;
-							String[] columnPath = columnName.split("\\.");
-							if (columnPath.length == 2) {
-								path = rootUser.get(columnPath[0]).get(columnPath[1]);
-							} else {
-								path = rootUser.get(columnName);
-							}
-							
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, integerValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, integerValue));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, integerValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, integerValue));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, integerValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, integerValue));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, integerValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, integerValue));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, integerValue));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, integerValue));
-								}
-							}
-						}
-					} else {
-						String columnName = param.getParameters().get(0);
-						Path<Integer> path;
-						String[] columnPath = columnName.split("\\.");
-						if (columnPath.length == 2) {
-							path = rootUser.get(columnPath[0]).get(columnPath[1]);
-						} else {
-							path = rootUser.get(columnName);
-						}
-
-						for (Iterator<String> valueIter = param.getValues().iterator(), operIter = param.getOperators()
-								.iterator(); valueIter.hasNext() && operIter.hasNext();) {
-							String oper = operIter.next();
-							String valueString = valueIter.next();
-							if (oper.equalsIgnoreCase("=")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.equal(path, Integer.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.equal(path, Integer.valueOf(valueString)));
-								}
-							} else if (oper.equalsIgnoreCase("<"))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThan(path, Integer.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThan(path, Integer.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase("<="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, Integer.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, Integer.valueOf(valueString)));
-								}
-							else if (oper.equalsIgnoreCase(">")) {
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThan(path, Integer.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThan(path, Integer.valueOf(valueString)));
-								}
-							} else { // (param.getOperator().equalsIgnoreCase(">="))
-								if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-									subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, Integer.valueOf(valueString)));
-								} else {
-									subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, Integer.valueOf(valueString)));
-								}
-							}
-						}
-					}					
+					subWhere = numbericPredicateBuidler(builder, param, rootUser, subWhere, param.getParameterType());
 					break;
 				}
 
@@ -595,6 +174,92 @@ public class ParameterWrapper {
 		predicates.add(where);
 
 		return predicates;
+	}
+	
+	public static Predicate numbericPredicateBuidler (
+			CriteriaBuilder builder,
+			ParameterWrapper param, 
+			Root<? extends BaseEntity> rootUser,
+			Predicate subWhere,
+			String paramType
+			) {
+
+		// We may have multiple columns to compare with 'or'. If
+		// so, get them now.
+		// for (String columnName : param.getParameters(),
+		// String oper: param.getOperators()) {
+		String columnName = null;
+		String valueName = null;
+		for (Iterator<String> columnIter = param.getParameters().iterator(), 
+				operIter = param.getOperators().iterator(),
+				valueIter = param.getValues().iterator(); 
+				(columnIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();) {
+			
+			if (columnIter.hasNext())
+				columnName = columnIter.next();
+			if (valueIter.hasNext())
+				valueName = valueIter.next();
+			String oper = operIter.next();
+
+			Number value;
+			if (paramType.equals("Short")) {
+				value = Short.valueOf(valueName);
+			} else if (paramType.equals("Long")) {
+				value = Long.valueOf(valueName);
+			} else if (paramType.equals("Double")) {
+				value = Double.valueOf(valueName);
+			} else {
+				value = Integer.valueOf(valueName);
+			}
+			
+			Path<Number> path;
+			String[] columnPath = columnName.split("\\.");
+			if (columnPath.length == 2) {
+				path = rootUser.get(columnPath[0]).get(columnPath[1]);
+			} else {
+				path = rootUser.get(columnName);
+			}
+			
+			if (oper.equalsIgnoreCase("=")) {
+				if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+					subWhere = builder.or(subWhere, builder.equal(path, value));
+				} else {
+					subWhere = builder.and(subWhere, builder.equal(path, value));
+				}
+			} else if (oper.equalsIgnoreCase("!=")) {
+				if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+					subWhere = builder.or(subWhere, builder.notEqual(path, value));
+				} else {
+					subWhere = builder.and(subWhere, builder.notEqual(path, value));
+				}
+			} else if (oper.equalsIgnoreCase("<"))
+				if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+					subWhere = builder.or(subWhere, builder.lt(path, value));
+				} else {
+					subWhere = builder.and(subWhere, builder.lt(path, value));
+				}
+			else if (oper.equalsIgnoreCase("<="))
+				if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+					subWhere = builder.or(subWhere, builder.le(path, value));
+				} else {
+					subWhere = builder.and(subWhere, builder.le(path, value));
+				}
+			else if (oper.equalsIgnoreCase(">")) {
+				if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+					subWhere = builder.or(subWhere, builder.gt(path, value));
+				} else {
+					subWhere = builder.and(subWhere, builder.gt(path, value));
+				}
+			} else { // (param.getOperator().equalsIgnoreCase(">="))
+				if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+					subWhere = builder.or(subWhere, builder.ge(path, value));
+				} else {
+					subWhere = builder.and(subWhere, builder.ge(path, value));
+				}
+			}
+		}
+		
+		return subWhere;
 	}
 
 }
