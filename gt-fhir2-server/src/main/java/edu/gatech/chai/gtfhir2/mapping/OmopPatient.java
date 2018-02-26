@@ -1,7 +1,5 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -19,7 +17,6 @@ import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
-import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Patient.PatientLinkComponent;
@@ -670,7 +667,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			break;
 		case Patient.SP_FAMILY:
 			// This is family name, which is string. use like.
-			String familyString = ((StringParam) value).getValue();
+			String familyString;
+			if (((StringParam) value).isExact())
+				familyString = ((StringParam) value).getValue();
+			else
+				familyString = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("familyName"));
 			paramWrapper.setOperators(Arrays.asList("like"));
@@ -680,7 +681,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			break;
 		case Patient.SP_GIVEN:
 			// This is given name, which is string. use like.
-			String givenName = ((StringParam) value).getValue();
+			String givenName;
+			if (((StringParam) value).isExact())
+				givenName = ((StringParam) value).getValue();
+			else
+				givenName = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("givenName1", "givenName2"));
 			paramWrapper.setOperators(Arrays.asList("like", "like"));
@@ -690,7 +695,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			break;
 		case Patient.SP_NAME:
 			// This is family name, which is string. use like.
-			String nameString = ((StringParam) value).getValue();
+			String nameString;
+			if (((StringParam) value).isExact())
+				nameString = ((StringParam) value).getValue();
+			else
+				nameString = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("familyName", "givenName1", "givenName2", "prefixName", "suffixName"));
 			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
@@ -708,7 +717,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			mapList.add(paramWrapper);
 			break;
 		case Patient.SP_ADDRESS:
-			String addressName = ((StringParam) value).getValue();
+			String addressName;
+			if (((StringParam) value).isExact())
+				addressName = ((StringParam) value).getValue();
+			else
+				addressName = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("location.address1", "location.address2", "location.city", "location.state", "location.zipCode"));
 			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
@@ -717,7 +730,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			mapList.add(paramWrapper);
 			break;
 		case Patient.SP_ADDRESS_CITY:
-			String addressCityName = ((StringParam) value).getValue();
+			String addressCityName;
+			if (((StringParam) value).isExact())
+				addressCityName = ((StringParam) value).getValue();
+			else
+				addressCityName = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("location.city"));
 			paramWrapper.setOperators(Arrays.asList("like"));
@@ -726,7 +743,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			mapList.add(paramWrapper);
 			break;
 		case Patient.SP_ADDRESS_STATE:
-			String addressStateName = ((StringParam) value).getValue();
+			String addressStateName;
+			if (((StringParam) value).isExact())
+				addressStateName = ((StringParam) value).getValue();
+			else
+				addressStateName = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("location.state"));
 			paramWrapper.setOperators(Arrays.asList("like"));
@@ -735,7 +756,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			mapList.add(paramWrapper);
 			break;
 		case Patient.SP_ADDRESS_POSTALCODE:
-			String addressZipName = ((StringParam) value).getValue();
+			String addressZipName;
+			if (((StringParam) value).isExact())
+				addressZipName = ((StringParam) value).getValue();
+			else
+				addressZipName = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("location.zipCode"));
 			paramWrapper.setOperators(Arrays.asList("like"));
@@ -748,7 +773,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("careSite.careSiteName"));
 			paramWrapper.setOperators(Arrays.asList("like"));
-			paramWrapper.setValues(Arrays.asList(orgName));
+			paramWrapper.setValues(Arrays.asList("%"+orgName+"%"));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;

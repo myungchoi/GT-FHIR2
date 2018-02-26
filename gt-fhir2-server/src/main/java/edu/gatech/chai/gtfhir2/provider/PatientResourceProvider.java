@@ -146,63 +146,28 @@ private int preferredPageSize = 30;
 			mapParameter (paramMap, Patient.SP_TELECOM, theTelecom);
 		}
 		if (theFamilyName != null) {
-			if (theFamilyName.isExact()) {
-				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
-			} else {
-				theFamilyName.setValue("%"+theFamilyName.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
-			}
+			mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
 		}
 		if (theName != null) {
-			if (theName.isExact()) {
-				mapParameter (paramMap, Patient.SP_NAME, theName);
-			} else {
-				theName.setValue("%"+theName.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_NAME, theName);
-			}
+			mapParameter (paramMap, Patient.SP_NAME, theName);
 		}
 		if (theGivenName != null) {
-			if (theGivenName.isExact()) {
-				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
-			} else {
-				theGivenName.setValue("%"+theGivenName.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
-			}
+			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
 		}
 		if (theBirthDate != null) {
 			mapParameter (paramMap, Patient.SP_BIRTHDATE, theBirthDate);
 		}
 		if (theAddress != null) {
-			if (theAddress.isExact()) {
-				mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
-			} else {
-				theAddress.setValue("%"+theAddress.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
-			}
+			mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
 		}
 		if (theAddressCity != null) {
-			if (theAddressCity.isExact()) {
-				mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
-			} else {
-				theAddressCity.setValue("%"+theAddressCity.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
-			}
+			mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
 		}
 		if (theAddressState != null) {
-			if (theAddressState.isExact()) {
-				mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
-			} else {
-				theAddressState.setValue("%"+theAddressState.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
-			}
+			mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
 		}
 		if (theAddressZip != null) {
-			if (theAddressZip.isExact()) {
-				mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
-			} else {
-				theAddressZip.setValue("%"+theAddressZip.getValue()+"%");
-				mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
-			}
+			mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
 		}
 		
 		// Chain Search.
@@ -214,7 +179,7 @@ private int preferredPageSize = 30;
 			if (orgChain != null) {
 				if (Organization.SP_NAME.equals(orgChain)) {
 					String theOrgName = theOrganization.getValue();
-					mapParameter (paramMap, "Organization:"+Organization.SP_NAME, "%"+theOrgName+"%");
+					mapParameter (paramMap, "Organization:"+Organization.SP_NAME, theOrgName);
 				} else if ("".equals(orgChain)) {
 					mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getValue());
 				}

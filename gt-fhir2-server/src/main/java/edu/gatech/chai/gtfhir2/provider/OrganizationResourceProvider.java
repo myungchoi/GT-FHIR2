@@ -10,6 +10,7 @@ import java.util.Set;
 //import org.hl7.fhir.dstu3.model.ContactPoint.ContactPointUse;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
@@ -32,6 +33,7 @@ import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 
@@ -117,6 +119,7 @@ public class OrganizationResourceProvider implements IResourceProvider {
 
 	@Search()
 	public IBundleProvider findOrganizationByParams(
+			@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
 			@OptionalParam(name = MyOrganization.SP_NAME) StringParam theName,
 			
 			@IncludeParam(allow={"Organization:partof"})
@@ -125,6 +128,9 @@ public class OrganizationResourceProvider implements IResourceProvider {
 		final InstantType searchTime = InstantType.withCurrentTime();
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
 
+		if (thePatientId != null) {
+			mapParameter (paramMap, MyOrganization.SP_RES_ID, thePatientId);
+		}
 		if (theName != null) {
 			mapParameter (paramMap, MyOrganization.SP_NAME, theName);
 		}
