@@ -23,6 +23,7 @@ import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.gtfhir2.utilities.AddressUtil;
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
@@ -106,38 +107,53 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 
 	@Override
 	public Long toDbase(Organization organization, IdType fhirId) {
-		CareSite careSite = new CareSite();
-		String careSiteSourceValue = null;
-		
-		MyOrganization myOrganization = (MyOrganization) organization;
+		// If fhirId is null, then it's CREATE.
+		// If fhirId is not null, then it's UPDATE.
 
-		// Get the identifier to store the source information.
-		// If we found a matching one, replace this with the careSite.
-		List<Identifier> identifiers = myOrganization.getIdentifier();
-		CareSite existingCareSite = null;
-		for (Identifier identifier: identifiers) {
-			if (identifier.getValue().isEmpty() == false) {
-				careSiteSourceValue = identifier.getValue();
-				
-				existingCareSite = myOmopService.searchByColumnString("careSiteSourceValue", careSiteSourceValue).get(0);
-				if (existingCareSite != null) {
-					careSite.setId(existingCareSite.getId());
-					break;
+		CareSite careSite;
+		Long omopId;
+		String careSiteSourceValue = null;
+		MyOrganization myOrganization = (MyOrganization) organization;
+		Location location = null;
+		
+		if (fhirId != null) {
+			omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ResourceType.Organization.getPath());
+			if (omopId == null) {
+				// This is a problem. We should have the valid omopID that matches to
+				// FHIR ID. return null.
+				return null;
+			} else {
+				careSite = myOmopService.findById(omopId);
+			}
+			
+			location = careSite.getLocation();
+		} else {
+			// See if we have this already. If so, we throw error.
+			// Get the identifier to store the source information.
+			// If we found a matching one, replace this with the careSite.
+			List<Identifier> identifiers = myOrganization.getIdentifier();
+			CareSite existingCareSite = null;
+			for (Identifier identifier: identifiers) {
+				if (identifier.getValue().isEmpty() == false) {
+					careSiteSourceValue = identifier.getValue();
+					
+					existingCareSite = myOmopService.searchByColumnString("careSiteSourceValue", careSiteSourceValue).get(0);
+					if (existingCareSite != null) {
+						break;
+					}
 				}
+			}
+			if (existingCareSite != null) {
+				careSite = existingCareSite;
+			} else {
+				careSite = new CareSite();
 			}
 		}
 		
-		Location location = careSite.getLocation();
-		if (existingCareSite == null && location != null) {
-			if (location.getId() != null) {
-				existingCareSite = myOmopService.searchByNameAndLocation(careSite.getCareSiteName(), location);
-				if (existingCareSite != null) {
-					careSite.setId(existingCareSite.getId());
-				}
-			}
+		Location existingLocation = AddressUtil.searchAndUpdate(locationService, organization.getAddressFirstRep(), location);
+		if (existingLocation != null) {
+			careSite.setLocation(existingLocation);
 		}
-		
-		// TODO: Implement Update case. This is when fhirId is not null
 
 		// Organization.name to CareSiteName
 		careSite.setCareSiteName(myOrganization.getName());
@@ -242,6 +258,15 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
 		switch (parameter) {
+		case MyOrganization.SP_RES_ID:
+			String orgnizationId = ((TokenParam) value).getValue();
+			paramWrapper.setParameterType("Long");
+			paramWrapper.setParameters(Arrays.asList("id"));
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(orgnizationId));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
 		case MyOrganization.SP_NAME:
 			// This is family name, which is string. use like.
 			String familyString = ((StringParam) value).getValue();

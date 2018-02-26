@@ -28,7 +28,7 @@ public class CareSite extends BaseEntity {
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne(cascade={CascadeType.ALL})
 	@JoinColumn(name="location_id")
 	private Location location;
 	
