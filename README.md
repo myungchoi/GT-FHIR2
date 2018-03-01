@@ -9,6 +9,9 @@ How to install and run.
 3. There are two projects. gt-fhir2-jpa and gt-fhir2-server. Go into these directories. And run "mvn clean install"
 4. In gt-fhir2-server directory, run "mvn jetty:run"
 
+To test:
+UI - http://localhost:8080/gt-fhir/tester/
+API -  	http://localhost:8080/gt-fhir/fhir
 
 Status: work-in-progress
 
