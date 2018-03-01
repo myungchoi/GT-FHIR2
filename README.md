@@ -20,9 +20,9 @@ This application requires an OMOP V5 database to work. You can use the database 
 How to install and run.
 -
 Docker Compose is used to create a container to run the GT-FHIR2 application. Before running the application
-update the values of the JDBC_URL, JDBC_USERNAME, and JDBC_PASSWORD environment variables in the docker-compose.yml
+update the values of the JDBC_URL, JDBC_USERNAME, and JDBC_PASSWORD environment variables in the Dockerfile
 They must contain the data necessary for your application to connect to an OMOP V5 database.
-After updating the docker-compose.yml file start the application
+After updating the ENV variables in the Dockerfile start the application
 ```
 sudo docker-compose up --build -d
 ```
