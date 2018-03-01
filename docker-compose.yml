@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
 #      - JDBC_URL=jdbc:postgresql://data.hdap.gatech.edu:5435/omop_v5
-      - JDBC_URL=jdbc:postgresql://192.168.99.100:5438/postgres?currentSchema=omop_v5
+      - JDBC_URL=jdbc:postgresql://localhost:5438/postgres?currentSchema=omop_v5
       - JDBC_USERNAME=omop_v5
       - JDBC_PASSWORD=i3lworks
     ports:
