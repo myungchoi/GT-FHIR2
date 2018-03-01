@@ -6,6 +6,9 @@ RUN mvn install
 
 #Build the Tomcat container
 FROM tomcat:alpine
+#set environment variables
+#      JDBC_URL=jdbc:postgresql://data.hdap.gatech.edu:5435/omop_v5
+ENV JDBC_URL=jdbc:postgresql://data.hdap.gatech.edu:5438/postgres?currentSchema=omop_v5 JDBC_USERNAME=omop_v5 JDBC_PASSWORD=i3lworks
 RUN apk update
 RUN apk add zip postgresql-client
 
