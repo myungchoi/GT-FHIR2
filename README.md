@@ -19,4 +19,9 @@ Patient:
 Organization:
 - Basic read.
 
-Please contact myung.choi@gtri.gatech.edu if you want to participate in developing OmopOnFHIR for STU3.
+Contributors:
+- Lead: Myung Choi
+- DevOp/Deployment: Eric Soto
+- Docker/VM Management: Michael Riley
+ 
+Please use Issues to report any problems. If you are willing to contribute, please fork this repository and do the pull requests.
