@@ -7,13 +7,13 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
 		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd">
-
+	<context:property-placeholder location="classpath:application.properties" />
 <bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource"
 	destroy-method="close">
 	<property name="driverClassName" value="org.postgresql.Driver" />
-	<property name="url" value="jdbc:postgresql://localhost:5432/postgres?currentSchema=omop_v5" />
-	<property name="username" value="omop_v5" />
-	<property name="password" value="i3lworks" />
+	<property name="url" value="${jdbc.url}" />
+	<property name="username" value="${jdbc.username}" />
+	<property name="password" value="${jdbc.password}" />
 </bean>
 
 </beans>

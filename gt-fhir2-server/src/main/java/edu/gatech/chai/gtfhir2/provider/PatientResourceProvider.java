@@ -116,7 +116,7 @@ private int preferredPageSize = 30;
 			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
 			final Set<Include> theIncludes,
 			
-			@IncludeParam(reverse=true)
+			@IncludeParam(allow={"Encounter:subject", "Observation:subject"}, reverse=true)
             final Set<Include> theReverseIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();

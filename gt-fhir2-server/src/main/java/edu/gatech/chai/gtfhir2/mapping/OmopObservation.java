@@ -27,8 +27,9 @@ import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.rest.param.TokenParam;
-
+import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
+import edu.gatech.chai.omopv5.jpa.service.ConceptService;
 import edu.gatech.chai.omopv5.jpa.service.FObservationViewService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -38,6 +39,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 	public static final Long DIASTOLIC_CONCEPT_ID = 3012888L;	
 
 	private FObservationViewService myOmopService;
+	private ConceptService conceptService;
 
 	public OmopObservation(WebApplicationContext context) {
 		myOmopService = context.getBean(FObservationViewService.class);
@@ -237,7 +239,26 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 
 	@Override
 	public Long toDbase(Observation fhirResource, IdType fhirId) {
-		// TODO Auto-generated method stub
+		// Observation data needs to be splitted into 
+		// observation and measurement in OMOP. We decide them by domain of
+		// the value.
+		// Get the code.
+		String code;
+		String omopTableName = null;
+		for (Coding coding : fhirResource.getCode().getCoding()) {
+			code = coding.getCode();
+			List<Concept> conceptForCodes = conceptService.searchByColumnString("conceptCode", code);
+			for (Concept conceptForCode : conceptForCodes) {
+				String domain = conceptForCode.getDomain();
+				if (domain.equalsIgnoreCase("measurement")) {
+					omopTableName = "Measurement";
+					break;
+				} else if (domain.equalsIgnoreCase("observation")) {
+					omopTableName = "Observation";
+				}
+			}
+			if (omopTableName != null) break;
+		}
 		return null;
 	}
 
