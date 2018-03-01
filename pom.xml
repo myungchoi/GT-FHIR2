@@ -36,6 +36,11 @@
 	<description>
 	</description>
 
+	<modules>
+		<module>gt-fhir2-jpabase</module>
+		<module>gt-fhir2-server</module>
+	</modules>
+
 	<dependencies>
 		<!-- Cobertura is here as a 'provided' depdendency just to get the @CoverageIgnore 
 			annotation. It would be nice if there was a better way for this.. -->
