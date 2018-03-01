@@ -258,14 +258,37 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 	@Override
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
 			List<String> includes) {
-		// TODO Auto-generated method stub
-		
+		List<Provider> providers = providerService.searchWithoutParams(fromIndex, toIndex);
+
+		// We got the results back from OMOP database. Now, we need to construct
+		// the list of
+		// FHIR Patient resources to be included in the bundle.
+		for (Provider provider : providers) {
+			Long omopId = provider.getId();
+			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+			listResources.add(constructResource(fhirId, provider, includes));
+			
+			// Do the rev_include and add the resource to the list.
+			// addRevIncludes(provider.getId(), includes, listResources);
+		}
 	}
 
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		// TODO Auto-generated method stub
+		List<Provider> providers = providerService.searchWithParams(fromIndex, toIndex, map);
+
+		// We got the results back from OMOP database. Now, we need to construct
+		// the list of
+		// FHIR Patient resources to be included in the bundle.
+		for (Provider provider : providers) {
+			Long omopId = provider.getId();
+			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+			listResources.add(constructResource(fhirId, provider, includes));
+			
+			// Do the rev_include and add the resource to the list.
+			// addRevIncludes(provider.getId(), includes, listResources);
+		}
 		
 	}
 	
