@@ -18,6 +18,7 @@ import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
 
 /**
  * This servlet is the actual FHIR server itself
@@ -48,6 +49,7 @@ public class RestfulServlet extends RestfulServer {
 		providers.add(new EncounterResourceProvider());
 		providers.add(new ObservationResourceProvider());
 		providers.add(new OrganizationResourceProvider());
+		providers.add(new PractitionerResourceProvider());
 		providers.add(new PatientResourceProvider());
 		setResourceProviders(providers);
 		
