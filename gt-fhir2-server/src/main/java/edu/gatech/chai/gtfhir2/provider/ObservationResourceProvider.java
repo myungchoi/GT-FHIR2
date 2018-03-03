@@ -12,6 +12,7 @@ import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -32,6 +33,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -95,6 +97,8 @@ public class ObservationResourceProvider implements IResourceProvider {
 			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
 			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
 			
+			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
 					"Observation:performer", "Observation:related-target", 
@@ -111,9 +115,22 @@ public class ObservationResourceProvider implements IResourceProvider {
 		if (theObservationId != null) {
 			mapParameter (paramMap, Observation.SP_RES_ID, theObservationId);
 		}
-		
 		if (theCode != null) {
 			mapParameter (paramMap, Observation.SP_CODE, theCode);
+		}
+		
+		if (thePatient != null) {
+			String patientChain = thePatient.getChain();
+			if (patientChain != null) {
+				if (Patient.SP_NAME.equals(patientChain)) {
+					String thePatientName = thePatient.getValue();
+					mapParameter (paramMap, "Patient:"+Patient.SP_NAME, thePatientName);
+				} else if ("".equals(patientChain)) {
+					mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getValue());
+				}
+			} else {
+				mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getIdPart());
+			}
 		}
 		
 		// Now finalize the parameter map.

@@ -31,6 +31,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.model.dstu2.resource.Patient;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.utilities.CodeableConceptUtil;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
@@ -1187,6 +1188,24 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 					}
 				}
 			}
+			break;
+		case "Patient:"+Patient.SP_RES_ID:
+			String pId = (String) value;
+			paramWrapper.setParameterType("Long");
+			paramWrapper.setParameters(Arrays.asList("person.id"));
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(pId));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case "Patient:"+Patient.SP_NAME:
+			String patientName = (String) value;
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("person.familyName", "person.givenName1", "person.givenName2", "person.prefixName", "person.suffixName"));
+			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
+			paramWrapper.setValues(Arrays.asList("%"+patientName+"%"));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
 			break;
 		default:
 			mapList = null;
