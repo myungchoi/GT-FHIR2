@@ -43,10 +43,7 @@ public class FPersonServiceImp implements FPersonService {
 		String query = "SELECT t FROM FPerson t WHERE "+column+" like :value";
 		List<FPerson> results = em.createQuery(query, FPerson.class)
 				.setParameter("value",  value).getResultList();
-		if (results.size() > 0)
-			return results;
-		else
-			return null;	
+		return results;	
 	}
 
 	@Transactional(readOnly = true)
@@ -145,6 +142,7 @@ public class FPersonServiceImp implements FPersonService {
 		return em.createQuery(fPersonQuery).getSingleResult();
 	}
 
+	@Transactional(readOnly = true)
 	@Override
 	public List<FPerson> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
 		int length = toIndex - fromIndex;

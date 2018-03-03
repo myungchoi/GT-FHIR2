@@ -14,40 +14,40 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import edu.gatech.chai.omopv5.jpa.dao.ObservationDao;
+import edu.gatech.chai.omopv5.jpa.dao.MeasurementDao;
+import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
 import edu.gatech.chai.omopv5.jpa.entity.Measurement;
 import edu.gatech.chai.omopv5.jpa.entity.Observation;
 
 @Service
-public class ObservationServiceImp implements ObservationService {
+public class MeasurementServiceImp implements MeasurementService {
 
 	@Autowired
-	private ObservationDao observationDao;
+	private MeasurementDao measurementDao;
 	
 	@Transactional(readOnly = true)
 	@Override
-	public Observation findById(Long id) {
-		return observationDao.findById(id);
+	public Measurement findById(Long id) {
+		return measurementDao.findById(id);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
-	public List<Observation> searchByColumnString(String column, String value) {
-		EntityManager em = observationDao.getEntityManager();
+	public List<Measurement> searchByColumnString(String column, String value) {
+		EntityManager em = measurementDao.getEntityManager();
 		
-		String query = "SELECT t FROM Observation t WHERE "+column+" like :value";
-		List<Observation> results = em.createQuery(query, Observation.class)
+		String query = "SELECT t FROM Measurement t WHERE "+column+" like :value";
+		List<Measurement> results = em.createQuery(query, Measurement.class)
 				.setParameter("value",  value).getResultList();
-		return results;	
+		return results;
 	}
 
 	@Override
-	public List<Observation> searchWithoutParams(int fromIndex, int toIndex) {
+	public List<Measurement> searchWithoutParams(int fromIndex, int toIndex) {
 		int length = toIndex - fromIndex;
-		EntityManager em = observationDao.getEntityManager();
+		EntityManager em = measurementDao.getEntityManager();
 		
-		String query = "SELECT p FROM Observation p ORDER BY id ASC";
-		List<Observation> retvals = (List<Observation>) em.createQuery(query, Observation.class)
+		String query = "SELECT p FROM Measurement p ORDER BY id ASC";
+		List<Measurement> retvals = (List<Measurement>) em.createQuery(query, Measurement.class)
 				.setFirstResult(fromIndex)
 				.setMaxResults(length)
 				.getResultList();
@@ -56,15 +56,15 @@ public class ObservationServiceImp implements ObservationService {
 	}
 
 	@Override
-	public List<Observation> searchWithParams(int fromIndex, int toIndex,
+	public List<Measurement> searchWithParams(int fromIndex, int toIndex,
 			Map<String, List<ParameterWrapper>> paramMap) {
 		int length = toIndex - fromIndex;
-		EntityManager em = observationDao.getEntityManager();
+		EntityManager em = measurementDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<Observation> query = builder.createQuery(Observation.class);
-		Root<Observation> root = query.from(Observation.class);
+		CriteriaQuery<Measurement> query = builder.createQuery(Measurement.class);
+		Root<Measurement> root = query.from(Measurement.class);
 		
-		List<Observation> retvals = new ArrayList<Observation>();
+		List<Measurement> retvals = new ArrayList<Measurement>();
 		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
 		if (predicates == null || predicates.isEmpty()) return retvals; // Nothing. return empty list
 	
@@ -83,21 +83,23 @@ public class ObservationServiceImp implements ObservationService {
 		return retvals;
 	}
 
+	@Transactional
 	@Override
-	public Observation createOrUpdate(Observation entity) {
+	public Measurement createOrUpdate(Measurement entity) {
 		if (entity.getId() != null) {
-			observationDao.merge(entity);
+			measurementDao.merge(entity);
 		} else {
-			observationDao.add(entity);
+			measurementDao.add(entity);
 		}
 		return entity;
 	}
 
+	@Transactional(readOnly = true)
 	@Override
 	public Long getSize() {
-		EntityManager em = observationDao.getEntityManager();
+		EntityManager em = measurementDao.getEntityManager();
 		
-		String query = "SELECT COUNT(p) FROM Observation p";
+		String query = "SELECT COUNT(t) FROM Measurement t";
 		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
 		return totalSize;
 	}
@@ -105,18 +107,18 @@ public class ObservationServiceImp implements ObservationService {
 	@Override
 	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
 		// Construct predicate from this map.
-		EntityManager em = observationDao.getEntityManager();
+		EntityManager em = measurementDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<Long> observationQuery = builder.createQuery(Long.class);
-		Root<Observation> observationRoot = observationQuery.from(Observation.class);
+		CriteriaQuery<Long> query = builder.createQuery(Long.class);
+		Root<Measurement> root = query.from(Measurement.class);
 
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, observationRoot);		
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
 		if (predicates == null || predicates.isEmpty()) return 0L;
 
-		observationQuery.select(builder.count(observationRoot));
-		observationQuery.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
+		query.select(builder.count(root));
+		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
 		
-		return em.createQuery(observationQuery).getSingleResult();
+		return em.createQuery(query).getSingleResult();
 	}
 
 }

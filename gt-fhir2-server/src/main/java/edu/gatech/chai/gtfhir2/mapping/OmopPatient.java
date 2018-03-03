@@ -274,7 +274,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 	 *         refer this resource.
 	 */
 	@Override
-	public Long toDbase(Patient patient, IdType fhirId) {
+	public Long toDbase(Patient patient, IdType fhirId) throws FHIRException {
 		FPerson fperson = null;
 		String personSourceValue = null;
 		Long omopId;

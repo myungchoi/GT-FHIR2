@@ -39,10 +39,7 @@ public class CareSiteServiceImp implements CareSiteService {
 		String query = "SELECT t FROM CareSite t WHERE "+column+" like :value";
 		List<CareSite> results = em.createQuery(query, CareSite.class)
 				.setParameter("value", value).getResultList();
-		if (results.size() > 0)
-			return results;
-		else
-			return null;	
+		return results;
 	}
 
 	@Transactional

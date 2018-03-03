@@ -106,7 +106,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 	}
 
 	@Override
-	public Long toDbase(Organization organization, IdType fhirId) {
+	public Long toDbase(Organization organization, IdType fhirId) throws FHIRException {
 		// If fhirId is null, then it's CREATE.
 		// If fhirId is not null, then it's UPDATE.
 

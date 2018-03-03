@@ -39,10 +39,7 @@ public class FObservationViewServiceImp implements FObservationViewService {
 		String query = "SELECT t FROM FObservationView t WHERE "+column+" like :value";
 		List<FObservationView> results = em.createQuery(query, FObservationView.class)
 				.setParameter("value", value).getResultList();
-		if (results.size() > 0)
-			return results;
-		else
-			return null;	
+		return results;
 	}
 
 	@Override
@@ -65,20 +62,25 @@ public class FObservationViewServiceImp implements FObservationViewService {
 		int length = toIndex - fromIndex;
 		EntityManager em = fObservationViewDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<FObservationView> fObservationViewQuery = builder.createQuery(FObservationView.class);
-		Root<FObservationView> fObservationViewRoot = fObservationViewQuery.from(FObservationView.class);
+		CriteriaQuery<FObservationView> query = builder.createQuery(FObservationView.class);
+		Root<FObservationView> root = query.from(FObservationView.class);
 		
-		List<FObservationView> fObservationView = new ArrayList<FObservationView>();
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, fObservationViewRoot);		
-		if (predicates == null || predicates.isEmpty()) return fObservationView; // Nothing. return empty list
+		List<FObservationView> retvals = new ArrayList<FObservationView>();
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
+		if (predicates == null || predicates.isEmpty()) return retvals; // Nothing. return empty list
 	
-		fObservationViewQuery.select(fObservationViewRoot);
-		fObservationViewQuery.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
+		query.select(root);
+		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
 
-		List<FObservationView> retvals = em.createQuery(fObservationViewQuery)
-				.setFirstResult(fromIndex)
-				.setMaxResults(length)
-				.getResultList();
+		if (length <= 0) {
+			retvals = em.createQuery(query)
+					.getResultList();
+		} else {
+			retvals = em.createQuery(query)
+					.setFirstResult(fromIndex)
+					.setMaxResults(length)
+					.getResultList();
+		}
 		return retvals;
 	}
 

@@ -12,37 +12,59 @@ import java.util.Map;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DateTimeType;
+import org.hl7.fhir.dstu3.model.DateType;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Observation.ObservationComponentComponent;
+import org.hl7.fhir.dstu3.model.Observation.ObservationReferenceRangeComponent;
 import org.hl7.fhir.dstu3.model.Observation.ObservationStatus;
 import org.hl7.fhir.dstu3.model.Quantity;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.SimpleQuantity;
 import org.hl7.fhir.dstu3.model.StringType;
+import org.hl7.fhir.dstu3.model.Type;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.rest.param.TokenParam;
+import edu.gatech.chai.gtfhir2.utilities.CodeableConceptUtil;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
+import edu.gatech.chai.omopv5.jpa.entity.FPerson;
+import edu.gatech.chai.omopv5.jpa.entity.Measurement;
+import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
 import edu.gatech.chai.omopv5.jpa.service.ConceptService;
 import edu.gatech.chai.omopv5.jpa.service.FObservationViewService;
+import edu.gatech.chai.omopv5.jpa.service.MeasurementService;
+import edu.gatech.chai.omopv5.jpa.service.ObservationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
+import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
 public class OmopObservation implements IResourceMapping<Observation, FObservationView> {
 
 	public static final Long SYSTOLIC_CONCEPT_ID = 3004249L;
-	public static final Long DIASTOLIC_CONCEPT_ID = 3012888L;	
+	public static final Long DIASTOLIC_CONCEPT_ID = 3012888L;
+	public static final String SYSTOLIC_LOINC_CODE = "8480-6";
+	public static final String DIASTOLIC_LOINC_CODE = "8462-4";
 
 	private FObservationViewService myOmopService;
 	private ConceptService conceptService;
+	private MeasurementService measurementService;
+	private ObservationService observationService;
+	private VisitOccurrenceService visitOccurrenceService;
 
 	public OmopObservation(WebApplicationContext context) {
 		myOmopService = context.getBean(FObservationViewService.class);
+		conceptService = context.getBean(ConceptService.class);
+		measurementService = context.getBean(MeasurementService.class);
+		observationService = context.getBean(ObservationService.class);
+		visitOccurrenceService = context.getBean(VisitOccurrenceService.class);
 	}
 	
 	@Override
@@ -82,7 +104,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		if (SYSTOLIC_CONCEPT_ID.equals(fObservationView.getObservationConcept().getId())) {
 			// Set coding for systolic and diastolic observation
 			systemUriString = "http://loinc.org";
-			codeString = "55284-4";
+			codeString = "85354-9";
 			displayString = "Blood pressure systolic & diastolic";
 			
 			List<ObservationComponentComponent> components = new ArrayList<ObservationComponentComponent>();
@@ -99,7 +121,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				
 				// Unit is defined as a concept code in omop v4, then unit and code are the same in this case
 				if (fObservationView.getUnitConcept() != null) {
-					quantity.setUnit(fObservationView.getUnitConcept().getConceptCode());
+					quantity.setUnit(fObservationView.getUnitConcept().getName());
 					quantity.setCode(fObservationView.getUnitConcept().getConceptCode());
 					quantity.setSystem(fObservationView.getUnitConcept().getVocabulary().getSystemUri());
 					comp.setValue(quantity);
@@ -237,31 +259,748 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		return observation;
 	}
 
+	private Long HandleBloodPressure(Observation fhirResource, IdType fhirId, Long fhirSubjectId, Long omopPersonId) throws FHIRException {
+		// This is measurement. And, fhirId is for systolic. 
+		// And, for update, we need to find diastolic and update that as well.
+		Measurement systolicMeasurement = null;
+		Measurement diastolicMeasurement = null;
+		Long fhirIdLong = null;
+		Long omopId = null;
+		
+		if (fhirId != null) {
+			fhirIdLong = fhirId.getIdPartAsLong();
+			omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, ResourceType.Organization.getPath());
+			if (omopId == null)
+				return null;
+		}
+		
+		String identifier_value = null;
+		List<Identifier> identifiers = fhirResource.getIdentifier();
+		for (Identifier identifier : identifiers) {
+			identifier_value = identifier.getValue();
+			List<Measurement> measurements = measurementService.searchByColumnString("sourceValue", identifier_value);
+			
+			for (Measurement measurement : measurements) {
+				if (systolicMeasurement == null && measurement.getMeasurementConcept().getId() == SYSTOLIC_CONCEPT_ID) {
+					systolicMeasurement = measurement;
+				} 
+				if (diastolicMeasurement == null && measurement.getMeasurementConcept().getId() == DIASTOLIC_CONCEPT_ID) {
+					diastolicMeasurement = measurement;
+				}
+			}
+			if (systolicMeasurement != null && diastolicMeasurement != null)
+				break;
+		}
+		
+		Type systolicValue = null;
+		Type diastolicValue = null;
+		List<ObservationComponentComponent> components = fhirResource.getComponent();
+		for (ObservationComponentComponent component : components) {
+			List<Coding> codings = component.getCode().getCoding();
+			for (Coding coding : codings) {
+				String fhirSystem = coding.getSystem();
+				String fhirCode = coding.getCode();
+				
+				if (OmopCodeableConceptMapping.LOINC.getFhirUri().equals(fhirSystem) &&
+						SYSTOLIC_LOINC_CODE.equals(fhirCode)) {
+					Type value = component.getValue();
+					if (value != null && !value.isEmpty()) {
+						systolicValue = value;
+					}
+				} else if (OmopCodeableConceptMapping.LOINC.getFhirUri().equals(fhirSystem) &&
+						DIASTOLIC_LOINC_CODE.equals(fhirCode)) {
+					Type value = component.getValue();
+					if (value != null && !value.isEmpty()) {
+						diastolicValue = value;
+					}
+				}
+			}
+		}
+		
+		if (systolicValue == null && diastolicValue == null) {
+			throw new FHIRException("Either systolic or diastolic needs to be available in component");
+		}
+		
+		if (fhirIdLong == null) {
+			// Create. 
+			// Note: we will return systolic measurement's id unless
+			//   systolic value is missing in FHIR.
+			
+			
+			FPerson tPerson = new FPerson();
+			tPerson.setId(omopPersonId);
+
+			if (systolicMeasurement == null && systolicValue != null) {
+				systolicMeasurement = new Measurement();
+				
+				if (identifier_value != null) {
+					systolicMeasurement.setSourceValue(identifier_value);
+				}
+				systolicMeasurement.setFperson(tPerson);
+				
+			}
+			if (diastolicMeasurement == null && diastolicValue != null) {
+				diastolicMeasurement = new Measurement();
+
+				if (identifier_value != null) {
+					diastolicMeasurement.setSourceValue(identifier_value);
+				}
+				diastolicMeasurement.setFperson(tPerson);
+			}
+			
+			
+		} else {
+			// Update
+			// Sanity check. The entry found from identifier should have matching id.
+			if (systolicMeasurement != null) {
+				if (systolicMeasurement.getId() != omopId) {
+					throw new FHIRException("The systolic measurement has incorrect id or identifier.");
+				}
+			} else {
+				// Now check if we have disastoic measurement.
+				if (diastolicMeasurement != null) {
+					// OK, originally, we had no systolic. Do the sanity check 
+					// with diastolic measurement.
+					if (diastolicMeasurement.getId() != omopId) {
+						throw new FHIRException("The diastolic measurement has incorrect id or identifier.");
+					}
+				}
+			}
+			
+			// Update. We use systolic measurement id as our prime id. However,
+			// sometimes, there is a chance that only one is available.
+			// If systolic is not available, diastolic will use the id.
+			// Thus, we first need to check if
+			if (systolicMeasurement == null) {
+				if (systolicValue != null)
+					systolicMeasurement = measurementService.findById(omopId);
+			}
+			if (diastolicMeasurement == null) {
+				if (diastolicValue != null) {
+					// We have diastolic value. But, we cannot use omopId here.
+					// 
+					diastolicMeasurement = measurementService.findById(omopId);
+				}
+			}
+			
+			if (systolicMeasurement == null && diastolicMeasurement == null) {
+				throw new FHIRException("Failed to get either systolic or diastolic measurement for update.");
+			}
+		}
+	
+		// We look at component coding.
+		if (systolicMeasurement != null) {
+			Concept codeConcept = new Concept();
+			codeConcept.setId(SYSTOLIC_CONCEPT_ID);
+			systolicMeasurement.setMeasurementConcept(codeConcept);
+			
+			if (systolicValue instanceof Quantity) {
+				systolicMeasurement.setValueAsNumber(((Quantity)systolicValue).getValue().doubleValue());
+
+				// Save the unit in the unit source column to save the source value.
+				String unitString = ((Quantity) systolicValue).getUnit();
+				systolicMeasurement.setUnitSourceValue(unitString);
+				
+				String unitSystem = ((Quantity) systolicValue).getSystem();
+				String unitCode = ((Quantity) systolicValue).getCode();
+				String omopVocabularyId = OmopCodeableConceptMapping.omopVocabularyforFhirUri(unitSystem);
+				if (omopVocabularyId != null) {
+					Concept unitConcept = CodeableConceptUtil.getOmopConceptWith(conceptService, omopVocabularyId, unitCode);
+					systolicMeasurement.setUnitConcept(unitConcept);
+				}
+				systolicMeasurement.setValueSourceValue(((Quantity) systolicValue).getValue().toString());
+			} else if (systolicValue instanceof CodeableConcept) {
+				Concept systolicValueConcept = CodeableConceptUtil.searchConcept(conceptService, (CodeableConcept)systolicValue);
+				systolicMeasurement.setValueAsConcept(systolicValueConcept);
+				systolicMeasurement.setValueSourceValue(((CodeableConcept) systolicValue).toString());
+			} else
+				throw new FHIRException("Systolic measurement should be either Quantity or CodeableConcept");
+		}
+		
+		if (diastolicMeasurement != null) {
+			Concept codeConcept = new Concept();
+			codeConcept.setId(DIASTOLIC_CONCEPT_ID);
+			diastolicMeasurement.setMeasurementConcept(codeConcept);
+
+			if (diastolicValue instanceof Quantity) {
+				diastolicMeasurement.setValueAsNumber(((Quantity)diastolicValue).getValue().doubleValue());
+				
+				// Save the unit in the unit source column to save the source value.
+				String unitString = ((Quantity) diastolicValue).getUnit();
+				diastolicMeasurement.setUnitSourceValue(unitString);
+				
+				String unitSystem = ((Quantity) diastolicValue).getSystem();
+				String unitCode = ((Quantity) diastolicValue).getCode();
+				String omopVocabularyId = OmopCodeableConceptMapping.omopVocabularyforFhirUri(unitSystem);
+				if (omopVocabularyId != null) {
+					Concept unitConcept = CodeableConceptUtil.getOmopConceptWith(conceptService, omopVocabularyId, unitCode);
+					diastolicMeasurement.setUnitConcept(unitConcept);
+				}
+				diastolicMeasurement.setValueSourceValue(((Quantity) diastolicValue).getValue().toString());
+			} else if (diastolicValue instanceof CodeableConcept) {
+				Concept diastolicValueConcept = CodeableConceptUtil.searchConcept(conceptService, (CodeableConcept)diastolicValue);
+				diastolicMeasurement.setValueAsConcept(diastolicValueConcept);
+				diastolicMeasurement.setValueSourceValue(((CodeableConcept)diastolicValue).toString());
+			} else
+				throw new FHIRException("Diastolic measurement should be either Quantity or CodeableConcept");			
+		}
+				
+		// Get low and high range if available. 
+		// Components have two value. From the range list, we should
+		// find the matching range. If exists, we can update measurement 
+		// entity class.
+		List<ObservationReferenceRangeComponent> ranges = fhirResource.getReferenceRange();
+		List<Coding> codings;
+		
+		// For BP, we should walk through these range references and
+		// find a right matching one to put our measurement entries.
+		for (ObservationReferenceRangeComponent range : ranges) {
+			if (range.isEmpty()) continue;
+			
+			// Get high and low values.
+			SimpleQuantity highQtyValue = range.getHigh();
+			SimpleQuantity lowQtyValue = range.getLow();
+			if (highQtyValue.isEmpty() && lowQtyValue.isEmpty()) {
+				// We need these values. If these are empty.
+				// We have no reason to look at the appliesTo data.
+				// Skip to next reference.
+				continue;
+			}
+			
+			// Check the all the included FHIR concept codes. 
+			List<CodeableConcept> rangeConceptCodes = range.getAppliesTo();
+			for (CodeableConcept rangeConceptCode : rangeConceptCodes) {
+				codings = rangeConceptCode.getCoding();
+				for (Coding coding : codings) {
+					if (OmopCodeableConceptMapping.LOINC.fhirUri.equals(coding.getSystem())) {
+						if (SYSTOLIC_LOINC_CODE.equals(coding.getCode())) {
+							// This applies to Systolic blood pressure.
+							if (systolicMeasurement != null) {
+								if (!highQtyValue.isEmpty()) {
+									systolicMeasurement.setRangeHigh(highQtyValue.getValue().doubleValue());
+								}
+								if (!lowQtyValue.isEmpty()) {
+									systolicMeasurement.setRangeLow(lowQtyValue.getValue().doubleValue());
+								}
+								break;
+							} else {
+								throw new FHIRException("Systolic value is not available. But, range for systolic is provided. BP data inconsistent");
+							}
+						} else if (DIASTOLIC_LOINC_CODE.equals(coding.getCode())) {
+							// This applies to Diastolic blood pressure.
+							if (diastolicMeasurement != null) {
+								if (!highQtyValue.isEmpty()) {
+									diastolicMeasurement.setRangeHigh(highQtyValue.getValue().doubleValue());
+								}
+								if (!lowQtyValue.isEmpty()) {
+									diastolicMeasurement.setRangeLow(lowQtyValue.getValue().doubleValue());
+								}
+								break;								
+							} else {
+								throw new FHIRException("Diastolic value is not available. But, range for diastolic is provided. BP data inconsistent");								
+							}
+						}
+					}
+				}
+			}			
+		}
+				
+		SimpleDateFormat timeFormat = new SimpleDateFormat ("HH:mm:ss");
+		if (fhirResource.getEffective() instanceof DateTimeType) {
+			Date date = ((DateTimeType) fhirResource.getEffective()).getValue();
+			if (systolicMeasurement != null) {
+				systolicMeasurement.setDate(date);
+				systolicMeasurement.setTime(timeFormat.format(date));
+			}
+			if (diastolicMeasurement != null) {
+				diastolicMeasurement.setDate(date);
+				diastolicMeasurement.setTime(timeFormat.format(date));
+			}
+		} else if (fhirResource.getEffective() instanceof Period) {
+			Date startDate = ((Period) fhirResource.getEffective()).getStart();
+			if (startDate != null) {
+				if (systolicMeasurement != null) {
+					systolicMeasurement.setDate(startDate);
+					systolicMeasurement.setTime(timeFormat.format(startDate));
+				}
+			}
+			if (startDate != null) {
+				if (diastolicMeasurement != null) {
+					diastolicMeasurement.setDate(startDate);
+					diastolicMeasurement.setTime(timeFormat.format(startDate));
+				}
+			}
+		}
+		
+		/* Set visit occurrence */
+		Reference contextReference = fhirResource.getContext();
+		VisitOccurrence visitOccurrence = null;
+		if (contextReference != null && !contextReference.isEmpty()) {
+			if (contextReference.getReferenceElement().getResourceType().equalsIgnoreCase(ResourceType.Encounter.getPath())) {
+				// Encounter context.
+				Long fhirEncounterId = contextReference.getReferenceElement().getIdPartAsLong();
+				Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, ResourceType.Encounter.getPath());
+				if (omopVisitOccurrenceId != null) {
+					visitOccurrence  = visitOccurrenceService.findById(omopVisitOccurrenceId);
+				}
+				if (visitOccurrence == null) {
+					throw new FHIRException("The Encounter ("+contextReference.getReference()+") context couldn't be found.");
+				} else {
+					if (systolicMeasurement != null) {
+						systolicMeasurement.setVisitOccurrence(visitOccurrence);
+					}
+					if (diastolicMeasurement != null) {
+						diastolicMeasurement.setVisitOccurrence(visitOccurrence);
+					}
+				}
+			} else {
+				// Episode of Care context.
+				// TODO: Do we have a mapping for the Episode of Care??
+			}
+		}
+
+		List<CodeableConcept> categories = fhirResource.getCategory();
+		Long typeConceptId = 0L;
+		for (CodeableConcept category : categories) {
+			codings = category.getCoding();
+			for (Coding coding : codings) {
+				String fhirSystem = coding.getSystem();
+				String fhirCode = coding.getCode();
+				if (fhirSystem == null || fhirSystem.isEmpty() || fhirCode == null || fhirCode.isEmpty()) {
+					continue;
+				}
+				typeConceptId = OmopConceptMapping.omopForObservationCategoryCode(fhirCode);
+				if (typeConceptId > 0L) break;
+			}
+			if (typeConceptId > 0L) break;
+		}
+		
+		Concept typeConcept = new Concept();
+		typeConcept.setId(typeConceptId);
+
+		Long retvalSystolic=null, retvalDiastolic=null;
+		if (systolicMeasurement != null) {
+			systolicMeasurement.setType(typeConcept);
+			retvalSystolic = measurementService.createOrUpdate(systolicMeasurement).getId();
+		} 
+		if (diastolicMeasurement != null) {
+			diastolicMeasurement.setType(typeConcept);
+			retvalDiastolic = measurementService.createOrUpdate(diastolicMeasurement).getId();
+		}
+		
+		if (retvalSystolic != null)
+			return retvalSystolic;
+		else if (retvalDiastolic != null) 
+			return retvalDiastolic;
+		else
+			return null;
+	}
+	
 	@Override
-	public Long toDbase(Observation fhirResource, IdType fhirId) {
-		// Observation data needs to be splitted into 
+	public Long toDbase(Observation fhirResource, IdType fhirId) throws FHIRException {
+		Long fhirIdLong = null;
+		if (fhirId != null) {
+			fhirIdLong = fhirId.getIdPartAsLong();
+		}
+		
+		// Observation data needs to be split into 
 		// observation and measurement in OMOP. We decide them by domain of
 		// the value.
-		// Get the code.
-		String code;
 		String omopTableName = null;
+		
+		Reference subjectReference = fhirResource.getSubject();
+		if (subjectReference == null) {
+			throw new FHIRException("We requres subject to contain a Patient");
+		}
+		if (!subjectReference.getReferenceElement().getResourceType().equalsIgnoreCase(ResourceType.Patient.getPath())) {
+			throw new FHIRException("We only support "+ResourceType.Patient.getPath()+" for subject. But provided ["+subjectReference.getReferenceElement().getResourceType()+"]");
+		}
+		
+		Long fhirSubjectId;
+		try {
+			fhirSubjectId = subjectReference.getReferenceElement().getIdPartAsLong();
+		} catch (NumberFormatException e) {
+			throw new FHIRException(e.getMessage());
+		}
+		
+		Long omopPersonId = IdMapping.getOMOPfromFHIR(fhirSubjectId, ResourceType.Patient.getPath());
+		if (omopPersonId == null) {
+			throw new FHIRException("We couldn't find the patient in the Subject");
+		} else {
+			
+		}
+		
 		for (Coding coding : fhirResource.getCode().getCoding()) {
-			code = coding.getCode();
+			String code = coding.getCode();
+			String system = coding.getSystem();
+			
+			// If we have BP information, we handle this separately.
+			// OMOP cannot handle multiple entries. So, we do not have 
+			// this code in our concept table.
+			if (system.equals(OmopCodeableConceptMapping.LOINC.getFhirUri()) &&
+					code.equals("85354-9")) {
+				// OK, we have BP systolic & diastolic. Handle this separately.
+				// We will not come back.
+				return HandleBloodPressure(fhirResource, fhirId, fhirSubjectId, omopPersonId);
+			}
 			List<Concept> conceptForCodes = conceptService.searchByColumnString("conceptCode", code);
 			for (Concept conceptForCode : conceptForCodes) {
 				String domain = conceptForCode.getDomain();
-				if (domain.equalsIgnoreCase("measurement")) {
-					omopTableName = "Measurement";
-					break;
-				} else if (domain.equalsIgnoreCase("observation")) {
-					omopTableName = "Observation";
+				String systemName = conceptForCode.getVocabulary().getId();
+				try {
+					if (domain.equalsIgnoreCase("measurement") && 
+							systemName.equalsIgnoreCase(OmopCodeableConceptMapping.omopVocabularyforFhirUri(system))) {
+						omopTableName = "Measurement";
+						break;
+					} else if (domain.equalsIgnoreCase("observation") &&
+							systemName.equalsIgnoreCase(OmopCodeableConceptMapping.omopVocabularyforFhirUri(system))) {
+						omopTableName = "Observation";
+						break;
+					}
+				} catch (FHIRException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 			if (omopTableName != null) break;
 		}
-		return null;
+		
+		if (omopTableName == null) {
+			return null;
+		}
+		
+		Measurement measurement = null;
+		edu.gatech.chai.omopv5.jpa.entity.Observation observation = null;
+		if (fhirIdLong == null) {
+			// This is CREATE.
+			// Check if we already have this measurement.
+			// Check identifier to check if we have this.
+			List<Identifier> identifiers = fhirResource.getIdentifier();
+			String identifier_value = null;
+			for (Identifier identifier : identifiers) {
+				identifier_value = identifier.getValue();
+				if (identifier_value != null) {
+					if ("Measurement".equals(omopTableName)) {
+						List<Measurement> results = measurementService.searchByColumnString("sourceValue", identifier_value);
+						if (results.size()>0) {
+							// We do not CREATE. Instead, we update this.
+							// set the measurement.
+							measurement = results.get(0);
+							break;
+						}
+					} else {
+						List<edu.gatech.chai.omopv5.jpa.entity.Observation> results = observationService.searchByColumnString("sourceValue", identifier_value);
+						if (results.size()>0) {
+							// We do not CREATE. Instead, we update this.
+							// set the measurement.
+							observation = results.get(0);
+							break;
+						}
+					}
+				}
+			}
+			
+			FPerson tPerson = new FPerson();
+			tPerson.setId(omopPersonId);
+
+			if ("Measurement".equals(omopTableName) && measurement == null) {
+				// This is NEW.
+				measurement = new Measurement();
+				if (identifier_value != null) {
+					measurement.setSourceValue(identifier_value);
+				}
+				measurement.setFperson(tPerson);
+			}
+			if ("Observation".equals(omopTableName) && observation == null) {
+				// This is NEW.
+				observation = new edu.gatech.chai.omopv5.jpa.entity.Observation();
+				if (identifier_value != null) {
+					observation.setSourceValue(identifier_value);
+				}
+				observation.setFperson(tPerson);
+			}
+		} else {
+			// This is UPDATE
+			Long omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, ResourceType.Observation.getPath());
+			if ("Measurement".equals(omopTableName)) {
+				measurement = measurementService.findById(omopId);
+				if (measurement == null) {
+					// We have no measurement to update.
+					throw new FHIRException("We have no matching FHIR Observation (Measurement) to update.");
+				}
+				// Update subject.
+				measurement.getFperson().setId(omopPersonId);
+				// We may have the identifier changed, which is source column in OMOP.
+				// We always use the first identifier.
+				Identifier identifier = fhirResource.getIdentifierFirstRep();
+				if (identifier != null) {
+					String value = identifier.getValue();
+					if (value != null && !value.isEmpty())
+						measurement.setSourceValue(value);
+				}
+			} else {
+				observation = observationService.findById(omopId);
+				if (observation == null) {
+					// We have no observation to update.
+					throw new FHIRException("We have no matching FHIR Observation (Observation) to update.");
+				}
+				// Update subject.
+				observation.getFperson().setId(omopPersonId);
+				// We may have the identifier changed, which is source column in OMOP.
+				// We always use the first identifier.
+				Identifier identifier = fhirResource.getIdentifierFirstRep();
+				if (identifier != null) {
+					String value = identifier.getValue();
+					if (value != null && !value.isEmpty())
+						observation.setSourceValue(value);
+				}
+			}			
+		}
+
+		// We prefer LOINC code. So, even though we looped coding.
+		// Let's do it again.
+		// If we do not have LOINC there, we try first one.
+		CodeableConcept code = fhirResource.getCode();
+		
+		// code should NOT be null as this is required field.
+		// And, validation should check this.
+		List<Coding> codings = code.getCoding();
+		Coding codingFound = null;
+		Coding codingSecondChoice = null;
+		String OmopSystem = null;
+		for (Coding coding : codings) {
+			String fhirSystemUri = coding.getSystem();
+			if (fhirSystemUri.equals(OmopCodeableConceptMapping.LOINC.getFhirUri())) {
+				// Found the code we want.
+				codingFound = coding;
+				break;
+			} else {
+				// See if we can handle this coding.
+				try {
+					OmopSystem = OmopCodeableConceptMapping.omopVocabularyforFhirUri(fhirSystemUri);
+				} catch (FHIRException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if ("None".equals(OmopSystem) == false) {
+					// We can at least handle this. Save it
+					// We may find another one we can handle. Let it replace.
+					// 2nd choice is just 2nd choice.
+					codingSecondChoice = coding;
+				}
+			}
+		}
+		
+		if (codingFound==null && codingSecondChoice == null) {
+			// We can't save this resource to OMOP.. sorry...
+			throw new FHIRException("We couldn't support the code");
+		}
+		
+		Concept concept = null;
+		if (codingFound != null) {
+			// Find the concept id for this coding.
+			concept = CodeableConceptUtil.getOmopConceptWith(
+					conceptService, 
+					OmopCodeableConceptMapping.LOINC.getOmopVocabulary(), 
+					codingFound.getCode());
+			if (concept == null) {
+				throw new FHIRException("We couldn't map the code - "+OmopCodeableConceptMapping.LOINC.getFhirUri()+":"+codingFound.getCode());
+			}
+		} else {
+			// This is not our first choice. But, found one that we can
+			// map.
+			concept = CodeableConceptUtil.getOmopConceptWith(
+					conceptService, 
+					OmopSystem, 
+					codingSecondChoice.getCode());
+			if (concept == null) {
+				throw new FHIRException("We couldn't map the code - "+OmopCodeableConceptMapping.fhirUriforOmopVocabularyi(OmopSystem)+":"+codingSecondChoice.getCode());
+			}
+		}
+		
+		if ("Measurement".equals(omopTableName))
+			measurement.setMeasurementConcept(concept);
+		else
+			observation.setObservationConcept(concept);
+		
+		/* Set the value of the observation */
+		Type valueType = fhirResource.getValue();
+		if (valueType instanceof Quantity) {
+			if ("Measurement".equals(omopTableName)) {
+				measurement.setValueAsNumber(((Quantity) valueType).getValue().doubleValue());
+				measurement.setValueSourceValue(String.valueOf(((Quantity) valueType).getValue()));
+			} else {
+				observation.setValueAsNumber(((Quantity) valueType).getValue().doubleValue());
+			}
+			
+			// For unit, OMOP need unit concept
+			String unitCode = ((Quantity) valueType).getCode();
+			String unitSystem = ((Quantity) valueType).getSystem();
+			
+			String omopVocabulary = null;
+			concept = null;
+			if (unitCode != null && !unitCode.isEmpty()) {
+				if (unitSystem == null || unitSystem.isEmpty()) {
+					// If system is empty, then we check UCUM for the unit.
+					omopVocabulary = OmopCodeableConceptMapping.UCUM.getOmopVocabulary();
+				} else {
+					omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(unitSystem);
+				}
+				concept = CodeableConceptUtil.getOmopConceptWith(
+						conceptService, 
+						omopVocabulary, 
+						unitCode);
+			}
+			
+			// Save the unit in the unit source column to save the source value.
+			String unitString = ((Quantity) valueType).getUnit();
+			
+			if ("Measurement".equals(omopTableName)) {
+				measurement.setUnitSourceValue(unitString);
+			} else {
+				observation.setUnitSourceValue(unitString);
+			}
+			
+			if (concept != null) {
+				// If we found the concept for unit, use it. Otherwise, leave it empty.
+				// We still have this in the unit source column.
+				if ("Measurement".equals(omopTableName)) {
+					measurement.setUnitConcept(concept);
+				} else {
+					observation.setUnitConcept(concept);
+				}
+			}
+			
+		} else if (valueType instanceof CodeableConcept) {
+			// We have coeable concept value. Get System and Value.
+			// FHIR allows one value[x]. 
+			codings = ((CodeableConcept) valueType).getCoding();
+			concept = null;
+			for (Coding coding : codings) {
+				String fhirSystem = coding.getSystem();
+				String fhirCode = coding.getCode();
+				
+				if (fhirSystem == null || fhirSystem.isEmpty() || fhirCode == null || fhirCode.isEmpty()) {
+					continue;
+				}
+				
+				String omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(fhirSystem);
+				concept = CodeableConceptUtil.getOmopConceptWith(
+						conceptService, 
+						omopVocabulary, 
+						fhirCode);
+				
+				if (concept == null) {
+					throw new FHIRException("We couldn't map the codeable concept value - "+fhirSystem+":"+fhirCode);
+				}
+				break;
+			}
+			if (concept == null) {
+				throw new FHIRException("We couldn't find a concept to map the codeable concept value.");
+			}
+			
+			if ("Measurement".equals(omopTableName))
+				measurement.setValueAsConcept(concept);
+			else
+				observation.setValueAsConcept(concept);
+		} 
+
+		// Get low and high range if available. This is only applicable to 
+		// measurement.
+		if ("Measurement".equals(omopTableName)) {
+			if (!fhirResource.getReferenceRangeFirstRep().isEmpty()) {
+				SimpleQuantity high = fhirResource.getReferenceRangeFirstRep().getHigh();
+				if (!high.isEmpty()) {
+					measurement.setRangeHigh(high.getValue().doubleValue());
+				}
+			}
+			if (!fhirResource.getReferenceRangeFirstRep().isEmpty()) {
+				SimpleQuantity low = fhirResource.getReferenceRangeFirstRep().getLow();
+				if (!low.isEmpty()) {
+					measurement.setRangeLow(low.getValue().doubleValue());
+				}
+			}
+		}
+		
+		SimpleDateFormat timeFormat = new SimpleDateFormat ("HH:mm:ss");
+		if (fhirResource.getEffective() instanceof DateType) {
+			Date date = ((DateType) fhirResource.getEffective()).getValue();
+			if ("Measurement".equals(omopTableName)) {
+				measurement.setDate(date);
+				measurement.setTime(timeFormat.format(date));
+			} else {
+				observation.setDate(date);
+				observation.setTime(timeFormat.format(date));
+			}
+		} else if (fhirResource.getEffective() instanceof Period) {
+			Date startDate = ((Period) fhirResource.getEffective()).getStart();
+			if (startDate != null) {
+				if ("Measurement".equals(omopTableName)) {
+					measurement.setDate(startDate);
+					measurement.setTime(timeFormat.format(startDate));
+				} else {
+					observation.setDate(startDate);
+					observation.setTime(timeFormat.format(startDate));
+				}
+			}
+		}
+		/* Set visit occurrence */
+		Reference contextReference = fhirResource.getContext();
+		VisitOccurrence visitOccurrence = null;
+		if (contextReference != null) {
+			if (contextReference.getReferenceElement().getResourceType().equalsIgnoreCase(ResourceType.Encounter.getPath())) {
+				// Encounter context.
+				Long fhirEncounterId = contextReference.getReferenceElement().getIdPartAsLong();
+				Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, ResourceType.Encounter.getPath());
+				if (omopVisitOccurrenceId != null) {
+					visitOccurrence  = visitOccurrenceService.findById(omopVisitOccurrenceId);
+				}
+				if (visitOccurrence == null) {
+					throw new FHIRException("The Encounter ("+contextReference.getReference()+") context couldn't be found.");
+				} else {
+					if ("Measurement".equals(omopTableName))
+						measurement.setVisitOccurrence(visitOccurrence);
+					else
+						observation.setVisitOccurrence(visitOccurrence);
+				}
+			} else {
+				// Episode of Care context.
+				// TODO: Do we have a mapping for the Episode of Care??
+			}
+		}
+
+		List<CodeableConcept> categories = fhirResource.getCategory();
+		Long typeConceptId = 0L;
+		for (CodeableConcept category : categories) {
+			codings = category.getCoding();
+			for (Coding coding : codings) {
+				String fhirSystem = coding.getSystem();
+				String fhirCode = coding.getCode();
+				if (fhirSystem == null || fhirSystem.isEmpty() || fhirCode == null || fhirCode.isEmpty()) {
+					continue;
+				}
+				typeConceptId = OmopConceptMapping.omopForObservationCategoryCode(fhirCode);
+				if (typeConceptId > 0L) break;
+			}
+			if (typeConceptId > 0L) break;
+		}
+		
+		concept = new Concept();
+		concept.setId(typeConceptId);
+
+		Long retval;
+		if ("Measurement".equals(omopTableName)) {
+			measurement.setType(concept);
+			retval = measurementService.createOrUpdate(measurement).getId();
+		} else {
+			measurement.setType(concept);
+			retval = observationService.createOrUpdate(observation).getId();
+		}
+		
+		return retval;
 	}
 
+	
 	// Blood Pressure is stored in the component. So, we store two values in
 	// the component section. We do this by selecting diastolic when systolic
 	// is selected. Since we are selecting this already, we need to skip diastolic.

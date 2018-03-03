@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
@@ -13,7 +14,7 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public interface IResourceMapping<v extends DomainResource, t extends BaseEntity> {
 	public v toFHIR(IdType id);
-	public Long toDbase(v fhirResource, IdType fhirId);
+	public Long toDbase(v fhirResource, IdType fhirId) throws FHIRException;
 	public Long getSize();
 	public Long getSize(Map<String, List<ParameterWrapper>> map);
 
