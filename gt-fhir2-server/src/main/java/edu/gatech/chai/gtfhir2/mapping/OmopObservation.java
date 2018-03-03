@@ -16,7 +16,6 @@ import org.hl7.fhir.dstu3.model.DateType;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Observation;
-import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Observation.ObservationComponentComponent;
 import org.hl7.fhir.dstu3.model.Observation.ObservationReferenceRangeComponent;
@@ -52,6 +51,8 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 	public static final Long DIASTOLIC_CONCEPT_ID = 3012888L;
 	public static final String SYSTOLIC_LOINC_CODE = "8480-6";
 	public static final String DIASTOLIC_LOINC_CODE = "8462-4";
+	public static final String BP_SYSTOLIC_DIASTOLIC_CODE = "85354-9";
+	public static final String BP_SYSTOLIC_DIASTOLIC_DISPLAY = "Blood pressure systolic & diastolic";
 
 	private FObservationViewService myOmopService;
 	private ConceptService conceptService;
@@ -103,9 +104,9 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		// public static final Long DIASTOLIC_CONCEPT_ID = new Long(3012888);		
 		if (SYSTOLIC_CONCEPT_ID.equals(fObservationView.getObservationConcept().getId())) {
 			// Set coding for systolic and diastolic observation
-			systemUriString = "http://loinc.org";
-			codeString = "85354-9";
-			displayString = "Blood pressure systolic & diastolic";
+			systemUriString = OmopCodeableConceptMapping.LOINC.getFhirUri();
+			codeString = BP_SYSTOLIC_DIASTOLIC_CODE;
+			displayString = BP_SYSTOLIC_DIASTOLIC_DISPLAY;
 			
 			List<ObservationComponentComponent> components = new ArrayList<ObservationComponentComponent>();
 			// First we add systolic component.
@@ -638,7 +639,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			// OMOP cannot handle multiple entries. So, we do not have 
 			// this code in our concept table.
 			if (system.equals(OmopCodeableConceptMapping.LOINC.getFhirUri()) &&
-					code.equals("85354-9")) {
+					code.equals(BP_SYSTOLIC_DIASTOLIC_CODE)) {
 				// OK, we have BP systolic & diastolic. Handle this separately.
 				// We will not come back.
 				return HandleBloodPressure(fhirResource, fhirId, fhirSubjectId, omopPersonId);
@@ -1094,7 +1095,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
 		switch (parameter) {
-		case Patient.SP_RES_ID:
+		case Observation.SP_RES_ID:
 			String organizationId = ((TokenParam) value).getValue();
 			paramWrapper.setParameterType("Long");
 			paramWrapper.setParameters(Arrays.asList("id"));
@@ -1102,6 +1103,26 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			paramWrapper.setValues(Arrays.asList(organizationId));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
+			break;
+		case Observation.SP_CODE:
+			String system = ((TokenParam) value).getSystem();
+			String code = ((TokenParam) value).getValue();
+			
+			// Blood Pressure should be handled differently.
+			if (OmopCodeableConceptMapping.LOINC.getFhirUri().equals(system) &&
+					BP_SYSTOLIC_DIASTOLIC_CODE.equals(code)) {
+				// In OMOP, we have systolic and diastolic as separate entries.
+				// We search for systolic. When constructing FHIR<, constructFHIR
+				// will search matching diastolic value.
+				paramWrapper.setParameterType("String");
+				paramWrapper.setParameters(Arrays.asList("observationConcept.vocabulary.id", "observationConcept.conceptCode"));
+				paramWrapper.setOperators(Arrays.asList("like", "like"));
+				paramWrapper.setValues(Arrays.asList(OmopCodeableConceptMapping.LOINC.getOmopVocabulary(), SYSTOLIC_LOINC_CODE));
+				paramWrapper.setRelationship("and");
+				mapList.add(paramWrapper);
+			} else {
+				
+			}
 			break;
 		default:
 			mapList = null;

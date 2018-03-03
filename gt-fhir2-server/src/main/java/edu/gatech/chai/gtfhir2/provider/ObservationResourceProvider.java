@@ -93,6 +93,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 	@Search()
 	public IBundleProvider findPatientsByParams(
 			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
+			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
 			
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
@@ -109,6 +110,10 @@ public class ObservationResourceProvider implements IResourceProvider {
 
 		if (theObservationId != null) {
 			mapParameter (paramMap, Observation.SP_RES_ID, theObservationId);
+		}
+		
+		if (theCode != null) {
+			mapParameter (paramMap, Observation.SP_CODE, theCode);
 		}
 		
 		// Now finalize the parameter map.
