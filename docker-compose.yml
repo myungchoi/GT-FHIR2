@@ -1,0 +1,9 @@
+version: '2'
+services:
+  gt-fhir2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8080:8080"

@@ -1,3 +1,4 @@
+
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
@@ -13,14 +14,13 @@ import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.dstu3.model.Organization;
-import org.springframework.web.context.ContextLoaderListener;
-import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
+import org.springframework.web.context.ContextLoaderListener;
+import org.springframework.web.context.WebApplicationContext;
 
-import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
@@ -33,15 +33,13 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-
-import edu.gatech.chai.gtfhir2.mapping.OmopPatient;
+import edu.gatech.chai.gtfhir2.mapping.OmopPractitioner;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 
@@ -49,20 +47,20 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
  * This is a resource provider which stores Patient resources in memory using a HashMap. This is obviously not a production-ready solution for many reasons, 
  * but it is useful to help illustrate how to build a fully-functional server.
  */
-public class PatientResourceProvider implements IResourceProvider {
+public class PractitionerResourceProvider implements IResourceProvider {
 
 private WebApplicationContext myAppCtx;
 private String myDbType;
-private OmopPatient myMapper;
+private OmopPractitioner myMapper;
 private int preferredPageSize = 30;
 
-	public PatientResourceProvider() {
+	public PractitionerResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
 		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
 		if (myDbType.equalsIgnoreCase("omopv5") == true) {
-			myMapper = new OmopPatient(myAppCtx);
+			myMapper = new OmopPractitioner(myAppCtx);
 		} else {
-			myMapper = new OmopPatient(myAppCtx);
+			myMapper = new OmopPractitioner(myAppCtx);
 		}
 		
 		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
@@ -80,16 +78,10 @@ private int preferredPageSize = 30;
 	 * new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createPatient(@ResourceParam Patient thePatient) {
-		validateResource(thePatient);
+	public MethodOutcome createPractitioner(@ResourceParam Practitioner thePractitioner) {
+		validateResource(thePractitioner);
 		
-		Long id=null;
-		try {
-			id = myMapper.toDbase(thePatient, null);
-		} catch (FHIRException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
+		Long id = myMapper.toDbase(thePractitioner, null);		
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -103,27 +95,14 @@ private int preferredPageSize = 30;
 	 * @return This method returns a list of Patients in bundle. This list may contain multiple matching resources, or it may also be empty.
 	 */
 	@Search()
-	public IBundleProvider findPatientsByParams(
-			@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
-			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
-			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
-			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
-			@OptionalParam(name = Patient.SP_NAME) StringParam theName,
-			@OptionalParam(name = Patient.SP_BIRTHDATE) DateParam theBirthDate,
-			@OptionalParam(name = Patient.SP_ADDRESS) StringParam theAddress,
-			@OptionalParam(name = Patient.SP_ADDRESS_CITY) StringParam theAddressCity,
-			@OptionalParam(name = Patient.SP_ADDRESS_STATE) StringParam theAddressState,
-			@OptionalParam(name = Patient.SP_ADDRESS_POSTALCODE) StringParam theAddressZip,
-			@OptionalParam(name = Patient.SP_EMAIL) TokenParam theEmail,
-			@OptionalParam(name = Patient.SP_PHONE) TokenParam thePhone,
-			@OptionalParam(name = Patient.SP_TELECOM) TokenParam theTelecom,
-
-			@OptionalParam(name = Patient.SP_ORGANIZATION, chainWhitelist={"", Organization.SP_NAME}) ReferenceParam theOrganization,
-			
-			@IncludeParam(allow={"Patient:general-practitioner", "Patient:organization", "Patient:link"})
+	public IBundleProvider findPractitionersByParams(
+			@OptionalParam(name = Practitioner.SP_ACTIVE) TokenParam theActive,
+			@OptionalParam(name = Practitioner.SP_FAMILY) StringParam theFamilyName,
+			@OptionalParam(name = Practitioner.SP_GIVEN) StringParam theGivenName,
+			@OptionalParam(name = Practitioner.SP_GENDER) StringParam theGender,
+			@IncludeParam(allow={})
 			final Set<Include> theIncludes,
-			
-			@IncludeParam(allow={"Encounter:subject", "Observation:subject"}, reverse=true)
+			@IncludeParam(reverse=true)
             final Set<Include> theReverseIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
@@ -137,62 +116,20 @@ private int preferredPageSize = 30;
 		 */
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
 		
-		if (thePatientId != null) {
-			mapParameter (paramMap, Patient.SP_RES_ID, thePatientId);
-		}
 		if (theActive != null) {
-			mapParameter (paramMap, Patient.SP_ACTIVE, theActive);
-		}
-		if (theEmail != null) {
-			mapParameter (paramMap, Patient.SP_EMAIL, theEmail);
-		}
-		if (thePhone != null) {
-			mapParameter (paramMap, Patient.SP_PHONE, thePhone);
-		}
-		if (theTelecom != null) {
-			mapParameter (paramMap, Patient.SP_TELECOM, theTelecom);
-		}
-		if (theFamilyName != null) {
-			mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
-		}
-		if (theName != null) {
-			mapParameter (paramMap, Patient.SP_NAME, theName);
-		}
-		if (theGivenName != null) {
-			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
-		}
-		if (theBirthDate != null) {
-			mapParameter (paramMap, Patient.SP_BIRTHDATE, theBirthDate);
-		}
-		if (theAddress != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
-		}
-		if (theAddressCity != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
-		}
-		if (theAddressState != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
-		}
-		if (theAddressZip != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
+			mapParameter (paramMap, Practitioner.SP_ACTIVE, theActive);
 		}
 		
-		// Chain Search.
-		// Chain search is a searching by reference with specific field name (including reference ID).
-		// As SP names are not unique across the FHIR resources, we need to tag the name
-		// of the resource in front to indicate our OMOP* can handle these parameters.
-		if (theOrganization != null) {
-			String orgChain = theOrganization.getChain();
-			if (orgChain != null) {
-				if (Organization.SP_NAME.equals(orgChain)) {
-					String theOrgName = theOrganization.getValue();
-					mapParameter (paramMap, "Organization:"+Organization.SP_NAME, theOrgName);
-				} else if ("".equals(orgChain)) {
-					mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getValue());
-				}
-			} else {
-				mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart());
-			}
+		if (theFamilyName != null) {
+			mapParameter(paramMap, Practitioner.SP_FAMILY, theFamilyName);
+		}
+		
+		if (theGivenName != null) {
+			mapParameter (paramMap, Practitioner.SP_GIVEN, theGivenName);
+		}
+		
+		if (theGender != null) {
+			mapParameter (paramMap, Practitioner.SP_GENDER, theGender);
 		}
 		
 		// Now finalize the parameter map.
@@ -214,61 +151,7 @@ private int preferredPageSize = 30;
 			@Override
 			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
 				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-
-				// _Include
 				List<String> includes = new ArrayList<String>();
-				if (theIncludes.contains(new Include("Patient:general-practitioner"))) {
-					includes.add("Patient:general-practitioner");
-				}
-				
-				if (theIncludes.contains(new Include("Patient:organization"))) {
-					includes.add("Patient:organization");
-				}
-				
-				if (theIncludes.contains(new Include("Patient:link"))) {
-					includes.add("Patient:link");
-				}
-
-				if (theReverseIncludes.contains(new Include("*"))) {
-					// This is to include all the reverse includes...
-					includes.add("Encounter:subject");
-					includes.add("Observation:subject");
-					includes.add("Device:patient");
-					includes.add("Condition:subject");
-					includes.add("Procedure:subject");
-					includes.add("MedicationRequest:subject");
-					includes.add("MedicationAdministration:subject");
-					includes.add("MedicationDispense:subject");
-					includes.add("MedicationStatement:subject");
-				} else {
-					if (theReverseIncludes.contains(new Include("Encounter:subject"))) {
-						includes.add("Encounter:subject");						
-					}
-					if (theReverseIncludes.contains(new Include("Observation:subject"))) {
-						includes.add("Observation:subject");
-					}
-					if (theReverseIncludes.contains(new Include("Device:patient"))) {
-						includes.add("Device:patient");
-					}
-					if (theReverseIncludes.contains(new Include("Condition:subject"))) {
-						includes.add("Condition:subject");
-					}
-					if (theReverseIncludes.contains(new Include("Procedure:subject"))) {
-						includes.add("Procedure:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationRequest:subject"))) {
-						includes.add("MedicationRequest:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationAdministration:subject"))) {
-						includes.add("MedicationAdministration:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationDispense:subject"))) {
-						includes.add("MedicationDispense:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationStatement:subject"))) {
-						includes.add("MedicationStatement:subject");
-					}
-				}
 				
 				if (finalParamMap.size() == 0) {
 					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
@@ -294,7 +177,7 @@ private int preferredPageSize = 30;
 			public Integer size() {
 				return totalSize.intValue();
 			}
-			
+
 		};
 		
 	}
@@ -311,8 +194,8 @@ private int preferredPageSize = 30;
 	 * The getResourceType method comes from IResourceProvider, and must be overridden to indicate what type of resource this provider supplies.
 	 */
 	@Override
-	public Class<Patient> getResourceType() {
-		return Patient.class;
+	public Class<Practitioner> getResourceType() {
+		return Practitioner.class;
 	}
 
 	/**
@@ -326,8 +209,8 @@ private int preferredPageSize = 30;
 	 * @return Returns a resource matching this identifier, or null if none exists.
 	 */
 	@Read()
-	public Patient readPatient(@IdParam IdType theId) {
-		Patient retval = (Patient) myMapper.toFHIR(theId);
+	public Practitioner readPractitioner(@IdParam IdType theId) {
+		Practitioner retval = (Practitioner) myMapper.toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);
 		}
@@ -346,19 +229,24 @@ private int preferredPageSize = 30;
 	 * @return This method returns a "MethodOutcome"
 	 */
 	@Update()
-	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Patient thePatient) {
-		validateResource(thePatient);
+	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Practitioner thePractitioner) {
+		validateResource(thePractitioner);
 
-		Long fhirId=null;
-		try {
-			fhirId = myMapper.toDbase(thePatient, theId);
-		} catch (FHIRException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		if (fhirId == null) {
-			throw new ResourceNotFoundException(theId);
-		}
+//		Long id;
+//		try {
+//			id = theId.getIdPartAsLong();
+//		} catch (DataFormatException e) {
+//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
+//		}
+//
+//		/*
+//		 * Throw an exception (HTTP 404) if the ID is not known
+//		 */
+//		if (!myIdToPatientVersions.containsKey(id)) {
+//			throw new ResourceNotFoundException(theId);
+//		}
+//
+//		addNewVersion(thePatient, id);
 
 		return new MethodOutcome();
 	}
@@ -369,16 +257,16 @@ private int preferredPageSize = 30;
 	 * @param thePatient
 	 *            The patient to validate
 	 */
-	private void validateResource(Patient thePatient) {
+	private void validateResource(Practitioner thePractitioner) {
 		/*
-		 * Our server will have a rule that patients must have a family name or we will reject them
+		 * Our server will have a rule that practitioners must have a name or we will reject them
 		 */
-		if (thePatient.getNameFirstRep().getFamily().isEmpty()) {
+		if (thePractitioner.getName().isEmpty()) {
 			OperationOutcome outcome = new OperationOutcome();
 			CodeableConcept detailCode = new CodeableConcept();
-			detailCode.setText("No family name provided, Patient resources must have at least one family name.");
+			detailCode.setText("No name provided, Practictioner resources must have at least one name.");
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
+			throw new UnprocessableEntityException(outcome);
 		}
 	}
 
