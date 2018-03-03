@@ -91,7 +91,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 	}
 
 	@Search()
-	public IBundleProvider findPatientsByParams(
+	public IBundleProvider findObservationsByParams(
 			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
 			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
 			

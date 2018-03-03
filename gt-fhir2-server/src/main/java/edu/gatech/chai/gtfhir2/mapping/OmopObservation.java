@@ -1107,21 +1107,85 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		case Observation.SP_CODE:
 			String system = ((TokenParam) value).getSystem();
 			String code = ((TokenParam) value).getValue();
-			
-			// Blood Pressure should be handled differently.
-			if (OmopCodeableConceptMapping.LOINC.getFhirUri().equals(system) &&
-					BP_SYSTOLIC_DIASTOLIC_CODE.equals(code)) {
-				// In OMOP, we have systolic and diastolic as separate entries.
-				// We search for systolic. When constructing FHIR<, constructFHIR
-				// will search matching diastolic value.
-				paramWrapper.setParameterType("String");
-				paramWrapper.setParameters(Arrays.asList("observationConcept.vocabulary.id", "observationConcept.conceptCode"));
-				paramWrapper.setOperators(Arrays.asList("like", "like"));
-				paramWrapper.setValues(Arrays.asList(OmopCodeableConceptMapping.LOINC.getOmopVocabulary(), SYSTOLIC_LOINC_CODE));
-				paramWrapper.setRelationship("and");
-				mapList.add(paramWrapper);
+			String omopVocabulary = null;
+			if (system != null && !system.isEmpty()) {
+				try {
+					omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(system);
+				} catch (FHIRException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			} else {
-				
+				omopVocabulary = "None";
+			}
+
+			if (omopVocabulary.equals(OmopCodeableConceptMapping.LOINC.getOmopVocabulary())) {
+				// This is LOINC code.
+				// Check if this is for BP.
+				if (code != null && !code.isEmpty()) {
+					if (BP_SYSTOLIC_DIASTOLIC_CODE.equals(code)) {
+						// In OMOP, we have systolic and diastolic as separate entries.
+						// We search for systolic. When constructing FHIR<, constructFHIR
+						// will search matching diastolic value.
+						paramWrapper.setParameterType("String");
+						paramWrapper.setParameters(Arrays.asList("observationConcept.vocabulary.id", "observationConcept.conceptCode"));
+						paramWrapper.setOperators(Arrays.asList("like", "like"));
+						paramWrapper.setValues(Arrays.asList(omopVocabulary, SYSTOLIC_LOINC_CODE));
+						paramWrapper.setRelationship("and");
+						mapList.add(paramWrapper);
+					} else {
+						paramWrapper.setParameterType("String");
+						paramWrapper.setParameters(Arrays.asList("observationConcept.vocabulary.id", "observationConcept.conceptCode"));
+						paramWrapper.setOperators(Arrays.asList("like", "like"));
+						paramWrapper.setValues(Arrays.asList(omopVocabulary, code));
+						paramWrapper.setRelationship("and");
+						mapList.add(paramWrapper);
+					}
+				} else {
+					// We have no code specified. Search by system.
+					paramWrapper.setParameterType("String");
+					paramWrapper.setParameters(Arrays.asList("observationConcept.vocabulary.id"));
+					paramWrapper.setOperators(Arrays.asList("like"));
+					paramWrapper.setValues(Arrays.asList(omopVocabulary));
+					paramWrapper.setRelationship("or");
+					mapList.add(paramWrapper);
+				}
+			} else {
+				if (system == null || system.isEmpty()) {
+					if (code == null || code.isEmpty()) {
+						// nothing to do
+						break;
+					} else {
+						// no system but code.
+						paramWrapper.setParameterType("String");
+						paramWrapper.setParameters(Arrays.asList("observationConcept.conceptCode"));
+						paramWrapper.setOperators(Arrays.asList("like"));
+						if (BP_SYSTOLIC_DIASTOLIC_CODE.equals(code)) 
+							paramWrapper.setValues(Arrays.asList(SYSTOLIC_LOINC_CODE));
+						else
+							paramWrapper.setValues(Arrays.asList(code));
+						paramWrapper.setRelationship("or");
+						mapList.add(paramWrapper);
+					}
+				} else {
+					if (code == null || code.isEmpty()) {
+						// yes system but no code.
+						paramWrapper.setParameterType("String");
+						paramWrapper.setParameters(Arrays.asList("observationConcept.vocabulary.id"));
+						paramWrapper.setOperators(Arrays.asList("like"));
+						paramWrapper.setValues(Arrays.asList(omopVocabulary));
+						paramWrapper.setRelationship("or");
+						mapList.add(paramWrapper);
+					} else {
+						// We have both system and code.
+						paramWrapper.setParameterType("String");
+						paramWrapper.setParameters(Arrays.asList("observationConcept.vocabulary.id", "observationConcept.conceptCode"));
+						paramWrapper.setOperators(Arrays.asList("like", "like"));
+						paramWrapper.setValues(Arrays.asList(omopVocabulary, code));
+						paramWrapper.setRelationship("and");
+						mapList.add(paramWrapper);
+					}
+				}
 			}
 			break;
 		default:
