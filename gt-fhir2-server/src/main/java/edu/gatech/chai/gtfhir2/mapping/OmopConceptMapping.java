@@ -2,6 +2,7 @@ package edu.gatech.chai.gtfhir2.mapping;
 
 import org.hl7.fhir.dstu3.model.codesystems.AdministrativeGender;
 import org.hl7.fhir.dstu3.model.codesystems.OrganizationType;
+import org.hl7.fhir.dstu3.model.codesystems.ObservationCategory;
 import org.hl7.fhir.exceptions.FHIRException;
 
 public enum OmopConceptMapping {
@@ -28,8 +29,19 @@ public enum OmopConceptMapping {
 	CG(OrganizationType.CG.toCode(), 4127377L), 
 	BUS(OrganizationType.BUS.toCode(), 8844L), 
 	ORG_OTHER(OrganizationType.OTHER.toCode(), 8844L), 
-	ORG_NULL(OrganizationType.NULL.toCode(), 8844L);
-	
+	ORG_NULL(OrganizationType.NULL.toCode(), 8844L),
+	/*
+	 * Observation Category Mapping
+	 */
+	SOCIALHISTORY(ObservationCategory.SOCIALHISTORY.toCode(), 44788346L),
+	VITAL(ObservationCategory.VITALSIGNS.toCode(), 44806924L),
+	IMAGING(ObservationCategory.IMAGING.toCode(), 44788404L),
+	LABORATORY(ObservationCategory.LABORATORY.toCode(), 44791245L),
+	PROCEDURE(ObservationCategory.PROCEDURE.toCode(), 44810322L),
+	SURVEY(ObservationCategory.SURVEY.toCode(), 45905771L),
+	EXAM(ObservationCategory.EXAM.toCode(), 44803645L),
+	THERAPY(ObservationCategory.THERAPY.toCode(), 44807025L),
+	OBS_NULL(ObservationCategory.NULL.toCode(), 0L);
 	
 	public static Long omopForAdministrativeGenderCode(String administrativeGenderCode) throws FHIRException {
 		if (administrativeGenderCode == null || administrativeGenderCode.isEmpty()) {
@@ -91,6 +103,39 @@ public enum OmopConceptMapping {
 			return 8844L;
 		} else {
 			return 8844L;
+		}
+	}
+	
+	public static Long omopForObservationCategoryCode(String observationCategoryCode) throws FHIRException {
+		if (observationCategoryCode == null || observationCategoryCode.isEmpty()) {
+			throw new FHIRException("Unknow Observation Category code: '"+observationCategoryCode+"'");
+		}
+		
+		if ("social-history".equals(observationCategoryCode)) {
+			return 44788346L;
+		}
+		if ("vital-signs".equals(observationCategoryCode)) {
+			return 44806924L;
+		}
+		if ("imaging".equals(observationCategoryCode)) {
+			return 44788404L;
+		}
+		if ("laboratory".equals(observationCategoryCode)) {
+			return 44791245L;
+		}
+		if ("procedure".equals(observationCategoryCode)) {
+			return 44810322L;
+		}
+		if ("survey".equals(observationCategoryCode)) {
+			return 45905771L;
+		}
+		if ("exam".equals(observationCategoryCode)) {
+			return 44803645L;
+		}
+		if ("therapy".equals(observationCategoryCode)) {
+			return 44807025L;
+		} else {
+			return 0L;
 		}
 	}
 	

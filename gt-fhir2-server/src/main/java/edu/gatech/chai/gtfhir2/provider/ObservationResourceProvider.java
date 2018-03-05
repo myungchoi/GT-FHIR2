@@ -12,7 +12,9 @@ import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
@@ -31,6 +33,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -71,14 +74,31 @@ public class ObservationResourceProvider implements IResourceProvider {
 	public MethodOutcome createPatient(@ResourceParam Observation theObservation) {
 		validateResource(theObservation);
 		
-		Long id = myMapper.toDbase(theObservation, null);		
+		Long id = null;
+		try {
+			id = myMapper.toDbase(theObservation, null);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		if (id == null) {
+			OperationOutcome outcome = new OperationOutcome();
+			CodeableConcept detailCode = new CodeableConcept();
+			detailCode.setText("Failed to create entity.");
+			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
+		}
 		return new MethodOutcome(new IdDt(id));
 	}
 
 	@Search()
-	public IBundleProvider findPatientsByParams(
+	public IBundleProvider findObservationsByParams(
 			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
+			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
 			
+			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
 					"Observation:performer", "Observation:related-target", 
@@ -94,6 +114,23 @@ public class ObservationResourceProvider implements IResourceProvider {
 
 		if (theObservationId != null) {
 			mapParameter (paramMap, Observation.SP_RES_ID, theObservationId);
+		}
+		if (theCode != null) {
+			mapParameter (paramMap, Observation.SP_CODE, theCode);
+		}
+		
+		if (thePatient != null) {
+			String patientChain = thePatient.getChain();
+			if (patientChain != null) {
+				if (Patient.SP_NAME.equals(patientChain)) {
+					String thePatientName = thePatient.getValue();
+					mapParameter (paramMap, "Patient:"+Patient.SP_NAME, thePatientName);
+				} else if ("".equals(patientChain)) {
+					mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getValue());
+				}
+			} else {
+				mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getIdPart());
+			}
 		}
 		
 		// Now finalize the parameter map.
@@ -216,7 +253,12 @@ public class ObservationResourceProvider implements IResourceProvider {
 	public MethodOutcome updateObservation(@IdParam IdType theId, @ResourceParam Observation theObservation) {
 		validateResource(theObservation);
 		
-		Long fhirId = myMapper.toDbase(theObservation, theId);
+		Long fhirId=null;
+		try {
+			fhirId = myMapper.toDbase(theObservation, theId);
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
 
 		if (fhirId == null) {
 			throw new ResourceNotFoundException(theId);
@@ -237,7 +279,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 		if (theObservation.getCode().isEmpty()) {
 			OperationOutcome outcome = new OperationOutcome();
 			CodeableConcept detailCode = new CodeableConcept();
-			detailCode.setText("No family name provided, Patient resources must have at least one family name.");
+			detailCode.setText("No code is provided.");
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
 			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
 		}		

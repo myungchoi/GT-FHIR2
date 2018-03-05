@@ -37,10 +37,8 @@ public class VisitOccurrenceServiceImp implements VisitOccurrenceService {
 		String query = "SELECT t FROM VisitOccurrence t WHERE "+column+" like :value";
 		List<VisitOccurrence> results = em.createQuery(query, VisitOccurrence.class)
 				.setParameter("value", value).getResultList();
-		if (results.size() > 0)
-			return results;
-		else
-			return null;	
+		
+		return results;
 	}
 
 	@Override

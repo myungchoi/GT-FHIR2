@@ -38,10 +38,8 @@ public class ProviderServiceImp implements ProviderService {
 		String query = "SELECT t FROM Provider t WHERE "+column+" like :value";
 		List<Provider> results = em.createQuery(query, Provider.class)
 				.setParameter("value",  value).getResultList();
-		if (results.size() > 0)
-			return results;
-		else
-			return null;	
+		
+		return results;
 	}
 
 	@Transactional
