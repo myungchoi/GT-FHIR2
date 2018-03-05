@@ -299,25 +299,19 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 	 *            FHIR parameter name.
 	 * @param value
 	 *            FHIR value for the parameter
-	 * @return returns ParameterWrapper class, which contains OMOP column name
+	 * @return returns ParameterWrapper class, which contains OMOP attribute name
 	 *         and value with operator.
 	 */
 	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
 		switch (parameter) {
-		case Practitioner.SP_ACTIVE:
-			// True of False in FHIR. In OMOP, this is 1 or 0.
-			String activeValue = ((TokenParam) value).getValue();
-			String activeString;
-			if (activeValue.equalsIgnoreCase("true"))
-				activeString = "1";
-			else
-				activeString = "0";
-			paramWrapper.setParameterType("Short");
-			paramWrapper.setParameters(Arrays.asList("active"));
+		case Practitioner.SP_RES_ID:
+			String practitionerId = ((TokenParam) value).getValue();
+			paramWrapper.setParameterType("Long");
+			paramWrapper.setParameters(Arrays.asList("id"));
 			paramWrapper.setOperators(Arrays.asList("="));
-			paramWrapper.setValues(Arrays.asList(activeString));
+			paramWrapper.setValues(Arrays.asList(practitionerId));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
@@ -329,7 +323,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 			else
 				familyString = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
-			paramWrapper.setParameters(Arrays.asList("provider_name"));
+			paramWrapper.setParameters(Arrays.asList("providerName"));
 			paramWrapper.setOperators(Arrays.asList("like"));
 			paramWrapper.setValues(Arrays.asList(familyString));
 			paramWrapper.setRelationship("or");
@@ -342,7 +336,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 			else
 				givenString = "%"+((StringParam) value).getValue()+"%";
 			paramWrapper.setParameterType("String");
-			paramWrapper.setParameters(Arrays.asList("provider_name"));
+			paramWrapper.setParameters(Arrays.asList("providerName"));
 			paramWrapper.setOperators(Arrays.asList("like"));
 			paramWrapper.setValues(Arrays.asList(givenString));
 			paramWrapper.setRelationship("or");

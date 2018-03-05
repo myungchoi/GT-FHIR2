@@ -106,7 +106,7 @@ public class ProviderServiceImp implements ProviderService {
 		Root<Provider> providerRoot = providerQuery.from(Provider.class);
 		
 		List<Provider> providers = new ArrayList<Provider>();
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, providerRoot);		
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, providerRoot);
 		if (predicates == null || predicates.isEmpty()) return providers; // Nothing. return empty list
 	
 		providerQuery.select(providerRoot);
