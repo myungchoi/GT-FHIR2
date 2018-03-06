@@ -11,6 +11,7 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
@@ -19,7 +20,13 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 @Entity
-@Table(name="observation")
+@Table(
+		name="observation",
+		indexes = { 
+			@Index(name = "idx_observation_concept_id", columnList = "observation_concept_id"), 
+			@Index(name = "idx_observation_fperson_id", columnList = "person_id")
+			}
+		)
 public class Observation extends BaseEntity {
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="observation_occurrence_seq_gen")
@@ -30,7 +37,7 @@ public class Observation extends BaseEntity {
 
 	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name = "person_id", nullable = false)
-	private FPerson person;
+	private FPerson fPerson;
 
 	@ManyToOne(cascade = { CascadeType.MERGE })
 	@JoinColumn(name = "observation_concept_id", nullable = false)
@@ -103,12 +110,12 @@ public class Observation extends BaseEntity {
 		this.time = time;
 	}
 
-	public FPerson getPerson() {
-		return person;
+	public FPerson getFperson() {
+		return fPerson;
 	}
 
-	public void setPerson(FPerson person) {
-		this.person = person;
+	public void setFperson(FPerson fPerson) {
+		this.fPerson = fPerson;
 	}
 
 	public Concept getObservationConcept() {

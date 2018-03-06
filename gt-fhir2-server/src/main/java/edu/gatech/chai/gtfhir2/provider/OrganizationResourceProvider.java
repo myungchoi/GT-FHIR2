@@ -11,6 +11,7 @@ import java.util.Set;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
@@ -83,7 +84,13 @@ public class OrganizationResourceProvider implements IResourceProvider {
 	public MethodOutcome createPatient(@ResourceParam MyOrganization theOrganization) {
 		// validateResource(thePatient);
 
-		Long id = myMapper.toDbase(theOrganization, null);
+		Long id=null;
+		try {
+			id = myMapper.toDbase(theOrganization, null);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -228,7 +235,13 @@ public class OrganizationResourceProvider implements IResourceProvider {
 	public MethodOutcome updateOrganization(@IdParam IdType theId, @ResourceParam MyOrganization theOrganization) {
 		validateResource(theOrganization);
 
-		Long fhirId = myMapper.toDbase(theOrganization, theId);
+		Long fhirId=null;
+		try {
+			fhirId = myMapper.toDbase(theOrganization, theId);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		if (fhirId == null) {
 			throw new ResourceNotFoundException(theId);
 		}

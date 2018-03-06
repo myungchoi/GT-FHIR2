@@ -16,6 +16,7 @@ import org.hl7.fhir.dstu3.model.Organization;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
@@ -82,7 +83,13 @@ private int preferredPageSize = 30;
 	public MethodOutcome createPatient(@ResourceParam Patient thePatient) {
 		validateResource(thePatient);
 		
-		Long id = myMapper.toDbase(thePatient, null);		
+		Long id=null;
+		try {
+			id = myMapper.toDbase(thePatient, null);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -124,7 +131,7 @@ private int preferredPageSize = 30;
 		/*
 		 * Create parameter map, which will be used later to construct
 		 * predicate. The predicate construction should depend on the DB schema.
-		 * Therefore, we should let our mpper to do any necessary mapping on the
+		 * Therefore, we should let our mapper to do any necessary mapping on the
 		 * parameter(s). If the FHIR parameter is not mappable, the mapper should
 		 * return null, which will be skipped when predicate is constructed.
 		 */
@@ -342,7 +349,13 @@ private int preferredPageSize = 30;
 	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Patient thePatient) {
 		validateResource(thePatient);
 
-		Long fhirId = myMapper.toDbase(thePatient, theId);
+		Long fhirId=null;
+		try {
+			fhirId = myMapper.toDbase(thePatient, theId);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		if (fhirId == null) {
 			throw new ResourceNotFoundException(theId);
 		}
