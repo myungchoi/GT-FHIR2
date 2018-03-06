@@ -27,8 +27,8 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 	
 	@Transactional(readOnly = true)
-	public T findById(Long id) {
-		return vDao.findById(id);
+	public T findById(Class<T> entityClass, Long id) {
+		return vDao.findById(entityClass, id);
 	}
 
 	@Transactional(readOnly = true)

@@ -41,7 +41,7 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, encounterResourceName);
 
-		VisitOccurrence visitOccurence = (VisitOccurrence) myOmopService.findById(myId);
+		VisitOccurrence visitOccurence = (VisitOccurrence) myOmopService.findById(VisitOccurrence.class, myId);
 		if (visitOccurence == null)
 			return null;
 
