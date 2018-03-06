@@ -142,6 +142,8 @@ public class ParameterWrapper {
 						String[] columnPath = columnName.split("\\.");
 						if (columnPath.length == 2) {
 							path = rootUser.get(columnPath[0]).get(columnPath[1]);
+						} else if (columnPath.length == 3) {
+							path = rootUser.get(columnPath[0]).get(columnPath[1]).get(columnPath[2]);
 						} else {
 							path = rootUser.get(columnName);
 						}
@@ -216,6 +218,8 @@ public class ParameterWrapper {
 			String[] columnPath = columnName.split("\\.");
 			if (columnPath.length == 2) {
 				path = rootUser.get(columnPath[0]).get(columnPath[1]);
+			} else if (columnPath.length == 3) {
+				path = rootUser.get(columnPath[0]).get(columnPath[1]).get(columnPath[2]);
 			} else {
 				path = rootUser.get(columnName);
 			}

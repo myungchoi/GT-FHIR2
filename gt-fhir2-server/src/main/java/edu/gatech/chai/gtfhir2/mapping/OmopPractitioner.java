@@ -1,23 +1,37 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Address;
+import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.rest.param.DateParam;
+import ca.uhn.fhir.rest.param.ParamPrefixEnum;
+import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenParam;
+import edu.gatech.chai.gtfhir2.utilities.AddressUtil;
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
+import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
 import edu.gatech.chai.omopv5.jpa.service.CareSiteService;
@@ -26,7 +40,7 @@ import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 
-public class OmopPractitioner implements ResourceMapping<Practitioner>{
+public class OmopPractitioner implements IResourceMapping<Practitioner, Provider>{
 
 	private CareSiteService careSiteService;
 	private LocationService locationService;
@@ -59,10 +73,16 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 		
 		Long fhirId = IdMapping.getFHIRfromOMOP(id_long_part, practitioncerResourceName);
 		
-		return constructPractitioner(fhirId, omopProvider);
+		return constructResource(fhirId, omopProvider, null);
 	}
 	
-	public Practitioner constructPractitioner(Long fhirId, Provider omopProvider) {
+	@Override
+	public Practitioner constructResource(Long fhirId, Provider entity,List<String> includes) {
+		Practitioner practitioner = constructFHIR(fhirId,entity); //Assuming default active state
+		return practitioner;
+	}
+	
+	public Practitioner constructFHIR(Long fhirId, Provider omopProvider) {
 		Practitioner practitioner = new Practitioner(); //Assuming default active state
 		practitioner.setId(new IdType(fhirId));
 		
@@ -102,8 +122,9 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 	}
 
 	@Override
-	public Long toDbase(Practitioner Fhir) {
+	public Long toDbase(Practitioner Fhir, IdType fhirId) {
 		Provider omopProvider = new Provider();
+		String providerSourceValue = null;
 		CareSite omopCareSite = new CareSite();
 		//Set name
 		Iterator<HumanName> practitionerIterator = Fhir.getName().iterator();
@@ -116,7 +137,7 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 		Location retLocation = null;
 		if (addresses != null && addresses.size() > 0) {
 			Address address = addresses.get(0);
-			retLocation = searchAndUpdate(address, null);
+			retLocation = AddressUtil.searchAndUpdate(locationService, address, null);
 			if (retLocation != null) {
 				omopCareSite.setLocation(retLocation);
 			}
@@ -129,26 +150,72 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 		} catch (FHIRException e) {
 			e.printStackTrace();
 		}
+		//Create a new caresite if does not exist
 		if(!Fhir.getAddress().isEmpty()) {
 			CareSite careSite = searchAndUpdateCareSite(Fhir.getAddress().get(0));
-			careSiteService.createOrUpdate(careSite);
+			if (careSite.getId() != null) {
+				careSiteService.update(careSite);
+			} else {
+				careSiteService.create(careSite);
+			}
 		}
 		
-		Long omopRecordId = providerService.createOrUpdate(omopProvider).getId();
-		Long fhirId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Practitioner.getPath());
-		return null;
+		List<Identifier> identifiers = Fhir.getIdentifier();
+		Provider allreadyIdentifiedProvider = null;
+		for (Identifier identifier : identifiers) {
+			if (identifier.getValue().isEmpty() == false) {
+				providerSourceValue = identifier.getValue();
+
+				// See if we have existing patient
+				// with this identifier.
+				allreadyIdentifiedProvider = providerService.searchByColumnString(Provider.class, "providerSourceValue", providerSourceValue).get(0);
+				if (allreadyIdentifiedProvider != null) {
+					omopProvider.setId(allreadyIdentifiedProvider.getId());
+					break;
+				}
+			}
+		}
+		// If we have match in identifier, then we can update or create since
+		// we have the patient. If we have no match, but fhirId is not null,
+		// then this is update with fhirId. We need to do another search.
+		if (allreadyIdentifiedProvider == null && fhirId != null) {
+			// Search for this ID.
+			Long omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ResourceType.Practitioner.getPath());
+			if (omopId == null) {
+				// This is update. We don't have this provider. Return null.
+				return null;
+			}
+			
+			// See if we have this in our database.
+			allreadyIdentifiedProvider = providerService.findById(omopId);
+			if (allreadyIdentifiedProvider == null) {
+				// We don't have this patient
+				return null;
+			} else {
+				omopProvider.setId(allreadyIdentifiedProvider.getId());
+			}
+		}
+		
+		Long omopRecordId = null;
+		if (omopProvider.getId() != null) {
+			omopRecordId = providerService.update(omopProvider).getId();
+		} else {
+			omopRecordId = providerService.create(omopProvider).getId();
+		}
+		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Practitioner.getPath());
+		return fhirRecordId;
 	}
 	
 	@Override
 	public Long getSize() {
-		return providerService.getSize();
+		return providerService.getSize(Provider.class);
 	}
 
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return providerService.getSize(map);
+		return providerService.getSize(Provider.class, map);
 	}
 	
-	public Location searchAndUpdate (Address address, Location location) {
+	public Location searchAndUpdateLocation (Address address, Location location) {
 		if (address == null) return null;
 		
 		List<StringType> addressLines = address.getLine();
@@ -184,7 +251,7 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 	}
 	
 	public CareSite searchAndUpdateCareSite(Address address) {
-		Location location = searchAndUpdate(address, null);
+		Location location = AddressUtil.searchAndUpdate(locationService, address, null);
 		if(location == null) return null;
 		CareSite careSite = careSiteService.searchByLocation(location);
 		if(careSite != null) {
@@ -195,5 +262,121 @@ public class OmopPractitioner implements ResourceMapping<Practitioner>{
 			careSite.setLocation(location);
 			return careSite;
 		}
+	}
+
+	@Override
+	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
+			List<String> includes) {
+		List<Provider> providers = providerService.searchWithoutParams(Provider.class, fromIndex, toIndex);
+
+		// We got the results back from OMOP database. Now, we need to construct
+		// the list of
+		// FHIR Patient resources to be included in the bundle.
+		for (Provider provider : providers) {
+			Long omopId = provider.getId();
+			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+			listResources.add(constructResource(fhirId, provider, includes));
+			
+			// Do the rev_include and add the resource to the list.
+			// addRevIncludes(provider.getId(), includes, listResources);
+		}
+	}
+
+	@Override
+	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
+			List<IBaseResource> listResources, List<String> includes) {
+		List<Provider> providers = providerService.searchWithParams(Provider.class, fromIndex, toIndex, map);
+
+		// We got the results back from OMOP database. Now, we need to construct
+		// the list of
+		// FHIR Patient resources to be included in the bundle.
+		for (Provider provider : providers) {
+			Long omopId = provider.getId();
+			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+			listResources.add(constructResource(fhirId, provider, includes));
+			
+			// Do the rev_include and add the resource to the list.
+			// addRevIncludes(provider.getId(), includes, listResources);
+		}
+		
+	}
+	
+	/**
+	 * mapParameter: This maps the FHIR parameter to OMOP column name.
+	 * 
+	 * @param parameter
+	 *            FHIR parameter name.
+	 * @param value
+	 *            FHIR value for the parameter
+	 * @return returns ParameterWrapper class, which contains OMOP column name
+	 *         and value with operator.
+	 */
+	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
+		ParameterWrapper paramWrapper = new ParameterWrapper();
+		switch (parameter) {
+		case Practitioner.SP_ACTIVE:
+			// True of False in FHIR. In OMOP, this is 1 or 0.
+			String activeValue = ((TokenParam) value).getValue();
+			String activeString;
+			if (activeValue.equalsIgnoreCase("true"))
+				activeString = "1";
+			else
+				activeString = "0";
+			paramWrapper.setParameterType("Short");
+			paramWrapper.setParameters(Arrays.asList("active"));
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(activeString));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Practitioner.SP_FAMILY:
+			// This is family name, which is string. use like.
+			String familyString;
+			if (((StringParam) value).isExact())
+				familyString = ((StringParam) value).getValue();
+			else
+				familyString = "%"+((StringParam) value).getValue()+"%";
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("provider_name"));
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList(familyString));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Practitioner.SP_GIVEN:
+			String givenString;
+			if (((StringParam) value).isExact())
+				givenString = ((StringParam) value).getValue();
+			else
+				givenString = "%"+((StringParam) value).getValue()+"%";
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("provider_name"));
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList(givenString));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Patient.SP_GENDER:
+			//Not sure whether we should just search the encoded concept, or the source concept as well. Doing both for now.
+			String genderValue = ((TokenParam) value).getValue();
+			Long genderLongCode = null;
+			//Setting the value to omop concept NULL if we cannot find an omopId
+			try {
+				genderLongCode = OmopConceptMapping.omopForAdministrativeGenderCode(genderValue);
+			} catch (FHIRException e) {
+				genderLongCode = OmopConceptMapping.NULL.omopConceptId;
+			}
+			paramWrapper.setParameterType("Long");
+			paramWrapper.setParameters(Arrays.asList("gender_source_concept_id", "gender_source_value"));
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(genderLongCode.toString(),genderLongCode.toString()));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		default:
+			mapList = null;
+		}
+		return mapList;
 	}
 }

@@ -266,16 +266,67 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 	 * OMOP on FHIR mapping - from FHIR to OMOP
 	 * 
 	 * @param Patient
-	 *            resource.
+	 *        resource.
+	 * @param IdType
+	 *        fhirId that you want to update
 	 * 
 	 * @return Resource ID. Returns ID in Long. This is what needs to be used to
 	 *         refer this resource.
 	 */
 	@Override
-	public Long toDbase(Patient patient, IdType fhirId) {
-		FPerson fperson = new FPerson();
+	public Long toDbase(Patient patient, IdType fhirId) throws FHIRException {
+		FPerson fperson = null;
 		String personSourceValue = null;
+		Long omopId;
+		
+		if (fhirId != null) {
+			//update
+			omopId = fhirId.getIdPartAsLong();
+			if (omopId == null) {
+				// Invalid fhirId.
+				return null;
+			}
+			
+			fperson = myOmopService.findById(omopId);
+			if (fperson == null) {
+				// Does not exist.
+				return null;
+			}
+		} else {
+			// In OMOP, we have person source column.
+			// We will use identifier field as our source column if exists. The
+			// identifier better identifies
+			// the identity of this resource across all servers that may have this
+			// copy.
+			//
+			// Identifier has many fields. We can't have them all in OMOP. We only
+			// have string field and
+			// size is very limited. So, for now, we only get value part.
+			List<Identifier> identifiers = patient.getIdentifier();
+			FPerson person = null;
+			for (Identifier identifier : identifiers) {
+				if (identifier.getValue().isEmpty() == false) {
+					personSourceValue = identifier.getValue();
 
+					// See if we have existing patient
+					// with this identifier.
+					person = myOmopService.searchByColumnString(FPerson.class, "personSourceValue", personSourceValue).get(0);
+					if (person != null) {
+						break;
+					}
+				}
+			}
+			
+			// If we have match in identifier, then we can update or create since
+			// we have the patient. If we have no match, but fhirId is not null,
+			// then this is update with fhirId. We need to do another search.
+			if (person == null) {
+				fperson = new FPerson();
+			} else {
+				fperson = person;
+			}
+		}
+		
 		// Set name
 		Iterator<HumanName> patientIterator = patient.getName().iterator();
 		if (patientIterator.hasNext()) {
@@ -305,52 +356,6 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			}
 		}
 
-		// In OMOP, we have person source column.
-		// We will use identifier field as our source column if exists. The
-		// identifier better identifies
-		// the identity of this resource across all servers that may have this
-		// copy.
-		//
-		// Identifier has many fields. We can't have them all in OMOP. We only
-		// have string field and
-		// size is very limited. So, for now, we only get value part.
-		List<Identifier> identifiers = patient.getIdentifier();
-		FPerson person = null;
-		for (Identifier identifier : identifiers) {
-			if (identifier.getValue().isEmpty() == false) {
-				personSourceValue = identifier.getValue();
-
-				// See if we have existing patient
-				// with this identifier.
-				person = myOmopService.searchByColumnString("personSourceValue", personSourceValue).get(0);
-				if (person != null) {
-					fperson.setId(person.getId());
-					break;
-				}
-			}
-		}
-		
-		// If we have match in identifier, then we can update or create since
-		// we have the patient. If we have no match, but fhirId is not null,
-		// then this is update with fhirId. We need to do another search.
-		if (person == null && fhirId != null) {
-			// Search for this ID.
-			Long omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ResourceType.Patient.getPath());
-			if (omopId == null) {
-				// This is update. We don't have this patient. Return null.
-				return null;
-			}
-			
-			// See if we have this in our database.
-			person = myOmopService.findById(omopId);
-			if (person == null) {
-				// We don't have this patient
-				return null;
-			} else {
-				fperson.setId(person.getId());
-			}
-		}
-		
 		// Now check if we have
 		// WE DO NOT CHECK NAMES FOR EXISTENCE. TOO DANGEROUS.
 //		if (retLocation != null && person == null) {
@@ -438,7 +443,12 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			index++;
 		}
 
-		Long omopRecordId = myOmopService.createOrUpdate(fperson).getId();
+		Long omopRecordId = null;
+		if (fperson.getId() != null) {
+			omopRecordId = myOmopService.update(fperson).getId();
+		} else {
+			omopRecordId = myOmopService.create(fperson).getId();
+		}
 		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Patient.getPath());
 		return fhirRecordId;
 	}
@@ -450,7 +460,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 	 * @param listResources
 	 */
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes) {
-		List<FPerson> fPersons = myOmopService.searchWithoutParams(fromIndex, toIndex);
+		List<FPerson> fPersons = myOmopService.searchWithoutParams(FPerson.class, fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -481,7 +491,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			revIncludeParams.add(param);
 			map.put(Encounter.SP_SUBJECT, revIncludeParams);
 
-			List<VisitOccurrence> VisitOccurrences = visitOccurrenceService.searchWithParams(0, 0, map);
+			List<VisitOccurrence> VisitOccurrences = visitOccurrenceService.searchWithParams(VisitOccurrence.class, 0, 0, map);
 			for (VisitOccurrence visitOccurrence: VisitOccurrences) {
 				Long fhirId = IdMapping.getFHIRfromOMOP(visitOccurrence.getId(), ResourceType.Encounter.getPath());
 				Encounter enc = OmopEncounter.constructFHIR(fhirId, visitOccurrence);
@@ -518,7 +528,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<FPerson> fPersons = myOmopService.searchWithParams(fromIndex, toIndex, map);
+		List<FPerson> fPersons = myOmopService.searchWithParams(FPerson.class, fromIndex, toIndex, map);
 
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
@@ -554,7 +564,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			return provider;
 		} else {
 			// Check source column to see if we have received this before.
-			provider = (Provider) providerService.searchByColumnString("providerSourceValue",
+			provider = (Provider) providerService.searchByColumnString(Provider.class, "providerSourceValue",
 					generalPractitioner.getReferenceElement().getIdPart());
 			if (provider != null) {
 				return provider;
@@ -570,11 +580,11 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 
 	@Override
 	public Long getSize() {
-		return myOmopService.getSize();
+		return myOmopService.getSize(FPerson.class);
 	}
 
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return myOmopService.getSize(map);
+		return myOmopService.getSize(FPerson.class, map);
 	}
 
 	/**

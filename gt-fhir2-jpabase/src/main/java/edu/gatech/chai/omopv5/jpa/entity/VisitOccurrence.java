@@ -22,7 +22,7 @@ public class VisitOccurrence extends BaseEntity {
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="visit_seq_gen")
 	@SequenceGenerator(name="visit_seq_gen", sequenceName="visit_occurrence_id_seq", allocationSize=1)
-	@Column(name="visit_occurrence_id")
+	@Column(name="visit_occurrence_id", nullable=false)
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	

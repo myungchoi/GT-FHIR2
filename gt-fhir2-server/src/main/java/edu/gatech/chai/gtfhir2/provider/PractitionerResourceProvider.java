@@ -1,3 +1,4 @@
+
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
@@ -10,17 +11,16 @@ import java.util.Set;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
-import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
-import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
-import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
-import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
@@ -34,27 +34,33 @@ import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-import edu.gatech.chai.gtfhir2.mapping.OmopObservation;
+import edu.gatech.chai.gtfhir2.mapping.OmopPractitioner;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-public class ObservationResourceProvider implements IResourceProvider {
 
-	private WebApplicationContext myAppCtx;
-	private String myDbType;
-	private OmopObservation myMapper;
-	private int preferredPageSize = 30;
+/**
+ * This is a resource provider which stores Patient resources in memory using a HashMap. This is obviously not a production-ready solution for many reasons, 
+ * but it is useful to help illustrate how to build a fully-functional server.
+ */
+public class PractitionerResourceProvider implements IResourceProvider {
 
-	public ObservationResourceProvider() {
+private WebApplicationContext myAppCtx;
+private String myDbType;
+private OmopPractitioner myMapper;
+private int preferredPageSize = 30;
+
+	public PractitionerResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
 		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
 		if (myDbType.equalsIgnoreCase("omopv5") == true) {
-			myMapper = new OmopObservation(myAppCtx);
+			myMapper = new OmopPractitioner(myAppCtx);
 		} else {
-			myMapper = new OmopObservation(myAppCtx);
+			myMapper = new OmopPractitioner(myAppCtx);
 		}
 		
 		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
@@ -65,72 +71,65 @@ public class ObservationResourceProvider implements IResourceProvider {
 			} 
 		}
 	}
-	
+
+
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createPatient(@ResourceParam Observation theObservation) {
-		validateResource(theObservation);
+	public MethodOutcome createPractitioner(@ResourceParam Practitioner thePractitioner) {
+		validateResource(thePractitioner);
 		
-		Long id = null;
-		try {
-			id = myMapper.toDbase(theObservation, null);
-		} catch (FHIRException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		if (id == null) {
-			OperationOutcome outcome = new OperationOutcome();
-			CodeableConcept detailCode = new CodeableConcept();
-			detailCode.setText("Failed to create entity.");
-			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
-		}
+		Long id = myMapper.toDbase(thePractitioner, null);		
 		return new MethodOutcome(new IdDt(id));
 	}
 
+	/**
+	 * The "@Search" annotation indicates that this method supports the search operation. You may have many different method annotated with this annotation, to support many different search criteria.
+	 * This example searches by family name.
+	 * 
+	 * @param theFamilyName
+	 *            This operation takes one parameter which is the search criteria. It is annotated with the "@Required" annotation. This annotation takes one argument, a string containing the name of
+	 *            the search criteria. The datatype here is StringParam, but there are other possible parameter types depending on the specific search criteria.
+	 * @return This method returns a list of Patients in bundle. This list may contain multiple matching resources, or it may also be empty.
+	 */
 	@Search()
-	public IBundleProvider findObservationsByParams(
-			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
-			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
-			
-			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
-
-			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
-					"Observation:device", "Observation:encounter", "Observation:patient", 
-					"Observation:performer", "Observation:related-target", 
-					"Observation:specimen", "Observation:subject"})
+	public IBundleProvider findPractitionersByParams(
+			@OptionalParam(name = Practitioner.SP_ACTIVE) TokenParam theActive,
+			@OptionalParam(name = Practitioner.SP_FAMILY) StringParam theFamilyName,
+			@OptionalParam(name = Practitioner.SP_GIVEN) StringParam theGivenName,
+			@OptionalParam(name = Practitioner.SP_GENDER) StringParam theGender,
+			@IncludeParam(allow={})
 			final Set<Include> theIncludes,
-			
 			@IncludeParam(reverse=true)
             final Set<Include> theReverseIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 		
+		/*
+		 * Create parameter map, which will be used later to construct
+		 * predicate. The predicate construction should depend on the DB schema.
+		 * Therefore, we should let our mapper to do any necessary mapping on the
+		 * parameter(s). If the FHIR parameter is not mappable, the mapper should
+		 * return null, which will be skipped when predicate is constructed.
+		 */
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
-
-		if (theObservationId != null) {
-			mapParameter (paramMap, Observation.SP_RES_ID, theObservationId);
-		}
-		if (theCode != null) {
-			mapParameter (paramMap, Observation.SP_CODE, theCode);
+		
+		if (theActive != null) {
+			mapParameter (paramMap, Practitioner.SP_ACTIVE, theActive);
 		}
 		
-		if (thePatient != null) {
-			String patientChain = thePatient.getChain();
-			if (patientChain != null) {
-				if (Patient.SP_NAME.equals(patientChain)) {
-					String thePatientName = thePatient.getValue();
-					mapParameter (paramMap, "Patient:"+Patient.SP_NAME, thePatientName);
-				} else if ("".equals(patientChain)) {
-					mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getValue());
-				}
-			} else {
-				mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getIdPart());
-			}
+		if (theFamilyName != null) {
+			mapParameter(paramMap, Practitioner.SP_FAMILY, theFamilyName);
+		}
+		
+		if (theGivenName != null) {
+			mapParameter (paramMap, Practitioner.SP_GIVEN, theGivenName);
+		}
+		
+		if (theGender != null) {
+			mapParameter (paramMap, Practitioner.SP_GENDER, theGender);
 		}
 		
 		// Now finalize the parameter map.
@@ -152,52 +151,14 @@ public class ObservationResourceProvider implements IResourceProvider {
 			@Override
 			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
 				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				
-				// _Include
 				List<String> includes = new ArrayList<String>();
 				
-				if (theIncludes.contains(new Include("Observation:based-on"))) {
-					includes.add("Observation:based-on");
-				}
-				
-				if (theIncludes.contains(new Include("Observation:context"))) {
-					includes.add("Observation:context");
-				}
-
-				if (theIncludes.contains(new Include("Observation:device"))) {
-					includes.add("Observation:device");
-				}
-				
-				if (theIncludes.contains(new Include("Observation:encounter"))) {
-					includes.add("Observation:encounter");
-				}
-
-				if (theIncludes.contains(new Include("Observation:patient"))) {
-					includes.add("Observation:patient");
-				}
-
-				if (theIncludes.contains(new Include("Observation:performer"))) {
-					includes.add("Observation:performer");
-				}
-
-				if (theIncludes.contains(new Include("Observation:related-target"))) {
-					includes.add("Observation:related-target");
-				}
-
-				if (theIncludes.contains(new Include("Observation:specimen"))) {
-					includes.add("Observation:specimen");
-				}
-
-				if (theIncludes.contains(new Include("Observation:subject"))) {
-					includes.add("Observation:subject");
-				}
-
 				if (finalParamMap.size() == 0) {
 					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
 				} else {
 					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
 				}
-
+				
 				return retv;
 			}
 
@@ -216,9 +177,27 @@ public class ObservationResourceProvider implements IResourceProvider {
 			public Integer size() {
 				return totalSize.intValue();
 			}
+
 		};
+		
 	}
+
+	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
+		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
+		if (paramList != null) {
+			paramMap.put(FHIRparam, paramList);
+		}
+	}
+
 	
+	/**
+	 * The getResourceType method comes from IResourceProvider, and must be overridden to indicate what type of resource this provider supplies.
+	 */
+	@Override
+	public Class<Practitioner> getResourceType() {
+		return Practitioner.class;
+	}
+
 	/**
 	 * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
 	 * <p>
@@ -230,8 +209,8 @@ public class ObservationResourceProvider implements IResourceProvider {
 	 * @return Returns a resource matching this identifier, or null if none exists.
 	 */
 	@Read()
-	public Observation readObservation(@IdParam IdType theId) {
-		Observation retval = (Observation) myMapper.toFHIR(theId);
+	public Practitioner readPractitioner(@IdParam IdType theId) {
+		Practitioner retval = (Practitioner) myMapper.toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);
 		}
@@ -250,44 +229,45 @@ public class ObservationResourceProvider implements IResourceProvider {
 	 * @return This method returns a "MethodOutcome"
 	 */
 	@Update()
-	public MethodOutcome updateObservation(@IdParam IdType theId, @ResourceParam Observation theObservation) {
-		validateResource(theObservation);
-		
-		Long fhirId=null;
-		try {
-			fhirId = myMapper.toDbase(theObservation, theId);
-		} catch (FHIRException e) {
-			e.printStackTrace();
-		}
+	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Practitioner thePractitioner) {
+		validateResource(thePractitioner);
 
-		if (fhirId == null) {
-			throw new ResourceNotFoundException(theId);
-		}
+//		Long id;
+//		try {
+//			id = theId.getIdPartAsLong();
+//		} catch (DataFormatException e) {
+//			throw new InvalidRequestException("Invalid ID " + theId.getValue() + " - Must be numeric");
+//		}
+//
+//		/*
+//		 * Throw an exception (HTTP 404) if the ID is not known
+//		 */
+//		if (!myIdToPatientVersions.containsKey(id)) {
+//			throw new ResourceNotFoundException(theId);
+//		}
+//
+//		addNewVersion(thePatient, id);
 
 		return new MethodOutcome();
 	}
 
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
-	}
-
-	// TODO: Add more validation code here.
-	private void validateResource(Observation theObservation) {
-		if (theObservation.getCode().isEmpty()) {
+	/**
+	 * This method just provides simple business validation for resources we are storing.
+	 * 
+	 * @param thePatient
+	 *            The patient to validate
+	 */
+	private void validateResource(Practitioner thePractitioner) {
+		/*
+		 * Our server will have a rule that practitioners must have a name or we will reject them
+		 */
+		if (thePractitioner.getName().isEmpty()) {
 			OperationOutcome outcome = new OperationOutcome();
 			CodeableConcept detailCode = new CodeableConcept();
-			detailCode.setText("No code is provided.");
+			detailCode.setText("No name provided, Practictioner resources must have at least one name.");
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
-		}		
-	}
-
-	@Override
-	public Class<Observation> getResourceType() {
-		return Observation.class;
+			throw new UnprocessableEntityException(outcome);
+		}
 	}
 
 }

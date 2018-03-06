@@ -9,6 +9,7 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.JoinColumn;
@@ -17,7 +18,13 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="person")
+@Table(
+		name="person",
+		indexes = { 
+				@Index(name = "idx_person_location_id", columnList = "location_id"), 
+				@Index(name = "idx_person_care_site_id", columnList = "care_site_id") 
+				}
+		)
 @Inheritance(strategy=InheritanceType.JOINED)
 public class Person extends BaseEntity {
 

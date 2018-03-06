@@ -106,7 +106,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 	}
 
 	@Override
-	public Long toDbase(Organization organization, IdType fhirId) {
+	public Long toDbase(Organization organization, IdType fhirId) throws FHIRException {
 		// If fhirId is null, then it's CREATE.
 		// If fhirId is not null, then it's UPDATE.
 
@@ -137,7 +137,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 				if (identifier.getValue().isEmpty() == false) {
 					careSiteSourceValue = identifier.getValue();
 					
-					existingCareSite = myOmopService.searchByColumnString("careSiteSourceValue", careSiteSourceValue).get(0);
+					existingCareSite = myOmopService.searchByColumnString(CareSite.class, "careSiteSourceValue", careSiteSourceValue).get(0);
 					if (existingCareSite != null) {
 						break;
 					}
@@ -187,18 +187,24 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 			}
 		}
 
-		Long omopRecordId = myOmopService.createOrUpdate(careSite).getId();
+		Long omopRecordId = null;
+		if (careSite.getId() != null) {
+			omopRecordId = myOmopService.update(careSite).getId();	
+		} else {
+			omopRecordId = myOmopService.create(careSite).getId();
+		}
+		
 		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Organization.getPath());
 		return fhirRecordId;
 	}
 
 	@Override
 	public Long getSize() {
-		return myOmopService.getSize();
+		return myOmopService.getSize(CareSite.class);
 	}
 	
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return myOmopService.getSize(map);
+		return myOmopService.getSize(CareSite.class, map);
 	}
 	
 
@@ -231,7 +237,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 	 * @param listResources
 	 */
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes) {
-		List<CareSite> careSites = myOmopService.searchWithoutParams(fromIndex, toIndex);
+		List<CareSite> careSites = myOmopService.searchWithoutParams(CareSite.class, fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -245,7 +251,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<CareSite> careSites = myOmopService.searchWithParams(fromIndex, toIndex, map);
+		List<CareSite> careSites = myOmopService.searchWithParams(CareSite.class, fromIndex, toIndex, map);
 
 		for (CareSite careSite : careSites) {
 			Long omopId = careSite.getId();
