@@ -163,12 +163,12 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 
 	@Override
 	public Long getSize() {
-		return myOmopService.getSize();
+		return myOmopService.getSize(VisitOccurrence.class);
 	}
 
 	@Override
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return myOmopService.getSize(map);
+		return myOmopService.getSize(VisitOccurrence.class, map);
 	}
 
 	@Override
@@ -181,7 +181,7 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 	@Override
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
 			List<String> includes) {
-		List<VisitOccurrence> visitOccurrences = myOmopService.searchWithoutParams(fromIndex, toIndex);
+		List<VisitOccurrence> visitOccurrences = myOmopService.searchWithoutParams(VisitOccurrence.class, fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -196,7 +196,7 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<VisitOccurrence> visitOccurrences = myOmopService.searchWithParams(fromIndex, toIndex, map);
+		List<VisitOccurrence> visitOccurrences = myOmopService.searchWithParams(VisitOccurrence.class, fromIndex, toIndex, map);
 
 		for (VisitOccurrence visitOccurrence : visitOccurrences) {
 			Long omopId = visitOccurrence.getId();

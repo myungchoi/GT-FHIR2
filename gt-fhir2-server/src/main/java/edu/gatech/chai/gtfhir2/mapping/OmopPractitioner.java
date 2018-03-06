@@ -153,7 +153,11 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 		//Create a new caresite if does not exist
 		if(!Fhir.getAddress().isEmpty()) {
 			CareSite careSite = searchAndUpdateCareSite(Fhir.getAddress().get(0));
-			careSiteService.createOrUpdate(careSite);
+			if (careSite.getId() != null) {
+				careSiteService.update(careSite);
+			} else {
+				careSiteService.create(careSite);
+			}
 		}
 		
 		List<Identifier> identifiers = Fhir.getIdentifier();
@@ -164,7 +168,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 
 				// See if we have existing patient
 				// with this identifier.
-				allreadyIdentifiedProvider = providerService.searchByColumnString("providerSourceValue", providerSourceValue).get(0);
+				allreadyIdentifiedProvider = providerService.searchByColumnString(Provider.class, "providerSourceValue", providerSourceValue).get(0);
 				if (allreadyIdentifiedProvider != null) {
 					omopProvider.setId(allreadyIdentifiedProvider.getId());
 					break;
@@ -192,18 +196,23 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 			}
 		}
 		
-		Long omopRecordId = providerService.createOrUpdate(omopProvider).getId();
+		Long omopRecordId = null;
+		if (omopProvider.getId() != null) {
+			omopRecordId = providerService.update(omopProvider).getId();
+		} else {
+			omopRecordId = providerService.create(omopProvider).getId();
+		}
 		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Practitioner.getPath());
 		return fhirRecordId;
 	}
 	
 	@Override
 	public Long getSize() {
-		return providerService.getSize();
+		return providerService.getSize(Provider.class);
 	}
 
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return providerService.getSize(map);
+		return providerService.getSize(Provider.class, map);
 	}
 	
 	public Location searchAndUpdateLocation (Address address, Location location) {
@@ -258,7 +267,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 	@Override
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
 			List<String> includes) {
-		List<Provider> providers = providerService.searchWithoutParams(fromIndex, toIndex);
+		List<Provider> providers = providerService.searchWithoutParams(Provider.class, fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -276,7 +285,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<Provider> providers = providerService.searchWithParams(fromIndex, toIndex, map);
+		List<Provider> providers = providerService.searchWithParams(Provider.class, fromIndex, toIndex, map);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of

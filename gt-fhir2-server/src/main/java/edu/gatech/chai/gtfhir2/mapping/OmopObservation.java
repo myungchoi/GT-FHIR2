@@ -280,7 +280,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		List<Identifier> identifiers = fhirResource.getIdentifier();
 		for (Identifier identifier : identifiers) {
 			identifier_value = identifier.getValue();
-			List<Measurement> measurements = measurementService.searchByColumnString("sourceValue", identifier_value);
+			List<Measurement> measurements = measurementService.searchByColumnString(Measurement.class, "sourceValue", identifier_value);
 			
 			for (Measurement measurement : measurements) {
 				if (systolicMeasurement == null && measurement.getMeasurementConcept().getId() == SYSTOLIC_CONCEPT_ID) {
@@ -583,11 +583,19 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		Long retvalSystolic=null, retvalDiastolic=null;
 		if (systolicMeasurement != null) {
 			systolicMeasurement.setType(typeConcept);
-			retvalSystolic = measurementService.createOrUpdate(systolicMeasurement).getId();
+			if (systolicMeasurement.getId() != null) {
+				retvalSystolic = measurementService.update(systolicMeasurement).getId();
+			} else {
+				retvalSystolic = measurementService.create(systolicMeasurement).getId();
+			}
 		} 
 		if (diastolicMeasurement != null) {
 			diastolicMeasurement.setType(typeConcept);
-			retvalDiastolic = measurementService.createOrUpdate(diastolicMeasurement).getId();
+			if (diastolicMeasurement.getId() != null) {
+				retvalDiastolic = measurementService.update(diastolicMeasurement).getId();				
+			} else {
+				retvalDiastolic = measurementService.create(diastolicMeasurement).getId();
+			}
 		}
 		
 		if (retvalSystolic != null)
@@ -645,7 +653,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				// We will not come back.
 				return HandleBloodPressure(fhirResource, fhirId, fhirSubjectId, omopPersonId);
 			}
-			List<Concept> conceptForCodes = conceptService.searchByColumnString("conceptCode", code);
+			List<Concept> conceptForCodes = conceptService.searchByColumnString(Concept.class, "conceptCode", code);
 			for (Concept conceptForCode : conceptForCodes) {
 				String domain = conceptForCode.getDomain();
 				String systemName = conceptForCode.getVocabulary().getId();
@@ -683,7 +691,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				identifier_value = identifier.getValue();
 				if (identifier_value != null) {
 					if ("Measurement".equals(omopTableName)) {
-						List<Measurement> results = measurementService.searchByColumnString("sourceValue", identifier_value);
+						List<Measurement> results = measurementService.searchByColumnString(Measurement.class, "sourceValue", identifier_value);
 						if (results.size()>0) {
 							// We do not CREATE. Instead, we update this.
 							// set the measurement.
@@ -691,7 +699,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 							break;
 						}
 					} else {
-						List<edu.gatech.chai.omopv5.jpa.entity.Observation> results = observationService.searchByColumnString("sourceValue", identifier_value);
+						List<edu.gatech.chai.omopv5.jpa.entity.Observation> results = observationService.searchByColumnString(edu.gatech.chai.omopv5.jpa.entity.Observation.class, "sourceValue", identifier_value);
 						if (results.size()>0) {
 							// We do not CREATE. Instead, we update this.
 							// set the measurement.
@@ -993,10 +1001,18 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		Long retval;
 		if ("Measurement".equals(omopTableName)) {
 			measurement.setType(concept);
-			retval = measurementService.createOrUpdate(measurement).getId();
+			if (measurement.getId() != null) {
+				retval = measurementService.update(measurement).getId();
+			} else {
+				retval = measurementService.create(measurement).getId();
+			}
 		} else {
-			measurement.setType(concept);
-			retval = observationService.createOrUpdate(observation).getId();
+			observation.setTypeConcept(concept);
+			if (observation.getId() != null) {
+				retval = observationService.update(observation).getId();
+			} else {
+				retval = observationService.create(observation).getId();
+			}
 		}
 		
 		return retval;
@@ -1022,7 +1038,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 
-		return myOmopService.getSize(map);
+		return myOmopService.getSize(FObservationView.class, map);
 	}
 
 	@Override
@@ -1031,7 +1047,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 		
-		return myOmopService.getSize(map);
+		return myOmopService.getSize(FObservationView.class, map);
 	}
 
 	@Override
@@ -1043,7 +1059,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 
-		List<FObservationView> fObservationViews = myOmopService.searchWithParams(fromIndex, toIndex, map);
+		List<FObservationView> fObservationViews = myOmopService.searchWithParams(FObservationView.class, fromIndex, toIndex, map);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -1062,7 +1078,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 
-		List<FObservationView> fObservationViews = myOmopService.searchWithParams(fromIndex, toIndex, map);
+		List<FObservationView> fObservationViews = myOmopService.searchWithParams(FObservationView.class, fromIndex, toIndex, map);
 
 		for (FObservationView fObservationView : fObservationViews) {
 			Long omopId = fObservationView.getId();
