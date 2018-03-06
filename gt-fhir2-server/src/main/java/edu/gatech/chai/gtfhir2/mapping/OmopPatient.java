@@ -75,7 +75,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, patientResourceName);
 
-		FPerson fPerson = (FPerson) myOmopService.findById(myId);
+		FPerson fPerson = (FPerson) myOmopService.findById(FPerson.class, myId);
 		if (fPerson == null)
 			return null;
 
@@ -126,10 +126,10 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 							IIdType patientLinkOtherId = patientLinkOther.getReferenceElement();
 							Patient linkedPatient;
 							if (patientLinkOther.fhirType().equals(ResourceType.Patient.getPath())) {
-								FPerson linkedPerson = myOmopService.findById(omopId);
+								FPerson linkedPerson = myOmopService.findById(FPerson.class, omopId);
 								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							} else {
-								FPerson linkedPerson = myOmopService.findById(omopId);
+								FPerson linkedPerson = myOmopService.findById(FPerson.class, omopId);
 								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							}
 							patientLink.getOther().setResource(linkedPatient);
@@ -287,7 +287,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 				return null;
 			}
 			
-			fperson = myOmopService.findById(omopId);
+			fperson = myOmopService.findById(FPerson.class, omopId);
 			if (fperson == null) {
 				// Does not exist.
 				return null;
@@ -559,7 +559,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 		// See if this exists.
 		Long fhirId = generalPractitioner.getReferenceElement().getIdPartAsLong();
 		Long omopId = IdMapping.getOMOPfromFHIR(fhirId, ResourceType.Practitioner.getPath());
-		Provider provider = (Provider) providerService.findById(omopId);
+		Provider provider = (Provider) providerService.findById(Provider.class, omopId);
 		if (provider != null) {
 			return provider;
 		} else {

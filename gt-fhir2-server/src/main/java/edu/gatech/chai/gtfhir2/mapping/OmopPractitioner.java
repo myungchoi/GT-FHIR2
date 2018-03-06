@@ -68,7 +68,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 		Long id_long_part = id.getIdPartAsLong();
 		Long omopId = IdMapping.getOMOPfromFHIR(id_long_part, practitioncerResourceName);
 		
-		Provider omopProvider = providerService.findById(omopId);
+		Provider omopProvider = providerService.findById(Provider.class, omopId);
 		if(omopProvider == null) return null;
 		
 		Long fhirId = IdMapping.getFHIRfromOMOP(id_long_part, practitioncerResourceName);
@@ -187,7 +187,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 			}
 			
 			// See if we have this in our database.
-			allreadyIdentifiedProvider = providerService.findById(omopId);
+			allreadyIdentifiedProvider = providerService.findById(Provider.class, omopId);
 			if (allreadyIdentifiedProvider == null) {
 				// We don't have this patient
 				return null;
