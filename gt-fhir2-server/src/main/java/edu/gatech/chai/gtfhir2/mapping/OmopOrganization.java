@@ -50,7 +50,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, organizationResourceName);
 
-		CareSite careSite = (CareSite) myOmopService.findById(myId);
+		CareSite careSite = (CareSite) myOmopService.findById(CareSite.class, myId);
 		if (careSite == null)
 			return null;
 
@@ -123,7 +123,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 				// FHIR ID. return null.
 				return null;
 			} else {
-				careSite = myOmopService.findById(omopId);
+				careSite = myOmopService.findById(CareSite.class, omopId);
 			}
 			
 			location = careSite.getLocation();
@@ -219,7 +219,7 @@ public class OmopOrganization implements IResourceMapping<Organization, CareSite
 					IIdType partOfOrgId = partOfOrganization.getReferenceElement();
 					Long partOfOrgFhirId = partOfOrgId.getIdPartAsLong();
 					Long omopId = IdMapping.getOMOPfromFHIR(partOfOrgFhirId, ResourceType.Organization.getPath());
-					CareSite partOfCareSite = myOmopService.findById(omopId);
+					CareSite partOfCareSite = myOmopService.findById(CareSite.class, omopId);
 					MyOrganization partOfOrgResource = constructFHIR(partOfOrgFhirId, partOfCareSite);
 					
 					partOfOrganization.setResource(partOfOrgResource);

@@ -75,7 +75,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, observationResourceName);
 
-		FObservationView fObservationView = (FObservationView) myOmopService.findById(myId);
+		FObservationView fObservationView = (FObservationView) myOmopService.findById(FObservationView.class, myId);
 		if (fObservationView == null)
 			return null;
 
@@ -375,13 +375,13 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			// Thus, we first need to check if
 			if (systolicMeasurement == null) {
 				if (systolicValue != null)
-					systolicMeasurement = measurementService.findById(omopId);
+					systolicMeasurement = measurementService.findById(Measurement.class, omopId);
 			}
 			if (diastolicMeasurement == null) {
 				if (diastolicValue != null) {
 					// We have diastolic value. But, we cannot use omopId here.
 					// 
-					diastolicMeasurement = measurementService.findById(omopId);
+					diastolicMeasurement = measurementService.findById(Measurement.class, omopId);
 				}
 			}
 			
@@ -543,7 +543,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				Long fhirEncounterId = contextReference.getReferenceElement().getIdPartAsLong();
 				Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, ResourceType.Encounter.getPath());
 				if (omopVisitOccurrenceId != null) {
-					visitOccurrence  = visitOccurrenceService.findById(omopVisitOccurrenceId);
+					visitOccurrence  = visitOccurrenceService.findById(VisitOccurrence.class, omopVisitOccurrenceId);
 				}
 				if (visitOccurrence == null) {
 					throw new FHIRException("The Encounter ("+contextReference.getReference()+") context couldn't be found.");
@@ -733,7 +733,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			// This is UPDATE
 			Long omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, ResourceType.Observation.getPath());
 			if ("Measurement".equals(omopTableName)) {
-				measurement = measurementService.findById(omopId);
+				measurement = measurementService.findById(Measurement.class, omopId);
 				if (measurement == null) {
 					// We have no measurement to update.
 					throw new FHIRException("We have no matching FHIR Observation (Measurement) to update.");
@@ -749,7 +749,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 						measurement.setSourceValue(value);
 				}
 			} else {
-				observation = observationService.findById(omopId);
+				observation = observationService.findById(edu.gatech.chai.omopv5.jpa.entity.Observation.class, omopId);
 				if (observation == null) {
 					// We have no observation to update.
 					throw new FHIRException("We have no matching FHIR Observation (Observation) to update.");
@@ -963,7 +963,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				Long fhirEncounterId = contextReference.getReferenceElement().getIdPartAsLong();
 				Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, ResourceType.Encounter.getPath());
 				if (omopVisitOccurrenceId != null) {
-					visitOccurrence  = visitOccurrenceService.findById(omopVisitOccurrenceId);
+					visitOccurrence  = visitOccurrenceService.findById(VisitOccurrence.class, omopVisitOccurrenceId);
 				}
 				if (visitOccurrence == null) {
 					throw new FHIRException("The Encounter ("+contextReference.getReference()+") context couldn't be found.");
