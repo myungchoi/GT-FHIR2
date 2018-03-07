@@ -240,4 +240,9 @@ public class Measurement extends BaseEntity {
 	public void setType(Concept type) {
 		this.type = type;
 	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
 }

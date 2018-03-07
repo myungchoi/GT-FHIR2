@@ -281,4 +281,9 @@ public class Person extends BaseEntity {
 		this.ethnicitySourceConcept = ethnicitySourceConcept;
 	}
 
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
+
 }

@@ -113,5 +113,11 @@ public class Vocabulary extends BaseEntity {
 			this.id = "Vocabulary";
 		}
 	}
+
+	@Override
+	public Long getIdAsLong() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 }

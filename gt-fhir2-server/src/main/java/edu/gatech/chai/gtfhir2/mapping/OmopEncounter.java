@@ -19,6 +19,7 @@ import org.hl7.fhir.dstu3.model.Encounter.EncounterParticipantComponent;
 import org.hl7.fhir.dstu3.model.Encounter.EncounterStatus;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActCode;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.rest.param.TokenParam;
@@ -28,30 +29,36 @@ import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
 public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, VisitOccurrenceService> implements IResourceMapping<Encounter, VisitOccurrence> {
 
-//	private VisitOccurrenceService myOmopService;
+	private static OmopEncounter omopEncounter = new OmopEncounter();
+	
+	public OmopEncounter() {
+		super(ContextLoaderListener.getCurrentWebApplicationContext(), VisitOccurrence.class, VisitOccurrenceService.class, ResourceType.Encounter.getPath());
+	}
 	
 	public OmopEncounter(WebApplicationContext context) {
-		super(context, VisitOccurrence.class, VisitOccurrenceService.class);
-//		myOmopService = context.getBean(VisitOccurrenceService.class);
+		super(context, VisitOccurrence.class, VisitOccurrenceService.class, ResourceType.Encounter.getPath());
+	}
+	
+	public static OmopEncounter getInstance() {
+		return omopEncounter;
 	}
 
+//	@Override
+//	public Encounter toFHIR(IdType id) {
+//		Long id_long_part = id.getIdPartAsLong();
+//		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, getMyFhirResourceType());
+//
+//		VisitOccurrence visitOccurence = (VisitOccurrence) getMyOmopService().findById(myId);
+//		if (visitOccurence == null)
+//			return null;
+//
+//		Long fhirId = IdMapping.getFHIRfromOMOP(myId, getMyFhirResourceType());
+//
+//		return constructFHIR(fhirId, visitOccurence);
+//	}
 
 	@Override
-	public Encounter toFHIR(IdType id) {
-		String encounterResourceName = ResourceType.Encounter.getPath();
-		Long id_long_part = id.getIdPartAsLong();
-		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, encounterResourceName);
-
-		VisitOccurrence visitOccurence = (VisitOccurrence) getMyOmopService().findById(myId);
-		if (visitOccurence == null)
-			return null;
-
-		Long fhirId = IdMapping.getFHIRfromOMOP(myId, encounterResourceName);
-
-		return constructFHIR(fhirId, visitOccurence);
-	}
-
-	public static Encounter constructFHIR(Long fhirId, VisitOccurrence visitOccurrence) {
+	public Encounter constructFHIR(Long fhirId, VisitOccurrence visitOccurrence) {
 		Encounter encounter = new Encounter();
 		encounter.setId(new IdType(fhirId));
 		
@@ -179,32 +186,32 @@ public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, 
 		return encounter;
 	}
 
-	@Override
-	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
-			List<String> includes) {
-		List<VisitOccurrence> visitOccurrences = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
+//	@Override
+//	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
+//			List<String> includes) {
+//		List<VisitOccurrence> visitOccurrences = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
+//
+//		// We got the results back from OMOP database. Now, we need to construct
+//		// the list of
+//		// FHIR Patient resources to be included in the bundle.
+//		for (VisitOccurrence visitOccurrence : visitOccurrences) {
+//			Long omopId = visitOccurrence.getId();
+//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Encounter.getPath());
+//			listResources.add(constructResource(fhirId, visitOccurrence, includes));
+//		}		
+//	}
 
-		// We got the results back from OMOP database. Now, we need to construct
-		// the list of
-		// FHIR Patient resources to be included in the bundle.
-		for (VisitOccurrence visitOccurrence : visitOccurrences) {
-			Long omopId = visitOccurrence.getId();
-			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Encounter.getPath());
-			listResources.add(constructResource(fhirId, visitOccurrence, includes));
-		}		
-	}
-
-	@Override
-	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
-			List<IBaseResource> listResources, List<String> includes) {
-		List<VisitOccurrence> visitOccurrences = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
-
-		for (VisitOccurrence visitOccurrence : visitOccurrences) {
-			Long omopId = visitOccurrence.getId();
-			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Encounter.getPath());
-			listResources.add(constructResource(fhirId, visitOccurrence, includes));
-		}
-	}
+//	@Override
+//	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
+//			List<IBaseResource> listResources, List<String> includes) {
+//		List<VisitOccurrence> visitOccurrences = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
+//
+//		for (VisitOccurrence visitOccurrence : visitOccurrences) {
+//			Long omopId = visitOccurrence.getId();
+//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Encounter.getPath());
+//			listResources.add(constructResource(fhirId, visitOccurrence, includes));
+//		}
+//	}
 
 	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();

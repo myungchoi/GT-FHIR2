@@ -197,5 +197,10 @@ public class Provider extends BaseEntity {
 	public void setGenderSourceConcept(Concept genderSourceConcept) {
 		this.genderSourceConcept = genderSourceConcept;
 	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
 	
 }
