@@ -98,7 +98,7 @@ public class OmopPractitioner implements IResourceMapping<Practitioner, Provider
 		
 		//TODO: Need practictioner telecom information
 		//Set address
-		if(omopCareSite.getLocation() != null && omopCareSite.getLocation().getId() != 0L) {
+		if(omopCareSite != null && omopCareSite.getLocation() != null && omopCareSite.getLocation().getId() != 0L) {
 			practitioner.addAddress()
 			.setUse(AddressUse.WORK)
 			.addLine(omopCareSite.getLocation().getAddress1())
