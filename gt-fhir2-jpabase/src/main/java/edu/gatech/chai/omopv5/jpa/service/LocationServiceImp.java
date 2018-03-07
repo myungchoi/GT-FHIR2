@@ -13,6 +13,10 @@ import edu.gatech.chai.omopv5.jpa.entity.Location;
 @Service
 public class LocationServiceImp extends BaseEntityServiceImp<Location, LocationDao> implements LocationService {
 
+	public LocationServiceImp() {
+		super(Location.class);
+	}
+	
 	@Transactional(readOnly = true)
 	@Override
 	public Location searchByAddress(String line1, String line2, String city, String state, String zipCode) {

@@ -33,7 +33,7 @@ public class CodeableConceptUtil {
 		params.add(param);
 		map.put(Observation.SP_CODE, params);
 
-		List<Concept> conceptIds = conceptService.searchWithParams(Concept.class, 0, 0, map);
+		List<Concept> conceptIds = conceptService.searchWithParams(0, 0, map);
 		if (conceptIds.isEmpty()) {
 			return null;
 		}
