@@ -1,11 +1,9 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
 import java.util.List;
-import java.util.Map;
 
 import javax.persistence.EntityManager;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,21 +11,16 @@ import edu.gatech.chai.omopv5.jpa.dao.LocationDao;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 
 @Service
-public class LocationServiceImp implements LocationService {
+public class LocationServiceImp extends BaseEntityServiceImp<Location, LocationDao> implements LocationService {
 
-	@Autowired
-	private LocationDao locationDao;
+	public LocationServiceImp() {
+		super(Location.class);
+	}
 	
 	@Transactional(readOnly = true)
 	@Override
-	public Location findById(Long id) {
-		return locationDao.findById(id);
-	}
-
-	@Transactional(readOnly = true)
-	@Override
 	public Location searchByAddress(String line1, String line2, String city, String state, String zipCode) {
-		EntityManager em = locationDao.getEntityManager();
+		EntityManager em = getEntityDao().getEntityManager();
 		String query;
 		List<Location> results;
 		
@@ -56,52 +49,6 @@ public class LocationServiceImp implements LocationService {
 		else
 			return null;
 
-	}
-
-	@Transactional(readOnly = true)
-	@Override
-	public List<Location> searchByColumnString(String column, String value) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Transactional
-	@Override
-	public Location createOrUpdate(Location entity) {
-		if (entity.getId() != null) {
-			locationDao.merge(entity);
-		} else {
-			locationDao.add(entity);
-		}
-		return entity;
-	}
-
-	@Transactional(readOnly = true)
-	@Override
-	public Long getSize() {
-		EntityManager em = locationDao.getEntityManager();
-		
-		String query = "SELECT COUNT(t) FROM Location t";
-		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
-		return totalSize;
-	}
-
-	@Override
-	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Location> searchWithoutParams(int fromIndex, int toIndex) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Location> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

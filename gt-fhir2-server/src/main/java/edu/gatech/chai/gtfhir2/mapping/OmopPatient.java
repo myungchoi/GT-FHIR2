@@ -47,15 +47,16 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
-public class OmopPatient implements IResourceMapping<Patient, FPerson> {
+public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonService> implements IResourceMapping<Patient, FPerson> {
 
-	private FPersonService myOmopService;
+//	private FPersonService myOmopService;
 	private LocationService locationService;
 	private ProviderService providerService;
 	private VisitOccurrenceService visitOccurrenceService;
 
 	public OmopPatient(WebApplicationContext context) {
-		myOmopService = context.getBean(FPersonService.class);
+//		myOmopService = context.getBean(FPersonService.class);
+		super(context, FPerson.class, FPersonService.class);
 		locationService = context.getBean(LocationService.class);
 		providerService = context.getBean(ProviderService.class);
 		visitOccurrenceService = context.getBean(VisitOccurrenceService.class);
@@ -75,7 +76,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, patientResourceName);
 
-		FPerson fPerson = (FPerson) myOmopService.findById(myId);
+		FPerson fPerson = (FPerson) getMyOmopService().findById(myId);
 		if (fPerson == null)
 			return null;
 
@@ -126,10 +127,10 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 							IIdType patientLinkOtherId = patientLinkOther.getReferenceElement();
 							Patient linkedPatient;
 							if (patientLinkOther.fhirType().equals(ResourceType.Patient.getPath())) {
-								FPerson linkedPerson = myOmopService.findById(omopId);
+								FPerson linkedPerson = getMyOmopService().findById(omopId);
 								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							} else {
-								FPerson linkedPerson = myOmopService.findById(omopId);
+								FPerson linkedPerson = getMyOmopService().findById(omopId);
 								linkedPatient = constructFHIR(patientLinkOtherId.getIdPartAsLong(), linkedPerson);
 							}
 							patientLink.getOther().setResource(linkedPatient);
@@ -287,7 +288,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 				return null;
 			}
 			
-			fperson = myOmopService.findById(omopId);
+			fperson = getMyOmopService().findById(omopId);
 			if (fperson == null) {
 				// Does not exist.
 				return null;
@@ -310,7 +311,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 
 					// See if we have existing patient
 					// with this identifier.
-					person = myOmopService.searchByColumnString("personSourceValue", personSourceValue).get(0);
+					person = getMyOmopService().searchByColumnString("personSourceValue", personSourceValue).get(0);
 					if (person != null) {
 						break;
 					}
@@ -443,7 +444,12 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 			index++;
 		}
 
-		Long omopRecordId = myOmopService.createOrUpdate(fperson).getId();
+		Long omopRecordId = null;
+		if (fperson.getId() != null) {
+			omopRecordId = getMyOmopService().update(fperson).getId();
+		} else {
+			omopRecordId = getMyOmopService().create(fperson).getId();
+		}
 		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Patient.getPath());
 		return fhirRecordId;
 	}
@@ -455,7 +461,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 	 * @param listResources
 	 */
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes) {
-		List<FPerson> fPersons = myOmopService.searchWithoutParams(fromIndex, toIndex);
+		List<FPerson> fPersons = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -523,7 +529,7 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<FPerson> fPersons = myOmopService.searchWithParams(fromIndex, toIndex, map);
+		List<FPerson> fPersons = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
 
 		for (FPerson fPerson : fPersons) {
 			Long omopId = fPerson.getId();
@@ -573,14 +579,14 @@ public class OmopPatient implements IResourceMapping<Patient, FPerson> {
 		}
 	}
 
-	@Override
-	public Long getSize() {
-		return myOmopService.getSize();
-	}
-
-	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return myOmopService.getSize(map);
-	}
+//	@Override
+//	public Long getSize() {
+//		return myOmopService.getSize(FPerson.class);
+//	}
+//
+//	public Long getSize(Map<String, List<ParameterWrapper>> map) {
+//		return myOmopService.getSize(FPerson.class, map);
+//	}
 
 	/**
 	 * mapParameter: This maps the FHIR parameter to OMOP column name.

@@ -1,17 +1,10 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,32 +13,16 @@ import edu.gatech.chai.omopv5.jpa.entity.CareSite;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 
 @Service
-public class CareSiteServiceImp implements CareSiteService {
-
-	@Autowired
-	private CareSiteDao careSiteDao;
+public class CareSiteServiceImp extends BaseEntityServiceImp<CareSite, CareSiteDao> implements CareSiteService{
 	
-	@Transactional(readOnly = true)
-	@Override
-	public CareSite findById(Long id) {
-		return careSiteDao.findById(id);
-	}
-
-	@Transactional(readOnly = true)
-	@Override
-	public List<CareSite> searchByColumnString(String column, String value) {
-		EntityManager em = careSiteDao.getEntityManager();
-		
-		String query = "SELECT t FROM CareSite t WHERE "+column+" like :value";
-		List<CareSite> results = em.createQuery(query, CareSite.class)
-				.setParameter("value", value).getResultList();
-		return results;
+	public CareSiteServiceImp() {
+		super(CareSite.class);
 	}
 	
 	@Transactional(readOnly = true)
 	@Override
 	public CareSite searchByLocation(Location location) {
-		EntityManager em = careSiteDao.getEntityManager();
+		EntityManager em = getEntityDao().getEntityManager();
 		String query = "SELECT t FROM CareSite t WHERE location_id like :value:";
 		List<? extends CareSite> results = em.createQuery(query, CareSite.class)
 				.setParameter("value",location.getId()).getResultList();
@@ -55,84 +32,10 @@ public class CareSiteServiceImp implements CareSiteService {
 			return null;
 	}
 
-	@Transactional
-	@Override
-	public CareSite createOrUpdate(CareSite entity) {
-		if (entity.getId() != null) {
-			careSiteDao.merge(entity);
-		} else {
-			careSiteDao.add(entity);
-		}
-		return entity;
-	}
-
-	@Transactional(readOnly = true)
-	@Override
-	public Long getSize() {
-		EntityManager em = careSiteDao.getEntityManager();
-		
-		String query = "SELECT COUNT(t) FROM CareSite t";
-		Long totalSize = em.createQuery(query, Long.class).getSingleResult();
-		return totalSize;
-	}
-
-	@Override
-	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
-		// Construct predicate from this map.
-		EntityManager em = careSiteDao.getEntityManager();
-		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<Long> query = builder.createQuery(Long.class);
-		Root<CareSite> root = query.from(CareSite.class);
-
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
-		if (predicates == null || predicates.isEmpty()) return 0L;
-
-		query.select(builder.count(root));
-		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
-		
-		return em.createQuery(query).getSingleResult();
-	}
-
-	@Override
-	public List<CareSite> searchWithoutParams(int fromIndex, int toIndex) {
-		int length = toIndex - fromIndex;
-		EntityManager em = careSiteDao.getEntityManager();
-		
-		String query = "SELECT p FROM CareSite p ORDER BY id ASC";
-		List<CareSite> retvals = (List<CareSite>) em.createQuery(query, CareSite.class)
-				.setFirstResult(fromIndex)
-				.setMaxResults(length)
-				.getResultList();
-		
-		return retvals;
-	}
-
-	@Override
-	public List<CareSite> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
-		int length = toIndex - fromIndex;
-		EntityManager em = careSiteDao.getEntityManager();
-		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<CareSite> query = builder.createQuery(CareSite.class);
-		Root<CareSite> root = query.from(CareSite.class);
-		
-		List<CareSite> retvals = new ArrayList<CareSite>();
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
-		if (predicates == null || predicates.isEmpty()) return retvals; // Nothing. return empty list
-	
-		query.select(root);
-		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
-
-		retvals = em.createQuery(query)
-				.setFirstResult(fromIndex)
-				.setMaxResults(length)
-				.getResultList();
-		return retvals;
-	}
-
 	@Transactional(readOnly = true)
 	@Override
 	public CareSite searchByNameAndLocation(String careSiteName, Location location) {
-		EntityManager em = careSiteDao.getEntityManager();
+		EntityManager em = getEntityDao().getEntityManager();
 		String queryString = "SELECT t FROM CareSite t WHERE";
 		
 		// Construct where clause here.

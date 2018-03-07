@@ -15,5 +15,23 @@ public abstract class BaseEntityDao<T extends BaseEntity> implements IDao<T> {
 	public EntityManager getEntityManager() {
 		return em;
 	}
+	
+	public void add(T baseEntity) {
+		em.persist(baseEntity);
+	}
+	
+	public T findById(Class<T> entityClass, Long id) {
+		return em.find(entityClass, id);
+	}
+	
+	public void merge(T baseEntity) {
+		em.merge(baseEntity);
+	}
+
+	@Override
+	public void delete(Class<T> entityClass, Long id) {
+		T entity = findById(entityClass, id);
+		em.remove(entity);
+	}
 
 }
