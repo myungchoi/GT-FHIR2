@@ -96,6 +96,7 @@ private int preferredPageSize = 30;
 	 */
 	@Search()
 	public IBundleProvider findPractitionersByParams(
+			@OptionalParam(name = Practitioner.SP_RES_ID) TokenParam thePractitionerId,
 			@OptionalParam(name = Practitioner.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Practitioner.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Practitioner.SP_GIVEN) StringParam theGivenName,
@@ -115,6 +116,10 @@ private int preferredPageSize = 30;
 		 * return null, which will be skipped when predicate is constructed.
 		 */
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		
+		if (thePractitionerId != null) {
+			mapParameter (paramMap, Practitioner.SP_RES_ID, thePractitionerId);
+		}
 		
 		if (theActive != null) {
 			mapParameter (paramMap, Practitioner.SP_ACTIVE, theActive);

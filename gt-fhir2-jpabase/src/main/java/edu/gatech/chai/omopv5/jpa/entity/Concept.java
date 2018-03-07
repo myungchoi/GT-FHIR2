@@ -187,4 +187,9 @@ public class Concept extends BaseEntity {
 				+ this.getValidEndDate();
 	}
 
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
+
 }

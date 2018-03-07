@@ -259,4 +259,9 @@ public class DrugExposure extends BaseEntity {
 	public Double setQuantity() {
 		return this.quantity;
 	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
 }

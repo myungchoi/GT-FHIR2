@@ -161,5 +161,10 @@ public class VisitOccurrence extends BaseEntity {
 	public void setVisitSourceConcept(Concept visitSourceConcept) {
 		this.visitSourceConcept = visitSourceConcept;
 	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
 	
 }

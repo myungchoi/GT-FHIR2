@@ -6,7 +6,6 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 //import javax.persistence.EntityManager;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -60,14 +59,14 @@ public class Provider extends BaseEntity {
 	@Column(name="specialty_source_value", length = 50)
 	private String specialtySourceValue;
 	
-	@ManyToOne(fetch=FetchType.LAZY,cascade={CascadeType.MERGE})
+	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name="specialty_source_concept_id")
 	private Concept specialtySourceConcept;
 
 	@Column(name="gender_source_value", length = 50)
 	private String genderSourceValue;
 	
-	@ManyToOne(fetch=FetchType.LAZY,cascade={CascadeType.MERGE})
+	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name="gender_source_concept_id")
 	private Concept genderSourceConcept;
 
@@ -196,6 +195,11 @@ public class Provider extends BaseEntity {
 
 	public void setGenderSourceConcept(Concept genderSourceConcept) {
 		this.genderSourceConcept = genderSourceConcept;
+	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
 	}
 	
 }

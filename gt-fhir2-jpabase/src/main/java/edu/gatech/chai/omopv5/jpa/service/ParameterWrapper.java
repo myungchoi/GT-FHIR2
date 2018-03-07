@@ -10,6 +10,9 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 
 /**
@@ -49,6 +52,8 @@ import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
  *
  */
 public class ParameterWrapper {
+	
+	private static final Logger logger = LoggerFactory.getLogger(ParameterWrapper.class);
 	private String parameterType;
 	private List<String> parameters;
 	private List<String> operators;
@@ -124,28 +129,31 @@ public class ParameterWrapper {
 
 				switch (param.getParameterType()) {
 				case "String":
-					String columnName = null;
+					logger.debug("String parameter type found.");
+					String attributeName = null;
 					String valueName = null;
-					for (Iterator<String> columnIter = param.getParameters().iterator(), 
+					for (Iterator<String> attributeIter = param.getParameters().iterator(), 
 							operIter = param.getOperators().iterator(),
 							valueIter = param.getValues().iterator();
-							(columnIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();
+							(attributeIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();
 						) {
 
-						if (columnIter.hasNext())
-							columnName = columnIter.next();
+						if (attributeIter.hasNext())
+							attributeName = attributeIter.next();
 						if (valueIter.hasNext())
 							valueName = valueIter.next();
 						String oper = operIter.next();						
-						
+						logger.debug("--- Attribute name:"+attributeName);
+						logger.debug("--- value:"+valueName);
+						logger.debug("--- operator:"+oper);
 						Path<String> path;
-						String[] columnPath = columnName.split("\\.");
+						String[] columnPath = attributeName.split("\\.");
 						if (columnPath.length == 2) {
 							path = rootUser.get(columnPath[0]).get(columnPath[1]);
 						} else if (columnPath.length == 3) {
 							path = rootUser.get(columnPath[0]).get(columnPath[1]).get(columnPath[2]);
 						} else {
-							path = rootUser.get(columnName);
+							path = rootUser.get(attributeName);
 						}
 
 						if (oper.equalsIgnoreCase("like"))
@@ -185,24 +193,26 @@ public class ParameterWrapper {
 			Predicate subWhere,
 			String paramType
 			) {
-
+		logger.debug("Numeric parameter type found.");
 		// We may have multiple columns to compare with 'or'. If
 		// so, get them now.
 		// for (String columnName : param.getParameters(),
 		// String oper: param.getOperators()) {
-		String columnName = null;
+		String attributeName = null;
 		String valueName = null;
-		for (Iterator<String> columnIter = param.getParameters().iterator(), 
+		for (Iterator<String> attributeIter = param.getParameters().iterator(), 
 				operIter = param.getOperators().iterator(),
 				valueIter = param.getValues().iterator(); 
-				(columnIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();) {
+				(attributeIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();) {
 			
-			if (columnIter.hasNext())
-				columnName = columnIter.next();
+			if (attributeIter.hasNext())
+				attributeName = attributeIter.next();
 			if (valueIter.hasNext())
 				valueName = valueIter.next();
 			String oper = operIter.next();
-
+			logger.debug("--- Attribute name:"+attributeName);
+			logger.debug("--- value:"+valueName);
+			logger.debug("--- operator:"+oper);
 			Number value;
 			if (paramType.equals("Short")) {
 				value = Short.valueOf(valueName);
@@ -215,13 +225,13 @@ public class ParameterWrapper {
 			}
 			
 			Path<Number> path;
-			String[] columnPath = columnName.split("\\.");
+			String[] columnPath = attributeName.split("\\.");
 			if (columnPath.length == 2) {
 				path = rootUser.get(columnPath[0]).get(columnPath[1]);
 			} else if (columnPath.length == 3) {
 				path = rootUser.get(columnPath[0]).get(columnPath[1]).get(columnPath[2]);
 			} else {
-				path = rootUser.get(columnName);
+				path = rootUser.get(attributeName);
 			}
 			
 			if (oper.equalsIgnoreCase("=")) {
