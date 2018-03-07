@@ -21,18 +21,27 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 
 	@Autowired
 	private V vDao;
-
+	private Class<T> entityClass;
+	
+	public BaseEntityServiceImp(Class<T> entityClass) {
+		this.entityClass = entityClass;
+	}
+	
 	public V getEntityDao() {
 		return vDao;
 	}
 	
+	public Class<T> getEntityClass() {
+		return this.entityClass;
+	}
+	
 	@Transactional(readOnly = true)
-	public T findById(Class<T> entityClass, Long id) {
+	public T findById(Long id) {
 		return vDao.findById(entityClass, id);
 	}
 
 	@Transactional(readOnly = true)
-	public List<T> searchByColumnString(Class<T> entityClass, String column, String value) {
+	public List<T> searchByColumnString(String column, String value) {
 		EntityManager em = vDao.getEntityManager();
 		List<T> retvals = new ArrayList<T>();
 		
@@ -63,7 +72,7 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 	
 	@Transactional(readOnly = true)
-	public Long getSize(Class<T> entityClass) {
+	public Long getSize() {
 		EntityManager em = vDao.getEntityManager();
 		
 		CriteriaBuilder builder = em.getCriteriaBuilder();
@@ -77,7 +86,7 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 
 	@Transactional(readOnly = true)
-	public Long getSize(Class<T> entityClass, Map<String, List<ParameterWrapper>> paramMap) {
+	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
 		// Construct predicate from this map.
 		EntityManager em = vDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
@@ -94,7 +103,7 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 	
 	@Transactional(readOnly = true)
-	public List<T> searchWithoutParams(Class<T> entityClass, int fromIndex, int toIndex) {
+	public List<T> searchWithoutParams(int fromIndex, int toIndex) {
 		int length = toIndex - fromIndex;
 		EntityManager em = vDao.getEntityManager();		
 		List<T> retvals = new ArrayList<T>();
@@ -115,7 +124,7 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 
 	@Transactional(readOnly = true)
-	public List<T> searchWithParams(Class<T> entityClass, int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
+	public List<T> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
 		int length = toIndex - fromIndex;
 		EntityManager em = vDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();

@@ -8,5 +8,7 @@ import edu.gatech.chai.omopv5.jpa.entity.Observation;
 @Service
 public class ObservationServiceImp extends BaseEntityServiceImp<Observation, ObservationDao> implements ObservationService {
 
-
+	public ObservationServiceImp() {
+		super(Observation.class);
+	}
 }

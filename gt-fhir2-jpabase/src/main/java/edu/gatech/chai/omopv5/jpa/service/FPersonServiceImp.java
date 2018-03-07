@@ -15,6 +15,10 @@ import edu.gatech.chai.omopv5.jpa.entity.Location;
 @Service
 public class FPersonServiceImp extends BaseEntityServiceImp<FPerson, FPersonDao> implements FPersonService {
 
+	public FPersonServiceImp() {
+		super(FPerson.class);
+	}
+	
 	@Transactional(readOnly = true)
 	@Override
 	public FPerson searchByNameAndLocation(String familyName, String given1Name, String given2Name, Location location) {

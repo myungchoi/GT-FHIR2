@@ -15,6 +15,10 @@ import edu.gatech.chai.omopv5.jpa.entity.Location;
 @Service
 public class CareSiteServiceImp extends BaseEntityServiceImp<CareSite, CareSiteDao> implements CareSiteService{
 	
+	public CareSiteServiceImp() {
+		super(CareSite.class);
+	}
+	
 	@Transactional(readOnly = true)
 	@Override
 	public CareSite searchByLocation(Location location) {

@@ -5,5 +5,7 @@ import edu.gatech.chai.omopv5.jpa.entity.DrugExposure;
 
 public class DrugExposureServiceImp extends BaseEntityServiceImp<DrugExposure, DrugExposureDao>
 		implements DrugExposureService {
-
+	public DrugExposureServiceImp() {
+		super(DrugExposure.class);
+	}
 }

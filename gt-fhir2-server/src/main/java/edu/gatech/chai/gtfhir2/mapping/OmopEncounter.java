@@ -26,12 +26,13 @@ import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
-public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrence> {
+public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, VisitOccurrenceService> implements IResourceMapping<Encounter, VisitOccurrence> {
 
-	private VisitOccurrenceService myOmopService;
+//	private VisitOccurrenceService myOmopService;
 	
 	public OmopEncounter(WebApplicationContext context) {
-		myOmopService = context.getBean(VisitOccurrenceService.class);
+		super(context, VisitOccurrence.class, VisitOccurrenceService.class);
+//		myOmopService = context.getBean(VisitOccurrenceService.class);
 	}
 
 
@@ -41,7 +42,7 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, encounterResourceName);
 
-		VisitOccurrence visitOccurence = (VisitOccurrence) myOmopService.findById(VisitOccurrence.class, myId);
+		VisitOccurrence visitOccurence = (VisitOccurrence) getMyOmopService().findById(myId);
 		if (visitOccurence == null)
 			return null;
 
@@ -161,15 +162,15 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 		return null;
 	}
 
-	@Override
-	public Long getSize() {
-		return myOmopService.getSize(VisitOccurrence.class);
-	}
+//	@Override
+//	public Long getSize() {
+//		return myOmopService.getSize(VisitOccurrence.class);
+//	}
 
-	@Override
-	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return myOmopService.getSize(VisitOccurrence.class, map);
-	}
+//	@Override
+//	public Long getSize(Map<String, List<ParameterWrapper>> map) {
+//		return myOmopService.getSize(VisitOccurrence.class, map);
+//	}
 
 	@Override
 	public Encounter constructResource(Long fhirId, VisitOccurrence entity, List<String> includes) {
@@ -181,7 +182,7 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 	@Override
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
 			List<String> includes) {
-		List<VisitOccurrence> visitOccurrences = myOmopService.searchWithoutParams(VisitOccurrence.class, fromIndex, toIndex);
+		List<VisitOccurrence> visitOccurrences = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -196,7 +197,7 @@ public class OmopEncounter implements IResourceMapping<Encounter, VisitOccurrenc
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<VisitOccurrence> visitOccurrences = myOmopService.searchWithParams(VisitOccurrence.class, fromIndex, toIndex, map);
+		List<VisitOccurrence> visitOccurrences = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
 
 		for (VisitOccurrence visitOccurrence : visitOccurrences) {
 			Long omopId = visitOccurrence.getId();

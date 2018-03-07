@@ -8,5 +8,7 @@ import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
 @Service
 public class VisitOccurrenceServiceImp extends BaseEntityServiceImp<VisitOccurrence, VisitOccurrenceDao> implements VisitOccurrenceService {
 
-
+	public VisitOccurrenceServiceImp() {
+		super(VisitOccurrence.class);
+	}
 }

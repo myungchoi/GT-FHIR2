@@ -17,6 +17,10 @@ import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
 @Service
 public class FObservationViewServiceImp extends BaseEntityServiceImp<FObservationView, FObservationViewDao> implements FObservationViewService {
 
+	public FObservationViewServiceImp() {
+		super(FObservationView.class);
+	}
+	
 	@Override
 	public FObservationView findDiastolic(Long conceptId, Long personId, Date date, String time) {
 		EntityManager em = getEntityDao().getEntityManager();

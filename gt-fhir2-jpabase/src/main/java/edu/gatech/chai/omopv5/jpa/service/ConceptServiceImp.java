@@ -7,5 +7,7 @@ import edu.gatech.chai.omopv5.jpa.entity.Concept;
 
 @Service
 public class ConceptServiceImp extends BaseEntityServiceImp<Concept, ConceptDao> implements ConceptService {
-
+	public ConceptServiceImp() {
+		super(Concept.class);
+	}
 }

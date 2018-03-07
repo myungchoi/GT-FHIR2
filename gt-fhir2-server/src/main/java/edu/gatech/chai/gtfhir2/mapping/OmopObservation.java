@@ -46,7 +46,7 @@ import edu.gatech.chai.omopv5.jpa.service.ObservationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
-public class OmopObservation implements IResourceMapping<Observation, FObservationView> {
+public class OmopObservation extends BaseOmopResource<Observation, FObservationView, FObservationViewService> implements IResourceMapping<Observation, FObservationView> {
 
 	public static final Long SYSTOLIC_CONCEPT_ID = 3004249L;
 	public static final Long DIASTOLIC_CONCEPT_ID = 3012888L;
@@ -55,14 +55,17 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 	public static final String BP_SYSTOLIC_DIASTOLIC_CODE = "85354-9";
 	public static final String BP_SYSTOLIC_DIASTOLIC_DISPLAY = "Blood pressure systolic & diastolic";
 
-	private FObservationViewService myOmopService;
+//	private FObservationViewService myOmopService;
 	private ConceptService conceptService;
 	private MeasurementService measurementService;
 	private ObservationService observationService;
 	private VisitOccurrenceService visitOccurrenceService;
 
 	public OmopObservation(WebApplicationContext context) {
-		myOmopService = context.getBean(FObservationViewService.class);
+//		myOmopService = context.getBean(FObservationViewService.class);
+		super(context, FObservationView.class, FObservationViewService.class);
+		
+		// Get bean for other services that we need for mapping.
 		conceptService = context.getBean(ConceptService.class);
 		measurementService = context.getBean(MeasurementService.class);
 		observationService = context.getBean(ObservationService.class);
@@ -75,7 +78,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		Long id_long_part = id.getIdPartAsLong();
 		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, observationResourceName);
 
-		FObservationView fObservationView = (FObservationView) myOmopService.findById(FObservationView.class, myId);
+		FObservationView fObservationView = (FObservationView) getMyOmopService().findById(myId);
 		if (fObservationView == null)
 			return null;
 
@@ -280,7 +283,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		List<Identifier> identifiers = fhirResource.getIdentifier();
 		for (Identifier identifier : identifiers) {
 			identifier_value = identifier.getValue();
-			List<Measurement> measurements = measurementService.searchByColumnString(Measurement.class, "sourceValue", identifier_value);
+			List<Measurement> measurements = measurementService.searchByColumnString("sourceValue", identifier_value);
 			
 			for (Measurement measurement : measurements) {
 				if (systolicMeasurement == null && measurement.getMeasurementConcept().getId() == SYSTOLIC_CONCEPT_ID) {
@@ -375,13 +378,13 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			// Thus, we first need to check if
 			if (systolicMeasurement == null) {
 				if (systolicValue != null)
-					systolicMeasurement = measurementService.findById(Measurement.class, omopId);
+					systolicMeasurement = measurementService.findById(omopId);
 			}
 			if (diastolicMeasurement == null) {
 				if (diastolicValue != null) {
 					// We have diastolic value. But, we cannot use omopId here.
 					// 
-					diastolicMeasurement = measurementService.findById(Measurement.class, omopId);
+					diastolicMeasurement = measurementService.findById(omopId);
 				}
 			}
 			
@@ -543,7 +546,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				Long fhirEncounterId = contextReference.getReferenceElement().getIdPartAsLong();
 				Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, ResourceType.Encounter.getPath());
 				if (omopVisitOccurrenceId != null) {
-					visitOccurrence  = visitOccurrenceService.findById(VisitOccurrence.class, omopVisitOccurrenceId);
+					visitOccurrence  = visitOccurrenceService.findById(omopVisitOccurrenceId);
 				}
 				if (visitOccurrence == null) {
 					throw new FHIRException("The Encounter ("+contextReference.getReference()+") context couldn't be found.");
@@ -653,7 +656,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				// We will not come back.
 				return HandleBloodPressure(fhirResource, fhirId, fhirSubjectId, omopPersonId);
 			}
-			List<Concept> conceptForCodes = conceptService.searchByColumnString(Concept.class, "conceptCode", code);
+			List<Concept> conceptForCodes = conceptService.searchByColumnString("conceptCode", code);
 			for (Concept conceptForCode : conceptForCodes) {
 				String domain = conceptForCode.getDomain();
 				String systemName = conceptForCode.getVocabulary().getId();
@@ -691,7 +694,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				identifier_value = identifier.getValue();
 				if (identifier_value != null) {
 					if ("Measurement".equals(omopTableName)) {
-						List<Measurement> results = measurementService.searchByColumnString(Measurement.class, "sourceValue", identifier_value);
+						List<Measurement> results = measurementService.searchByColumnString("sourceValue", identifier_value);
 						if (results.size()>0) {
 							// We do not CREATE. Instead, we update this.
 							// set the measurement.
@@ -699,7 +702,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 							break;
 						}
 					} else {
-						List<edu.gatech.chai.omopv5.jpa.entity.Observation> results = observationService.searchByColumnString(edu.gatech.chai.omopv5.jpa.entity.Observation.class, "sourceValue", identifier_value);
+						List<edu.gatech.chai.omopv5.jpa.entity.Observation> results = observationService.searchByColumnString("sourceValue", identifier_value);
 						if (results.size()>0) {
 							// We do not CREATE. Instead, we update this.
 							// set the measurement.
@@ -733,7 +736,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 			// This is UPDATE
 			Long omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, ResourceType.Observation.getPath());
 			if ("Measurement".equals(omopTableName)) {
-				measurement = measurementService.findById(Measurement.class, omopId);
+				measurement = measurementService.findById(omopId);
 				if (measurement == null) {
 					// We have no measurement to update.
 					throw new FHIRException("We have no matching FHIR Observation (Measurement) to update.");
@@ -749,7 +752,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 						measurement.setSourceValue(value);
 				}
 			} else {
-				observation = observationService.findById(edu.gatech.chai.omopv5.jpa.entity.Observation.class, omopId);
+				observation = observationService.findById(omopId);
 				if (observation == null) {
 					// We have no observation to update.
 					throw new FHIRException("We have no matching FHIR Observation (Observation) to update.");
@@ -963,7 +966,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 				Long fhirEncounterId = contextReference.getReferenceElement().getIdPartAsLong();
 				Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, ResourceType.Encounter.getPath());
 				if (omopVisitOccurrenceId != null) {
-					visitOccurrence  = visitOccurrenceService.findById(VisitOccurrence.class, omopVisitOccurrenceId);
+					visitOccurrence  = visitOccurrenceService.findById(omopVisitOccurrenceId);
 				}
 				if (visitOccurrence == null) {
 					throw new FHIRException("The Encounter ("+contextReference.getReference()+") context couldn't be found.");
@@ -1038,7 +1041,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 
-		return myOmopService.getSize(FObservationView.class, map);
+		return getMyOmopService().getSize(map);
 	}
 
 	@Override
@@ -1047,7 +1050,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 		
-		return myOmopService.getSize(FObservationView.class, map);
+		return getMyOmopService().getSize(map);
 	}
 
 	@Override
@@ -1059,7 +1062,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 
-		List<FObservationView> fObservationViews = myOmopService.searchWithParams(FObservationView.class, fromIndex, toIndex, map);
+		List<FObservationView> fObservationViews = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -1078,7 +1081,7 @@ public class OmopObservation implements IResourceMapping<Observation, FObservati
 		exceptions.add(exceptionParam);
 		map.put(Observation.SP_COMPONENT_CODE, exceptions);
 
-		List<FObservationView> fObservationViews = myOmopService.searchWithParams(FObservationView.class, fromIndex, toIndex, map);
+		List<FObservationView> fObservationViews = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
 
 		for (FObservationView fObservationView : fObservationViews) {
 			Long omopId = fObservationView.getId();
