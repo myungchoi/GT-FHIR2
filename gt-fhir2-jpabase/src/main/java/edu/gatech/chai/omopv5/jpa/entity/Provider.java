@@ -50,7 +50,7 @@ public class Provider extends BaseEntity {
 	@Column(name="year_of_birth")
 	private Integer yearOfBirth;
 	
-	@ManyToOne(fetch=FetchType.LAZY, cascade={CascadeType.MERGE})
+	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name="gender_concept_id")
 	private Concept genderConcept;
 

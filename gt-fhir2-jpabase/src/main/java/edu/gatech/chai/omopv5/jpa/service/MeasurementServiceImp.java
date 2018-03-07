@@ -8,5 +8,7 @@ import edu.gatech.chai.omopv5.jpa.entity.Measurement;
 @Service
 public class MeasurementServiceImp extends BaseEntityServiceImp<Measurement, MeasurementDao> implements MeasurementService {
 
-
+	public MeasurementServiceImp() {
+		super(Measurement.class);
+	}
 }
