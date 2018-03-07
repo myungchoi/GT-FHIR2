@@ -81,4 +81,13 @@ public class ConditionOccurrence extends BaseEntity{
 	@ManyToOne
 	@JoinColumn(name="ethnicity_source_concept_id")
 	private Concept ethnicitySourceConcept;
+
+	public Long getId() {
+		return id;
+	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
 }

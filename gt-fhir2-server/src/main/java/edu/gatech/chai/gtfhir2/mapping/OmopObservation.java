@@ -48,6 +48,8 @@ import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
 public class OmopObservation extends BaseOmopResource<Observation, FObservationView, FObservationViewService> implements IResourceMapping<Observation, FObservationView> {
 
+	private static OmopObservation omopObservation = new OmopObservation();
+	
 	public static final Long SYSTOLIC_CONCEPT_ID = 3004249L;
 	public static final Long DIASTOLIC_CONCEPT_ID = 3012888L;
 	public static final String SYSTOLIC_LOINC_CODE = "8480-6";
@@ -55,39 +57,50 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	public static final String BP_SYSTOLIC_DIASTOLIC_CODE = "85354-9";
 	public static final String BP_SYSTOLIC_DIASTOLIC_DISPLAY = "Blood pressure systolic & diastolic";
 
-//	private FObservationViewService myOmopService;
 	private ConceptService conceptService;
 	private MeasurementService measurementService;
 	private ObservationService observationService;
 	private VisitOccurrenceService visitOccurrenceService;
 
 	public OmopObservation(WebApplicationContext context) {
-//		myOmopService = context.getBean(FObservationViewService.class);
-		super(context, FObservationView.class, FObservationViewService.class);
-		
+		super(context, FObservationView.class, FObservationViewService.class, ResourceType.Observation.getPath());
+		initialize(context);
+	}
+	
+	public OmopObservation() {
+		super(ContextLoaderListener.getCurrentWebApplicationContext(), FObservationView.class, FObservationViewService.class, ResourceType.Observation.getPath());
+		initialize(ContextLoaderListener.getCurrentWebApplicationContext());
+	}
+	
+	private void initialize(WebApplicationContext context) {		
 		// Get bean for other services that we need for mapping.
 		conceptService = context.getBean(ConceptService.class);
 		measurementService = context.getBean(MeasurementService.class);
 		observationService = context.getBean(ObservationService.class);
 		visitOccurrenceService = context.getBean(VisitOccurrenceService.class);
+		
 	}
 	
-	@Override
-	public Observation toFHIR(IdType id) {
-		String observationResourceName = ResourceType.Observation.getPath();
-		Long id_long_part = id.getIdPartAsLong();
-		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, observationResourceName);
-
-		FObservationView fObservationView = (FObservationView) getMyOmopService().findById(myId);
-		if (fObservationView == null)
-			return null;
-
-		Long fhirId = IdMapping.getFHIRfromOMOP(myId, observationResourceName);
-
-		return constructFHIR(fhirId, fObservationView);
+	public static OmopObservation getInstance() {
+		return omopObservation;
 	}
+	
+//	@Override
+//	public Observation toFHIR(IdType id) {
+//		String observationResourceName = ResourceType.Observation.getPath();
+//		Long id_long_part = id.getIdPartAsLong();
+//		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, observationResourceName);
+//
+//		FObservationView fObservationView = (FObservationView) getMyOmopService().findById(myId);
+//		if (fObservationView == null)
+//			return null;
+//
+//		Long fhirId = IdMapping.getFHIRfromOMOP(myId, observationResourceName);
+//
+//		return constructFHIR(fhirId, fObservationView);
+//	}
 
-	public static Observation constructFHIR(Long fhirId, FObservationView fObservationView) {
+	public Observation constructFHIR(Long fhirId, FObservationView fObservationView) {
 		Observation observation = new Observation();
 		observation.setId(new IdType(fhirId));
 

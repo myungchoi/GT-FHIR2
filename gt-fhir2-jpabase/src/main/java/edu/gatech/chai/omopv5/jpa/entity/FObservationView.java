@@ -266,5 +266,10 @@ public class FObservationView extends BaseEntity {
 		this.operatorConcept = operatorConcept;
 	}
 
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
+
 
 }

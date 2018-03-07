@@ -107,5 +107,10 @@ public class CareSite extends BaseEntity {
 	public void setPlaceOfServiceSourceValue(String placeOfServiceSourceValue) {
 		this.placeOfServiceSourceValue = placeOfServiceSourceValue;
 	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
 	
 }

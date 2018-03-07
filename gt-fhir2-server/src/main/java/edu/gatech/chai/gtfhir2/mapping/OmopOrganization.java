@@ -20,6 +20,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
+import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.rest.param.StringParam;
@@ -28,46 +29,52 @@ import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.gtfhir2.utilities.AddressUtil;
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
+import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.service.CareSiteService;
+import edu.gatech.chai.omopv5.jpa.service.FObservationViewService;
 import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class OmopOrganization extends BaseOmopResource<Organization, CareSite, CareSiteService> implements IResourceMapping<Organization, CareSite> {
-//	private CareSiteService myOmopService;
+	
+	private static OmopOrganization omopOrganization = new OmopOrganization();
 	private LocationService locationService;
-//	private WebApplicationContext myAppCtx;
 
 	public OmopOrganization(WebApplicationContext context) {
-//		myAppCtx = context;
-//		myOmopService = context.getBean(CareSiteService.class);
-		super(context, CareSite.class, CareSiteService.class);
+		super(context, CareSite.class, CareSiteService.class, ResourceType.Organization.getPath());
 		
+	}
+
+	public OmopOrganization() {
+		super(ContextLoaderListener.getCurrentWebApplicationContext(), CareSite.class, CareSiteService.class, ResourceType.Organization.getPath());
+		initialize(ContextLoaderListener.getCurrentWebApplicationContext());
+	}
+
+	private void initialize(WebApplicationContext context) {		
 		// Get bean for other service(s) for mapping.
 		locationService = context.getBean(LocationService.class);
 	}
-
-	@Override
-	public MyOrganization toFHIR(IdType id) {
-		String organizationResourceName = ResourceType.Organization.getPath();
-		Long id_long_part = id.getIdPartAsLong();
-		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, organizationResourceName);
-
-		CareSite careSite = getMyOmopService().findById(myId);
-		if (careSite == null)
-			return null;
-
-		// Actual mapping here.
-		// fhir.id = (idMap) = omop.care_site_id
-		// fhir.name = omop.care_site_name
-		// fhir.type = omop.place_of_service_concept_id
-		// address = location_id
-		Long fhirId = IdMapping.getFHIRfromOMOP(myId, organizationResourceName);
-
-		return constructFHIR(fhirId, careSite);
+	
+	public static OmopOrganization getInstance() {
+		return omopOrganization;
 	}
+	
+//	@Override
+//	public MyOrganization toFHIR(IdType id) {
+//		Long id_long_part = id.getIdPartAsLong();
+//		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, getMyFhirResourceType());
+//
+//		CareSite careSite = getMyOmopService().findById(myId);
+//		if (careSite == null)
+//			return null;
+//
+//		Long fhirId = IdMapping.getFHIRfromOMOP(myId, getMyFhirResourceType());
+//
+//		return constructFHIR(fhirId, careSite);
+//	}
 
-	public static MyOrganization constructFHIR(Long fhirId, CareSite careSite) {
+	public MyOrganization constructFHIR(Long fhirId, CareSite careSite) {
 		MyOrganization organization = new MyOrganization();
 
 		organization.setId(new IdType(fhirId));
@@ -239,29 +246,29 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 	 * @param toIndex
 	 * @param listResources
 	 */
-	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes) {
-		List<CareSite> careSites = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
-
-		// We got the results back from OMOP database. Now, we need to construct
-		// the list of
-		// FHIR Patient resources to be included in the bundle.
-		for (CareSite careSite : careSites) {
-			Long omopId = careSite.getId();
-			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructResource(fhirId, careSite, includes));
-		}
-	}
-
-	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
-			List<IBaseResource> listResources, List<String> includes) {
-		List<CareSite> careSites = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
-
-		for (CareSite careSite : careSites) {
-			Long omopId = careSite.getId();
-			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-			listResources.add(constructResource(fhirId, careSite, includes));
-		}
-	}
+//	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes) {
+//		List<CareSite> careSites = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
+//
+//		// We got the results back from OMOP database. Now, we need to construct
+//		// the list of
+//		// FHIR Patient resources to be included in the bundle.
+//		for (CareSite careSite : careSites) {
+//			Long omopId = careSite.getId();
+//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+//			listResources.add(constructResource(fhirId, careSite, includes));
+//		}
+//	}
+//
+//	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
+//			List<IBaseResource> listResources, List<String> includes) {
+//		List<CareSite> careSites = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
+//
+//		for (CareSite careSite : careSites) {
+//			Long omopId = careSite.getId();
+//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
+//			listResources.add(constructResource(fhirId, careSite, includes));
+//		}
+//	}
 
 	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();

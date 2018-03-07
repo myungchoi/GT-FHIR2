@@ -111,4 +111,9 @@ public class Location extends BaseEntity {
 	public void setId(Long id) {
 		this.id = id;
 	}
+
+	@Override
+	public Long getIdAsLong() {
+		return getId();
+	}
 }
