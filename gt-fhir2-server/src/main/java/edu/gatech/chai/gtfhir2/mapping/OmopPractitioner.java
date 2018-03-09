@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.HumanName;
@@ -12,17 +11,16 @@ import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
+import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
 import edu.gatech.chai.gtfhir2.utilities.AddressUtil;
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
@@ -41,12 +39,12 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 	private LocationService locationService;	
 	
 	public OmopPractitioner(WebApplicationContext context) {
-		super(context, Provider.class, ProviderService.class, ResourceType.Practitioner.getPath());
+		super(context, Provider.class, ProviderService.class, PractitionerResourceProvider.getType());
 		initialize(context);
 	}
 	
 	public OmopPractitioner() {
-		super(ContextLoaderListener.getCurrentWebApplicationContext(), Provider.class, ProviderService.class, ResourceType.Practitioner.getPath());
+		super(ContextLoaderListener.getCurrentWebApplicationContext(), Provider.class, ProviderService.class, PractitionerResourceProvider.getType());
 		initialize(ContextLoaderListener.getCurrentWebApplicationContext());
 	}
 	
@@ -76,6 +74,7 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 		return practitioner;
 	}
 	
+	@Override
 	public Practitioner constructFHIR(Long fhirId, Provider omopProvider) {
 		Practitioner practitioner = new Practitioner(); //Assuming default active state
 		practitioner.setId(new IdType(fhirId));
@@ -174,7 +173,7 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 		// then this is update with fhirId. We need to do another search.
 		if (allreadyIdentifiedProvider == null && fhirId != null) {
 			// Search for this ID.
-			Long omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ResourceType.Practitioner.getPath());
+			Long omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), PractitionerResourceProvider.getType());
 			if (omopId == null) {
 				// This is update. We don't have this provider. Return null.
 				return null;
@@ -196,7 +195,7 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 		} else {
 			omopRecordId = getMyOmopService().create(omopProvider).getId();
 		}
-		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Practitioner.getPath());
+		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, PractitionerResourceProvider.getType());
 		return fhirRecordId;
 	}
 	
@@ -257,43 +256,6 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 			return careSite;
 		}
 	}
-
-//	@Override
-//	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
-//			List<String> includes) {
-//		List<Provider> providers = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
-//
-//		// We got the results back from OMOP database. Now, we need to construct
-//		// the list of
-//		// FHIR Patient resources to be included in the bundle.
-//		for (Provider provider : providers) {
-//			Long omopId = provider.getId();
-//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-//			listResources.add(constructResource(fhirId, provider, includes));
-//			
-//			// Do the rev_include and add the resource to the list.
-//			// addRevIncludes(provider.getId(), includes, listResources);
-//		}
-//	}
-
-//	@Override
-//	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
-//			List<IBaseResource> listResources, List<String> includes) {
-//		List<Provider> providers = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
-//
-//		// We got the results back from OMOP database. Now, we need to construct
-//		// the list of
-//		// FHIR Patient resources to be included in the bundle.
-//		for (Provider provider : providers) {
-//			Long omopId = provider.getId();
-//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-//			listResources.add(constructResource(fhirId, provider, includes));
-//			
-//			// Do the rev_include and add the resource to the list.
-//			// addRevIncludes(provider.getId(), includes, listResources);
-//		}
-//		
-//	}
 	
 	/**
 	 * mapParameter: This maps the FHIR parameter to OMOP column name.

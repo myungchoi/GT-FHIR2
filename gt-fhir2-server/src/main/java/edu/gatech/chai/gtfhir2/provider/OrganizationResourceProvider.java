@@ -76,6 +76,10 @@ public class OrganizationResourceProvider implements IResourceProvider {
 
 	}
 
+	public static String getType() {
+		return "Organization";
+	}
+	
 	/**
 	 * The "@Create" annotation indicates that this method implements
 	 * "create=type", which adds a new instance of a resource to the server.

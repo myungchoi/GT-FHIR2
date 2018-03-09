@@ -16,7 +16,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="drug_expsure")
+@Table(name="drug_exposure")
 public class DrugExposure extends BaseEntity {
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="drug_exposure_seq_gen")
@@ -75,10 +75,10 @@ public class DrugExposure extends BaseEntity {
 	private Concept drugConcept;
 	
 	@Column(name ="drug_exposure_start_date", nullable = false)
-	private Date drugExpsureStartDate;
+	private Date drugExposureStartDate;
 	
 	@Column(name ="drug_exposure_end_date")
-	private Date drugExpsureEndDate;
+	private Date drugExposureEndDate;
 	
 	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name = "drug_type_concept_id", nullable = false)
@@ -213,20 +213,20 @@ public class DrugExposure extends BaseEntity {
 		this.drugConcept = drugConcept;
 	}
 	
-	public Date getDrugExpsureStartDate() {
-		return this.drugExpsureStartDate;
+	public Date getDrugExposureStartDate() {
+		return this.drugExposureStartDate;
 	}
 
-	public void setDrugExpsureStartDate(Date drugExpsureStartDate) {
-		this.drugExpsureStartDate = drugExpsureStartDate;
+	public void setDrugExposureStartDate(Date drugExposureStartDate) {
+		this.drugExposureStartDate = drugExposureStartDate;
 	}
 
-	public Date getDrugExpsureEndDate() {
-		return this.drugExpsureEndDate;
+	public Date getDrugExposureEndDate() {
+		return this.drugExposureEndDate;
 	}
 
-	public void setDrugExpsureEndDate(Date drugExpsureEndDate) {
-		this.drugExpsureEndDate = drugExpsureEndDate;
+	public void setDrugExposureEndDate(Date drugExposureEndDate) {
+		this.drugExposureEndDate = drugExposureEndDate;
 	}
 	
 	public Concept getDrugTypeConcept() {
