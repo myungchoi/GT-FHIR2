@@ -1,17 +1,6 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.exceptions.FHIRException;
-
-import edu.gatech.chai.omopv5.jpa.entity.Concept;
-import edu.gatech.chai.omopv5.jpa.service.ConceptService;
-import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public enum OmopCodeableConceptMapping {
 	ATC("http://www.whocc.no/atc", "ATC"),
