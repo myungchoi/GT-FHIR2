@@ -8,7 +8,8 @@ RUN mvn install
 FROM tomcat:alpine
 #set environment variables
 #      JDBC_URL=jdbc:postgresql://data.hdap.gatech.edu:5435/omop_v5
-ENV JDBC_URL=jdbc:postgresql://data.hdap.gatech.edu:5438/postgres?currentSchema=omop_v5 JDBC_USERNAME=omop_v5 JDBC_PASSWORD=i3lworks
+# ENV JDBC_URL=jdbc:postgresql://data.hdap.gatech.edu:5438/postgres?currentSchema=omop_v5 JDBC_USERNAME=omop_v5 JDBC_PASSWORD=i3lworks
+ENV JDBC_URL=jdbc:postgresql://data.hdap.gatech.edu:5434/synpuf_v5 JDBC_USERNAME=hdap_student JDBC_PASSWORD=hdapSynpuf4Students!
 RUN apk update
 RUN apk add zip postgresql-client
 

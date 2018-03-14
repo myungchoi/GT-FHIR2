@@ -108,7 +108,11 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
+			<version>42.2.1</version>
+<!-- 			
 			<version>9.4.1210.jre7</version>
+			
+ -->			
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate</groupId>
