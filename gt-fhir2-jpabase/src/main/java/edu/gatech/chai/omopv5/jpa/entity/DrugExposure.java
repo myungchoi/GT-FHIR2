@@ -256,8 +256,8 @@ public class DrugExposure extends BaseEntity {
 		return this.quantity;
 	}
 
-	public Double setQuantity() {
-		return this.quantity;
+	public void setQuantity(Double quantity) {
+		this.quantity = quantity;
 	}
 
 	@Override

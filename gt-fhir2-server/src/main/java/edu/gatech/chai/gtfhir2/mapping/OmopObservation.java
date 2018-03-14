@@ -36,6 +36,7 @@ import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
 import edu.gatech.chai.gtfhir2.utilities.CodeableConceptUtil;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
@@ -254,6 +255,14 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				typeConcept.addCoding(typeCoding);				
 				observation.addCategory(typeConcept);
 			}
+		}
+		
+		if (fObservationView.getProvider() != null) {
+			Reference performerRef = new Reference (new IdType(PractitionerResourceProvider.getType(), fObservationView.getProvider().getId()));
+			String providerName = fObservationView.getProvider().getProviderName();
+			if (providerName != null && !providerName.isEmpty())
+				performerRef.setDisplay(providerName);
+			observation.addPerformer(performerRef);
 		}
 		
 		return observation;
@@ -1020,7 +1029,8 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			}
 		}
 		
-		return retval;
+		Long retFhirId = IdMapping.getFHIRfromOMOP(retval, ObservationResourceProvider.getType()); 
+		return retFhirId;
 	}
 
 	

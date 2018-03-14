@@ -24,14 +24,14 @@ public class CodeableConceptUtil {
 				"String",
 				Arrays.asList("vocabulary.id", "conceptCode"),
 				Arrays.asList("like", "like"),
-				Arrays.asList(omopVocabularyId, code),
+				Arrays.asList(omopVocabularyId.toLowerCase(), code),
 				"and"
 				);
 		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>> ();
 
 		List<ParameterWrapper> params = new ArrayList<ParameterWrapper>();
 		params.add(param);
-		map.put(Observation.SP_CODE, params);
+		map.put("code", params);
 
 		List<Concept> conceptIds = conceptService.searchWithParams(0, 0, map);
 		if (conceptIds.isEmpty()) {
