@@ -14,11 +14,14 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DateTimeType;
 import org.hl7.fhir.dstu3.model.Dosage;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Medication;
+import org.hl7.fhir.dstu3.model.Medication.MedicationIngredientComponent;
 import org.hl7.fhir.dstu3.model.MedicationStatement;
 import org.hl7.fhir.dstu3.model.MedicationStatement.MedicationStatementStatus;
 import org.hl7.fhir.dstu3.model.MedicationStatement.MedicationStatementTaken;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.SimpleQuantity;
 import org.hl7.fhir.dstu3.model.Type;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -167,18 +170,39 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		}
 		
 		// Get medication[x]
-		// We need medication codeable concept.
 		CodeableConcept medicationCodeableConcept = fhirResource.getMedicationCodeableConcept();
+		Concept omopConcept = null;
 		if (medicationCodeableConcept.isEmpty()) {
-			// This is an error. We require this.
-			throw new FHIRException("MedicationCodeableConcept is missing");
-		} else {
-			Concept omopConcept = CodeableConceptUtil.searchConcept(conceptService, medicationCodeableConcept);
-			if (omopConcept == null) {
-				throw new FHIRException("MedicationCodeableConcept could not be found");
+			// We may have reference.
+			Reference medicationReference = fhirResource.getMedicationReference();
+			if (medicationReference.isEmpty()) {
+				// This is an error. We require this.
+				throw new FHIRException("Medication[CodeableConcept or Reference] is missing");
 			} else {
-				drugExposure.setDrugConcept(omopConcept);
+				String medicationReferenceId = medicationReference.getReferenceElement().getIdPart();
+				if (medicationReference.getReferenceElement().isLocal()) {
+					List<Resource> contains = fhirResource.getContained();
+					for (Resource resource: contains) {
+						if (!resource.isEmpty() &&
+							resource.getIdElement().getIdPart().equals(medicationReferenceId.substring(1))) {
+							// This must medication resource. 
+							Medication medicationResource = (Medication) resource;
+							medicationCodeableConcept = medicationResource.getCode();
+						}
+					}
+				} else {
+					throw new FHIRException("Medication Reference must have the medication in the contained");
+				}
 			}
+		} 
+		
+		if (!medicationCodeableConcept.isEmpty())
+			omopConcept = CodeableConceptUtil.searchConcept(conceptService, medicationCodeableConcept);
+		
+		if (omopConcept == null) {
+			throw new FHIRException("Medication[CodeableConcept or Reference] could not be found");
+		} else {
+			drugExposure.setDrugConcept(omopConcept);
 		}
 		
 		// Effective Time.
@@ -363,32 +387,37 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		
 		// Get medicationCodeableConcept
 		Concept drugConcept = entity.getDrugConcept();
-		if (drugConcept != null) {
-			String omopVocabularyId = drugConcept.getVocabulary().getId();
-			
-			// Get the mapped FHIR system uri for this.
-			String fhirUri = null;
+		CodeableConcept medication;
+		try {
+			medication = CodeableConceptUtil.getCodeableConceptFromOmopConcept(drugConcept);
+		} catch (FHIRException e1) {
+			e1.printStackTrace();
+			return null;
+		}		
+		
+		// See if we can add ingredient version of this medication.
+		Concept ingredient = conceptService.getIngredient(drugConcept);
+		if (ingredient != null) {
+			CodeableConcept ingredientCodeableConcept;
 			try {
-				fhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabularyi(omopVocabularyId);
+				ingredientCodeableConcept = CodeableConceptUtil.getCodeableConceptFromOmopConcept(ingredient);
+				if (!ingredientCodeableConcept.isEmpty()) {
+					// We have ingredient information. Add this to MedicationStatement.
+					// To do this, we need to add Medication resource to contained section.
+					Medication medicationResource = new Medication();
+					medicationResource.setCode(medication);
+					MedicationIngredientComponent medIngredientComponent = new MedicationIngredientComponent();
+					medIngredientComponent.setItem(ingredientCodeableConcept);
+					medicationResource.addIngredient(medIngredientComponent);
+					medicationResource.setId("med1");
+					medicationStatement.addContained(medicationResource);
+					medicationStatement.setMedication(new Reference("#med1"));
+				}
 			} catch (FHIRException e) {
 				e.printStackTrace();
 				return null;
 			}
-			
-			if (fhirUri == null || "None".equals(fhirUri)) {
-				// Failed to map the Omop Vocabulary in FHIR codeable concept.
-				// For now, we return null.
-				return null;
-			}
-			
-			Coding medicationCoding = new Coding();
-			medicationCoding.setSystem(fhirUri);
-			medicationCoding.setCode(drugConcept.getConceptCode());
-			medicationCoding.setDisplay(drugConcept.getName());
-			
-			CodeableConcept medication = new CodeableConcept();
-			medication.addCoding(medicationCoding);
-			
+		} else {
 			medicationStatement.setMedication(medication);
 		}
 		
@@ -421,7 +450,7 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		Concept unitConcept = entity.getDoseUnitConcept();
 		if (unitConcept != null) {
 			try {
-				String unitFhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabularyi(unitConcept.getVocabulary().getId());
+				String unitFhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabulary(unitConcept.getVocabulary().getId());
 				if (!"None".equals(unitFhirUri)) {
 					String unitDisplay = unitConcept.getName();
 					String unitCode = unitConcept.getConceptCode();
@@ -444,11 +473,11 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		Concept routeConcept = entity.getRouteConcept();
 		if (routeConcept != null) {
 			try {
-				String fhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabularyi(routeConcept.getVocabulary().getId());
-				if (!"None".equals(fhirUri)) {
+				String myUri = OmopCodeableConceptMapping.fhirUriforOmopVocabulary(routeConcept.getVocabulary().getId());
+				if (!"None".equals(myUri)) {
 					CodeableConcept routeCodeableConcept = new CodeableConcept();
 					Coding routeCoding = new Coding();
-					routeCoding.setSystem(fhirUri);
+					routeCoding.setSystem(myUri);
 					routeCoding.setCode(routeConcept.getConceptCode());
 					routeCoding.setDisplay(routeConcept.getName());
 					

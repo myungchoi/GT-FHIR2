@@ -838,7 +838,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 					OmopSystem, 
 					codingSecondChoice.getCode());
 			if (concept == null) {
-				throw new FHIRException("We couldn't map the code - "+OmopCodeableConceptMapping.fhirUriforOmopVocabularyi(OmopSystem)+":"+codingSecondChoice.getCode());
+				throw new FHIRException("We couldn't map the code - "+OmopCodeableConceptMapping.fhirUriforOmopVocabulary(OmopSystem)+":"+codingSecondChoice.getCode());
 			}
 		}
 		
