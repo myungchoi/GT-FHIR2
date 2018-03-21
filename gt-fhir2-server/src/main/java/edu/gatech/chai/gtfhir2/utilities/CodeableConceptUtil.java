@@ -8,7 +8,6 @@ import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.exceptions.FHIRException;
 
 import edu.gatech.chai.gtfhir2.mapping.OmopCodeableConceptMapping;
@@ -17,7 +16,24 @@ import edu.gatech.chai.omopv5.jpa.service.ConceptService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class CodeableConceptUtil {
-	public static Concept getOmopConceptWith(ConceptService conceptService, String omopVocabularyId, String code) {
+	public static void addCodingFromOmopConcept(CodeableConcept codeableConcept, Concept concept) throws FHIRException {
+		String fhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabulary(concept.getVocabulary().getId());
+		
+		Coding coding = new Coding();
+		coding.setSystem(fhirUri);
+		coding.setCode(concept.getConceptCode());
+		coding.setDisplay(concept.getName());
+		
+		codeableConcept.addCoding(coding);
+	}
+	
+	public static CodeableConcept getCodeableConceptFromOmopConcept(Concept concept) throws FHIRException {
+		CodeableConcept codeableConcept = new CodeableConcept();
+		addCodingFromOmopConcept (codeableConcept, concept);		
+		return codeableConcept;
+	}
+	
+	public static Concept getOmopConceptWithOmopVacabIdAndCode(ConceptService conceptService, String omopVocabularyId, String code) {
 		if (omopVocabularyId == null) return null;
 		
 		ParameterWrapper param = new ParameterWrapper(
@@ -47,7 +63,7 @@ public class CodeableConceptUtil {
 		String code = fhirCoding.getCode();
 		
 		String omopVocabularyId = OmopCodeableConceptMapping.omopVocabularyforFhirUri(system);
-		return getOmopConceptWith(conceptService, omopVocabularyId, code);
+		return getOmopConceptWithOmopVacabIdAndCode(conceptService, omopVocabularyId, code);
 	}
 	
 	public static Concept searchConcept(ConceptService conceptService, CodeableConcept codeableConcept) throws FHIRException {

@@ -9,7 +9,7 @@ import java.util.Map;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
-import org.hl7.fhir.dstu3.model.MedicationStatement;
+import org.hl7.fhir.dstu3.model.MedicationRequest;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -35,23 +35,23 @@ import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-import edu.gatech.chai.gtfhir2.mapping.OmopMedicationStatement;
+import edu.gatech.chai.gtfhir2.mapping.OmopMedicationRequest;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-public class MedicationStatementResourceProvider implements IResourceProvider {
+public class MedicationRequestProvider implements IResourceProvider {
 
 	private WebApplicationContext myAppCtx;
 	private String myDbType;
-	private OmopMedicationStatement myMapper;
+	private OmopMedicationRequest myMapper;
 	private int preferredPageSize = 30;
 
-	public MedicationStatementResourceProvider() {
+	public MedicationRequestProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
 		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
 		if (myDbType.equalsIgnoreCase("omopv5") == true) {
-			myMapper = new OmopMedicationStatement(myAppCtx);
+			myMapper = new OmopMedicationRequest(myAppCtx);
 		} else {
-			myMapper = new OmopMedicationStatement(myAppCtx);
+			myMapper = new OmopMedicationRequest(myAppCtx);
 		}
 
 		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
@@ -62,9 +62,14 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 			}
 		}
 	}
-
+	
 	public static String getType() {
-		return "MedicationStatement";
+		return "MedicationRequest";
+	}
+
+	@Override
+	public Class<? extends IBaseResource> getResourceType() {
+		return MedicationRequest.class;
 	}
 
 	/**
@@ -72,14 +77,13 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 	 * new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createMedicationStatement(@ResourceParam MedicationStatement theMedicationStatement) {
-		validateResource(theMedicationStatement);
+	public MethodOutcome createMedicationRequest(@ResourceParam MedicationRequest theMedicationRequest) {
+		validateResource(theMedicationRequest);
 		
 		Long id=null;
 		try {
-			id = myMapper.toDbase(theMedicationStatement, null);
+			id = myMapper.toDbase(theMedicationRequest, null);
 		} catch (FHIRException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -95,12 +99,12 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 	}
 
 	@Update()
-	public MethodOutcome updateMedicationStatement(@IdParam IdType theId, @ResourceParam MedicationStatement theMedicationStatement) {
-		validateResource(theMedicationStatement);
+	public MethodOutcome updateMedicationRequest(@IdParam IdType theId, @ResourceParam MedicationRequest theMedicationRequest) {
+		validateResource(theMedicationRequest);
 		
 		Long fhirId=null;
 		try {
-			fhirId = myMapper.toDbase(theMedicationStatement, theId);
+			fhirId = myMapper.toDbase(theMedicationRequest, theId);
 		} catch (FHIRException e) {
 			e.printStackTrace();
 		}
@@ -113,8 +117,8 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 	}
 
 	@Read()
-	public MedicationStatement readMedicationStatement(@IdParam IdType theId) {
-		MedicationStatement retval = (MedicationStatement) myMapper.toFHIR(theId);
+	public MedicationRequest readMedicationRequest(@IdParam IdType theId) {
+		MedicationRequest retval = (MedicationRequest) myMapper.toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);
 		}
@@ -123,35 +127,40 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 	}
 
 	@Search()
-	public IBundleProvider findMedicationStatementsByParams(
-			@OptionalParam(name = MedicationStatement.SP_RES_ID) TokenParam theMedicationStatementId,
-			@OptionalParam(name = MedicationStatement.SP_CODE) TokenParam theCode,
-			@OptionalParam(name = MedicationStatement.SP_CONTEXT) ReferenceParam theContext,
-			@OptionalParam(name = MedicationStatement.SP_EFFECTIVE) DateParam theDate,
-			@OptionalParam(name = MedicationStatement.SP_PATIENT) ReferenceParam thePatient,
-			@OptionalParam(name = MedicationStatement.SP_SOURCE) ReferenceParam theSource
+	public IBundleProvider findMedicationRequestsByParams(
+			@OptionalParam(name = MedicationRequest.SP_RES_ID) TokenParam theMedicationRequestId,
+			@OptionalParam(name = MedicationRequest.SP_CODE) TokenParam theCode,
+			@OptionalParam(name = MedicationRequest.SP_CONTEXT) ReferenceParam theContext,
+			@OptionalParam(name = MedicationRequest.SP_AUTHOREDON) DateParam theDate,
+			@OptionalParam(name = MedicationRequest.SP_PATIENT) ReferenceParam thePatient,
+			@OptionalParam(name = MedicationRequest.SP_SUBJECT) ReferenceParam theSubject
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
 		
-		if (theMedicationStatementId != null) {
-			mapParameter (paramMap, MedicationStatement.SP_RES_ID, theMedicationStatementId);
+		if (theMedicationRequestId != null) {
+			mapParameter (paramMap, MedicationRequest.SP_RES_ID, theMedicationRequestId);
 		}
+		
 		if (theCode != null) {
-			mapParameter (paramMap, MedicationStatement.SP_CODE, theCode);
+			mapParameter (paramMap, MedicationRequest.SP_CODE, theCode);
 		}
+
 		if (theContext != null) {
-			mapParameter (paramMap, MedicationStatement.SP_CONTEXT, theContext);
+			mapParameter (paramMap, MedicationRequest.SP_CONTEXT, theContext);
 		}
+
 		if (theDate != null) {
-			mapParameter (paramMap, MedicationStatement.SP_EFFECTIVE, theDate);
+			mapParameter (paramMap, MedicationRequest.SP_AUTHOREDON, theDate);
 		}
-		if (thePatient != null) {
-			mapParameter (paramMap, MedicationStatement.SP_PATIENT, thePatient);
-		}
-		if (theSource != null) {
-			mapParameter (paramMap, MedicationStatement.SP_SOURCE, theSource);
+
+		if (thePatient != null || theSubject != null) {
+			// We only support Patient for subject so we handle it here.
+			if (thePatient != null)
+				mapParameter (paramMap, MedicationRequest.SP_PATIENT, thePatient);
+			else
+				mapParameter (paramMap, MedicationRequest.SP_SUBJECT, theSubject);
 		}
 
 		// Now finalize the parameter map.
@@ -201,10 +210,10 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 			public Integer size() {
 				return totalSize.intValue();
 			}
-
+			
 		};
 	}
-
+	
 	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
 		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
 		if (paramList != null) {
@@ -212,28 +221,7 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		}
 	}
 
-	@Override
-	public Class<? extends IBaseResource> getResourceType() {
-		return MedicationStatement.class;
+	private void validateResource(MedicationRequest theMedication) {
+		// TODO: implement validation method
 	}
-
-	/**
-	 * This method just provides simple business validation for resources we are storing.
-	 * 
-	 * @param theMedication
-	 *            The medication statement to validate
-	 */
-	private void validateResource(MedicationStatement theMedication) {
-		/*
-		 * Our server will have a rule that patients must have a family name or we will reject them
-		 */
-//		if (thePatient.getNameFirstRep().getFamily().isEmpty()) {
-//			OperationOutcome outcome = new OperationOutcome();
-//			CodeableConcept detailCode = new CodeableConcept();
-//			detailCode.setText("No family name provided, Patient resources must have at least one family name.");
-//			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-//			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
-//		}
-	}
-
 }

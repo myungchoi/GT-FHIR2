@@ -48,7 +48,7 @@ public enum OmopCodeableConceptMapping {
 		
 	}
 
-	public static String fhirUriforOmopVocabularyi(String omopVocabulary) throws FHIRException {
+	public static String fhirUriforOmopVocabulary(String omopVocabulary) throws FHIRException {
 		if (omopVocabulary == null || omopVocabulary.isEmpty()) {
 			throw new FHIRException("Omop Vocabulary ID cannot be null or empty: '"+omopVocabulary+"'");
 		}

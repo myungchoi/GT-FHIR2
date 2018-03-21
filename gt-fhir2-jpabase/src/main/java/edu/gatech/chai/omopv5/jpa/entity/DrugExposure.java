@@ -31,36 +31,36 @@ public class DrugExposure extends BaseEntity {
 	@Column (name = "sig")
 	private String sig;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "route_concept_id")
 	private Concept routeConcept;
 	
 	@Column(name = "effective_drug_dose")
 	private Double effectiveDrugDose;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "dose_unit_concept_id")
 	private Concept doseUnitConcept;
 	
 	@Column(name = "lot_number")
 	private String lotNumber;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "provider_id")
 	private Provider provider;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "visit_occurrence_id")
 	private VisitOccurrence visitOccurrence;
 
 	@Column(name = "drug_source_value")
 	private String drugSourceValue;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "drug_source_concept_id")
 	private Concept drugSourceConcept;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "person_id", nullable = false)
 	private FPerson fPerson;
 	
@@ -70,7 +70,7 @@ public class DrugExposure extends BaseEntity {
 	@Column(name = "dose_unit_source_value")
 	private String doseUnitSourceValue;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "drug_concept_id", nullable = false)
 	private Concept drugConcept;
 	
@@ -80,7 +80,7 @@ public class DrugExposure extends BaseEntity {
 	@Column(name ="drug_exposure_end_date")
 	private Date drugExposureEndDate;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "drug_type_concept_id", nullable = false)
 	private Concept drugTypeConcept;
 	
