@@ -128,6 +128,7 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 				List<DrugExposure> results = getMyOmopService().searchByColumnString("drugSourceValue", identifierValue);
 				if (results.size() > 0) {
 					drugExposure = results.get(0);
+					omopId = drugExposure.getId();
 					break;
 				}
 			}
@@ -188,9 +189,10 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		}
 		
 		// Get medication[x]
-		CodeableConcept medicationCodeableConcept = fhirResource.getMedicationCodeableConcept();
+		Type medicationType = fhirResource.getMedication();
 		Concept omopConcept = null;
-		if (medicationCodeableConcept.isEmpty()) {
+		CodeableConcept medicationCodeableConcept = null;
+		if (medicationType instanceof Reference) {
 			// We may have reference.
 			Reference medicationReference = fhirResource.getMedicationReference();
 			if (medicationReference.isEmpty()) {
@@ -202,21 +204,27 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 					List<Resource> contains = fhirResource.getContained();
 					for (Resource resource: contains) {
 						if (!resource.isEmpty() &&
-							resource.getIdElement().getIdPart().equals(medicationReferenceId.substring(1))) {
+							resource.getIdElement().getIdPart().equals(medicationReferenceId)) {
+
 							// This must medication resource. 
 							Medication medicationResource = (Medication) resource;
 							medicationCodeableConcept = medicationResource.getCode();
+							break;
 						}
 					}
 				} else {
 					throw new FHIRException("Medication Reference must have the medication in the contained");
 				}
 			}
-		} 
+		} else {
+			medicationCodeableConcept = fhirResource.getMedicationCodeableConcept();
+		}
 		
-		if (!medicationCodeableConcept.isEmpty())
-			omopConcept = CodeableConceptUtil.searchConcept(conceptService, medicationCodeableConcept);
+		if (medicationCodeableConcept == null || medicationCodeableConcept.isEmpty()) { 		
+			throw new FHIRException("Medication[CodeableConcept or Reference] could not be mapped");
+		}
 		
+		omopConcept = CodeableConceptUtil.searchConcept(conceptService, medicationCodeableConcept);
 		if (omopConcept == null) {
 			throw new FHIRException("Medication[CodeableConcept or Reference] could not be found");
 		} else {

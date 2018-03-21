@@ -56,6 +56,8 @@ public class ConceptServiceImp extends BaseEntityServiceImp<Concept, ConceptDao>
 					+ "AND c.conceptClass = 'Ingredient' "
 					+ "AND src.invalidReason is null "
 					+ "AND c.invalidReason is null";
+		} else {
+			return null;
 		}
 		
 		TypedQuery<Concept> query = em.createQuery(sqlQuery, Concept.class);
