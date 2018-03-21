@@ -74,7 +74,10 @@ private int preferredPageSize = 30;
 		}
 	}
 
-
+	public static String getType() {
+		return "Patient";
+	}
+	
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.

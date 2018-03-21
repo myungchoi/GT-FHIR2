@@ -1,6 +1,7 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -168,6 +169,75 @@ public class ParameterWrapper {
 							} else {
 								subWhere = builder.and(subWhere, builder.notLike(builder.lower(path), valueName.toLowerCase()));
 							}
+					}
+					break;
+				case "Date":
+					logger.debug("Numeric parameter type found.");
+					attributeName = null;
+					valueName = null;
+					for (Iterator<String> attributeIter = param.getParameters().iterator(), 
+							operIter = param.getOperators().iterator(),
+							valueIter = param.getValues().iterator(); 
+							(attributeIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();) {
+						
+						if (attributeIter.hasNext())
+							attributeName = attributeIter.next();
+						if (valueIter.hasNext())
+							valueName = valueIter.next();
+						String oper = operIter.next();
+						logger.debug("--- Attribute name:"+attributeName);
+						logger.debug("--- value:"+valueName);
+						logger.debug("--- operator:"+oper);
+						Long dateInMili = Long.valueOf(valueName);
+						Date value = new Date(dateInMili);
+						
+						Path<Date> path;
+						String[] columnPath = attributeName.split("\\.");
+						if (columnPath.length == 2) {
+							path = rootUser.get(columnPath[0]).get(columnPath[1]);
+						} else if (columnPath.length == 3) {
+							path = rootUser.get(columnPath[0]).get(columnPath[1]).get(columnPath[2]);
+						} else {
+							path = rootUser.get(attributeName);
+						}
+						
+						if (oper.equalsIgnoreCase("=")) {
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.equal(path, value));
+							} else {
+								subWhere = builder.and(subWhere, builder.equal(path, value));
+							}
+						} else if (oper.equalsIgnoreCase("!=")) {
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.notEqual(path, value));
+							} else {
+								subWhere = builder.and(subWhere, builder.notEqual(path, value));
+							}
+						} else if (oper.equalsIgnoreCase("<"))
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.lessThan(path, value));
+							} else {
+								subWhere = builder.and(subWhere, builder.lessThan(path, value));
+							}
+						else if (oper.equalsIgnoreCase("<="))
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.lessThanOrEqualTo(path, value));
+							} else {
+								subWhere = builder.and(subWhere, builder.lessThanOrEqualTo(path, value));
+							}
+						else if (oper.equalsIgnoreCase(">")) {
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.greaterThan(path, value));
+							} else {
+								subWhere = builder.and(subWhere, builder.greaterThan(path, value));
+							}
+						} else { // (param.getOperator().equalsIgnoreCase(">="))
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.greaterThanOrEqualTo(path, value));
+							} else {
+								subWhere = builder.and(subWhere, builder.greaterThanOrEqualTo(path, value));
+							}
+						}
 					}
 					break;
 				case "Short":

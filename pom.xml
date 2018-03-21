@@ -83,7 +83,7 @@
 	</licenses>
 
 	<properties>
-		<hapi_stable_version>3.1.0</hapi_stable_version>
+		<hapi_stable_version>3.2.0</hapi_stable_version>
 		<hapi_current_version>3.2.0-SNAPSHOT</hapi_current_version>
 
 		<!-- configure timestamp in MANIFEST.MF for maven-war-provider -->

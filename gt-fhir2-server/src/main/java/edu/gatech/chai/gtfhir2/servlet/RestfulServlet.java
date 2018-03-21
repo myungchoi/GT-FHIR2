@@ -15,6 +15,8 @@ import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.MedicationRequestProvider;
+import edu.gatech.chai.gtfhir2.provider.MedicationStatementResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
@@ -32,7 +34,7 @@ public class RestfulServlet extends RestfulServer {
 	 * Constructor
 	 */
 	public RestfulServlet() {
-		super(FhirContext.forDstu3()); // Support DSTU2
+		super(FhirContext.forDstu3()); 
 	}
 	
 	/**
@@ -47,10 +49,12 @@ public class RestfulServlet extends RestfulServer {
 		 */
 		List<IResourceProvider> providers = new ArrayList<IResourceProvider>();
 		providers.add(new EncounterResourceProvider());
+		providers.add(new MedicationStatementResourceProvider());
 		providers.add(new ObservationResourceProvider());
 		providers.add(new OrganizationResourceProvider());
 		providers.add(new PractitionerResourceProvider());
 		providers.add(new PatientResourceProvider());
+		providers.add(new MedicationRequestProvider());
 		setResourceProviders(providers);
 		
 		/*

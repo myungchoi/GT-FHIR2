@@ -24,7 +24,7 @@ public class ConditionOccurrence extends BaseEntity{
 	
 	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name="person_id", nullable= false)
-	private Person person;
+	private FPerson fPerson;
 	
 	@Column(name="condtion_concept_id", nullable=false)
 	private Concept conceptId;
@@ -85,7 +85,19 @@ public class ConditionOccurrence extends BaseEntity{
 	public Long getId() {
 		return id;
 	}
+	
+	public void setId(Long id) {
+		this.id = id;
+	}
+	
+	public FPerson getFPerson() {
+		return this.fPerson;
+	}
 
+	public void setFPerson(FPerson fPerson) {
+		this.fPerson = fPerson;
+	}
+	
 	@Override
 	public Long getIdAsLong() {
 		return getId();

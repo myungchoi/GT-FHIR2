@@ -5,13 +5,10 @@ import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.WebApplicationContext;
 
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
-import edu.gatech.chai.omopv5.jpa.entity.FPerson;
-import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
 import edu.gatech.chai.omopv5.jpa.service.IService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -20,6 +17,9 @@ public abstract class BaseOmopResource<v extends DomainResource, t extends BaseE
 	private p myOmopService;
 	private Class<t> myEntityClass;
 	private String myFhirResourceType;
+	
+	public static String MAP_EXCEPTION_FILTER = "FILTER";
+	public static String MAP_EXCEPTION_EXCLUDE = "EXCLUDE";
 	
 	public BaseOmopResource(WebApplicationContext context, Class<t> entityClass, Class<p> serviceClass, String fhirResourceType) {
 		myOmopService = context.getBean(serviceClass);
@@ -47,18 +47,19 @@ public abstract class BaseOmopResource<v extends DomainResource, t extends BaseE
 		return myOmopService.getSize(map);
 	}
 	
+	public v constructResource(Long fhirId, t entity, List<String> includes) {
+		v fhirResource = constructFHIR(fhirId, entity);
+		
+		return fhirResource;
+	}
+
 	// This needs to be overridden at every OMOP[x] class.
-	public v constructFHIR(Long fhirId, t visitOccurrence) {
+	public v constructFHIR(Long fhirId, t entity) {
 		return null;
 	}
 	
-	/**
-	 * Omop on FHIR mapping - from OMOP to FHIR.
+	/***
 	 * 
-	 * @param patient
-	 *            ID The Patient Resource ID in IdType variable type.
-	 * 
-	 * @return Patient Returns Patient Resource mapped from OMOP Person table.
 	 */
 	public v toFHIR(IdType id) {
 		Long id_long_part = id.getIdPartAsLong();
@@ -83,9 +84,11 @@ public abstract class BaseOmopResource<v extends DomainResource, t extends BaseE
 		for (t entity : entities) {
 			Long omopId = entity.getIdAsLong();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, getMyFhirResourceType());
-			listResources.add(constructResource(fhirId, entity, includes));
-			
-			addRevIncludes(omopId, includes, listResources);
+			v fhirResource = constructResource(fhirId, entity, includes);
+			if (fhirResource != null) {
+				listResources.add(fhirResource);			
+				addRevIncludes(omopId, includes, listResources);
+			}
 		}		
 	}
 
@@ -96,11 +99,12 @@ public abstract class BaseOmopResource<v extends DomainResource, t extends BaseE
 		for (t entity : entities) {
 			Long omopId = entity.getIdAsLong();
 			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, getMyFhirResourceType());
-			listResources.add(constructResource(fhirId, entity, includes));
-			
-			// Do the rev_include and add the resource to the list.
-			addRevIncludes(omopId, includes, listResources);
-
+			v fhirResource = constructResource(fhirId, entity, includes);
+			if (fhirResource != null) {
+				listResources.add(fhirResource);
+				// Do the rev_include and add the resource to the list.
+				addRevIncludes(omopId, includes, listResources);
+			}
 		}
 	}
 

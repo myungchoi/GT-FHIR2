@@ -3,7 +3,6 @@ package edu.gatech.chai.gtfhir2.mapping;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.BooleanType;
 import org.hl7.fhir.dstu3.model.CodeType;
@@ -14,9 +13,7 @@ import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
@@ -26,13 +23,12 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyOrganization;
+import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
 import edu.gatech.chai.gtfhir2.utilities.AddressUtil;
 import edu.gatech.chai.omopv5.jpa.entity.CareSite;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
-import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.service.CareSiteService;
-import edu.gatech.chai.omopv5.jpa.service.FObservationViewService;
 import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -42,12 +38,12 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 	private LocationService locationService;
 
 	public OmopOrganization(WebApplicationContext context) {
-		super(context, CareSite.class, CareSiteService.class, ResourceType.Organization.getPath());
+		super(context, CareSite.class, CareSiteService.class, OrganizationResourceProvider.getType());
 		
 	}
 
 	public OmopOrganization() {
-		super(ContextLoaderListener.getCurrentWebApplicationContext(), CareSite.class, CareSiteService.class, ResourceType.Organization.getPath());
+		super(ContextLoaderListener.getCurrentWebApplicationContext(), CareSite.class, CareSiteService.class, OrganizationResourceProvider.getType());
 		initialize(ContextLoaderListener.getCurrentWebApplicationContext());
 	}
 
@@ -60,20 +56,7 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 		return omopOrganization;
 	}
 	
-//	@Override
-//	public MyOrganization toFHIR(IdType id) {
-//		Long id_long_part = id.getIdPartAsLong();
-//		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, getMyFhirResourceType());
-//
-//		CareSite careSite = getMyOmopService().findById(myId);
-//		if (careSite == null)
-//			return null;
-//
-//		Long fhirId = IdMapping.getFHIRfromOMOP(myId, getMyFhirResourceType());
-//
-//		return constructFHIR(fhirId, careSite);
-//	}
-
+	@Override
 	public MyOrganization constructFHIR(Long fhirId, CareSite careSite) {
 		MyOrganization organization = new MyOrganization();
 
@@ -127,7 +110,7 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 		Location location = null;
 		
 		if (fhirId != null) {
-			omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ResourceType.Organization.getPath());
+			omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), OrganizationResourceProvider.getType());
 			if (omopId == null) {
 				// This is a problem. We should have the valid omopID that matches to
 				// FHIR ID. return null.
@@ -204,7 +187,7 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 			omopRecordId = getMyOmopService().create(careSite).getId();
 		}
 		
-		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, ResourceType.Organization.getPath());
+		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, OrganizationResourceProvider.getType());
 		return fhirRecordId;
 	}
 
@@ -228,7 +211,7 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 				if (partOfOrganization != null && partOfOrganization.isEmpty() == false) {
 					IIdType partOfOrgId = partOfOrganization.getReferenceElement();
 					Long partOfOrgFhirId = partOfOrgId.getIdPartAsLong();
-					Long omopId = IdMapping.getOMOPfromFHIR(partOfOrgFhirId, ResourceType.Organization.getPath());
+					Long omopId = IdMapping.getOMOPfromFHIR(partOfOrgFhirId, OrganizationResourceProvider.getType());
 					CareSite partOfCareSite = getMyOmopService().findById(omopId);
 					MyOrganization partOfOrgResource = constructFHIR(partOfOrgFhirId, partOfCareSite);
 					
@@ -239,36 +222,6 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 
 		return myOrganization;
 	}
-
-	/**
-	 * 
-	 * @param fromIndex
-	 * @param toIndex
-	 * @param listResources
-	 */
-//	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes) {
-//		List<CareSite> careSites = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
-//
-//		// We got the results back from OMOP database. Now, we need to construct
-//		// the list of
-//		// FHIR Patient resources to be included in the bundle.
-//		for (CareSite careSite : careSites) {
-//			Long omopId = careSite.getId();
-//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-//			listResources.add(constructResource(fhirId, careSite, includes));
-//		}
-//	}
-//
-//	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
-//			List<IBaseResource> listResources, List<String> includes) {
-//		List<CareSite> careSites = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
-//
-//		for (CareSite careSite : careSites) {
-//			Long omopId = careSite.getId();
-//			Long fhirId = IdMapping.getFHIRfromOMOP(omopId, ResourceType.Patient.getPath());
-//			listResources.add(constructResource(fhirId, careSite, includes));
-//		}
-//	}
 
 	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();

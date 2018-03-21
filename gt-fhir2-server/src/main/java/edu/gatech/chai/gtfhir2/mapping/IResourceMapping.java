@@ -5,11 +5,13 @@ import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
+import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public interface IResourceMapping<v extends DomainResource, t extends BaseEntity> {
@@ -22,4 +24,6 @@ public interface IResourceMapping<v extends DomainResource, t extends BaseEntity
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes);
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map, List<IBaseResource> listResources, List<String> includes);
 
+	public List<ParameterWrapper> mapParameter(String parameter, Object value);
+	public v constructFHIR(Long fhirId, t fPerson);
 }

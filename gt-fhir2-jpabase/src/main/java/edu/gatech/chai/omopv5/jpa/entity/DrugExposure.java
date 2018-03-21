@@ -16,7 +16,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="drug_expsure")
+@Table(name="drug_exposure")
 public class DrugExposure extends BaseEntity {
 	@Id
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="drug_exposure_seq_gen")
@@ -31,36 +31,36 @@ public class DrugExposure extends BaseEntity {
 	@Column (name = "sig")
 	private String sig;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "route_concept_id")
 	private Concept routeConcept;
 	
 	@Column(name = "effective_drug_dose")
 	private Double effectiveDrugDose;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "dose_unit_concept_id")
 	private Concept doseUnitConcept;
 	
 	@Column(name = "lot_number")
 	private String lotNumber;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "provider_id")
 	private Provider provider;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "visit_occurrence_id")
 	private VisitOccurrence visitOccurrence;
 
 	@Column(name = "drug_source_value")
 	private String drugSourceValue;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "drug_source_concept_id")
 	private Concept drugSourceConcept;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "person_id", nullable = false)
 	private FPerson fPerson;
 	
@@ -70,17 +70,17 @@ public class DrugExposure extends BaseEntity {
 	@Column(name = "dose_unit_source_value")
 	private String doseUnitSourceValue;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "drug_concept_id", nullable = false)
 	private Concept drugConcept;
 	
 	@Column(name ="drug_exposure_start_date", nullable = false)
-	private Date drugExpsureStartDate;
+	private Date drugExposureStartDate;
 	
 	@Column(name ="drug_exposure_end_date")
-	private Date drugExpsureEndDate;
+	private Date drugExposureEndDate;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name = "drug_type_concept_id", nullable = false)
 	private Concept drugTypeConcept;
 	
@@ -213,20 +213,20 @@ public class DrugExposure extends BaseEntity {
 		this.drugConcept = drugConcept;
 	}
 	
-	public Date getDrugExpsureStartDate() {
-		return this.drugExpsureStartDate;
+	public Date getDrugExposureStartDate() {
+		return this.drugExposureStartDate;
 	}
 
-	public void setDrugExpsureStartDate(Date drugExpsureStartDate) {
-		this.drugExpsureStartDate = drugExpsureStartDate;
+	public void setDrugExposureStartDate(Date drugExposureStartDate) {
+		this.drugExposureStartDate = drugExposureStartDate;
 	}
 
-	public Date getDrugExpsureEndDate() {
-		return this.drugExpsureEndDate;
+	public Date getDrugExposureEndDate() {
+		return this.drugExposureEndDate;
 	}
 
-	public void setDrugExpsureEndDate(Date drugExpsureEndDate) {
-		this.drugExpsureEndDate = drugExpsureEndDate;
+	public void setDrugExposureEndDate(Date drugExposureEndDate) {
+		this.drugExposureEndDate = drugExposureEndDate;
 	}
 	
 	public Concept getDrugTypeConcept() {
@@ -256,8 +256,8 @@ public class DrugExposure extends BaseEntity {
 		return this.quantity;
 	}
 
-	public Double setQuantity() {
-		return this.quantity;
+	public void setQuantity(Double quantity) {
+		this.quantity = quantity;
 	}
 
 	@Override
