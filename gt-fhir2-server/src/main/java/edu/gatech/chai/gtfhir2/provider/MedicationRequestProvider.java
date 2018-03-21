@@ -6,24 +6,35 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.MedicationRequest;
+import org.hl7.fhir.dstu3.model.OperationOutcome;
+import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.model.primitive.IdDt;
+import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Update;
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopMedicationRequest;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -61,8 +72,52 @@ public class MedicationRequestProvider implements IResourceProvider {
 		return MedicationRequest.class;
 	}
 
+	/**
+	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
+	 * new instance of a resource to the server.
+	 */
+	@Create()
+	public MethodOutcome createMedicationRequest(@ResourceParam MedicationRequest theMedicationRequest) {
+		validateResource(theMedicationRequest);
+		
+		Long id=null;
+		try {
+			id = myMapper.toDbase(theMedicationRequest, null);
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
+		
+		if (id == null) {
+			OperationOutcome outcome = new OperationOutcome();
+			CodeableConcept detailCode = new CodeableConcept();
+			detailCode.setText("Failed to create entity.");
+			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
+		}
+
+		return new MethodOutcome(new IdDt(id));
+	}
+
+	@Update()
+	public MethodOutcome updateMedicationRequest(@IdParam IdType theId, @ResourceParam MedicationRequest theMedicationRequest) {
+		validateResource(theMedicationRequest);
+		
+		Long fhirId=null;
+		try {
+			fhirId = myMapper.toDbase(theMedicationRequest, theId);
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
+
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
+
+		return new MethodOutcome();
+	}
+
 	@Read()
-	public MedicationRequest readMedicationStatement(@IdParam IdType theId) {
+	public MedicationRequest readMedicationRequest(@IdParam IdType theId) {
 		MedicationRequest retval = (MedicationRequest) myMapper.toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);

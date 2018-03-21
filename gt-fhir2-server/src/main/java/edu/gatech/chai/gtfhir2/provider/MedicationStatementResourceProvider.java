@@ -26,6 +26,7 @@ import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateParam;
@@ -91,6 +92,24 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		}
 
 		return new MethodOutcome(new IdDt(id));
+	}
+
+	@Update()
+	public MethodOutcome updateMedicationStatement(@IdParam IdType theId, @ResourceParam MedicationStatement theMedicationStatement) {
+		validateResource(theMedicationStatement);
+		
+		Long fhirId=null;
+		try {
+			fhirId = myMapper.toDbase(theMedicationStatement, theId);
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
+
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
+
+		return new MethodOutcome();
 	}
 
 	@Read()
