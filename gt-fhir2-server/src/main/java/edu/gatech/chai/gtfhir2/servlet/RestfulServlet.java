@@ -15,6 +15,7 @@ import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.MedicationRequestProvider;
 import edu.gatech.chai.gtfhir2.provider.MedicationStatementResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
@@ -53,6 +54,7 @@ public class RestfulServlet extends RestfulServer {
 		providers.add(new OrganizationResourceProvider());
 		providers.add(new PractitionerResourceProvider());
 		providers.add(new PatientResourceProvider());
+		providers.add(new MedicationRequestProvider());
 		setResourceProviders(providers);
 		
 		/*

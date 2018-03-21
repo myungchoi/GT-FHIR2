@@ -421,7 +421,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				String unitCode = ((Quantity) systolicValue).getCode();
 				String omopVocabularyId = OmopCodeableConceptMapping.omopVocabularyforFhirUri(unitSystem);
 				if (omopVocabularyId != null) {
-					Concept unitConcept = CodeableConceptUtil.getOmopConceptWith(conceptService, omopVocabularyId, unitCode);
+					Concept unitConcept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, omopVocabularyId, unitCode);
 					systolicMeasurement.setUnitConcept(unitConcept);
 				}
 				systolicMeasurement.setValueSourceValue(((Quantity) systolicValue).getValue().toString());
@@ -449,7 +449,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				String unitCode = ((Quantity) diastolicValue).getCode();
 				String omopVocabularyId = OmopCodeableConceptMapping.omopVocabularyforFhirUri(unitSystem);
 				if (omopVocabularyId != null) {
-					Concept unitConcept = CodeableConceptUtil.getOmopConceptWith(conceptService, omopVocabularyId, unitCode);
+					Concept unitConcept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, omopVocabularyId, unitCode);
 					diastolicMeasurement.setUnitConcept(unitConcept);
 				}
 				diastolicMeasurement.setValueSourceValue(((Quantity) diastolicValue).getValue().toString());
@@ -682,7 +682,6 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 						break;
 					}
 				} catch (FHIRException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -803,7 +802,6 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				try {
 					OmopSystem = OmopCodeableConceptMapping.omopVocabularyforFhirUri(fhirSystemUri);
 				} catch (FHIRException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				if ("None".equals(OmopSystem) == false) {
@@ -823,7 +821,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		Concept concept = null;
 		if (codingFound != null) {
 			// Find the concept id for this coding.
-			concept = CodeableConceptUtil.getOmopConceptWith(
+			concept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(
 					conceptService, 
 					OmopCodeableConceptMapping.LOINC.getOmopVocabulary(), 
 					codingFound.getCode());
@@ -833,7 +831,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		} else {
 			// This is not our first choice. But, found one that we can
 			// map.
-			concept = CodeableConceptUtil.getOmopConceptWith(
+			concept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(
 					conceptService, 
 					OmopSystem, 
 					codingSecondChoice.getCode());
@@ -870,7 +868,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				} else {
 					omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(unitSystem);
 				}
-				concept = CodeableConceptUtil.getOmopConceptWith(
+				concept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(
 						conceptService, 
 						omopVocabulary, 
 						unitCode);
@@ -909,7 +907,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				}
 				
 				String omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(fhirSystem);
-				concept = CodeableConceptUtil.getOmopConceptWith(
+				concept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(
 						conceptService, 
 						omopVocabulary, 
 						fhirCode);
@@ -1128,7 +1126,6 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 					myDate = fObservationView.getDate();
 				}				
 			} catch (ParseException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

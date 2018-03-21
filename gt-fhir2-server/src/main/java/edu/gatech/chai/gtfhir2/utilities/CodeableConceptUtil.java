@@ -33,7 +33,7 @@ public class CodeableConceptUtil {
 		return codeableConcept;
 	}
 	
-	public static Concept getOmopConceptWith(ConceptService conceptService, String omopVocabularyId, String code) {
+	public static Concept getOmopConceptWithOmopVacabIdAndCode(ConceptService conceptService, String omopVocabularyId, String code) {
 		if (omopVocabularyId == null) return null;
 		
 		ParameterWrapper param = new ParameterWrapper(
@@ -63,7 +63,7 @@ public class CodeableConceptUtil {
 		String code = fhirCoding.getCode();
 		
 		String omopVocabularyId = OmopCodeableConceptMapping.omopVocabularyforFhirUri(system);
-		return getOmopConceptWith(conceptService, omopVocabularyId, code);
+		return getOmopConceptWithOmopVacabIdAndCode(conceptService, omopVocabularyId, code);
 	}
 	
 	public static Concept searchConcept(ConceptService conceptService, CodeableConcept codeableConcept) throws FHIRException {
