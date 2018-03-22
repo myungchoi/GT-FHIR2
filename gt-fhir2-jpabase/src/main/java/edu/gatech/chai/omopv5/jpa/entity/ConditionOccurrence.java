@@ -6,81 +6,62 @@ import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
+import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
 
+@Entity
+@Table(name="condition_occurrence")
 public class ConditionOccurrence extends BaseEntity{
 	
 	@Id
-	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="condition_occurrence_id_seq")
-	@SequenceGenerator(name="condition_occurrence_id_seq", sequenceName="condition_occurrence_id_seq", allocationSize=1)
-	@Column(name="person_id", nullable = false)
+	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="condition_occurrence_id_seq_gen")
+	@SequenceGenerator(name="condition_occurrence_id_seq_gen", sequenceName="condition_occurrence_id_seq", allocationSize=1)
+	@Column(name="condition_occurrence_id", nullable = false)
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	
 	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name="person_id", nullable= false)
 	private FPerson fPerson;
-	
-	@Column(name="condtion_concept_id", nullable=false)
-	private Concept conceptId;
-	
-	@Column(name="condition_start_date")
-	private Date startDate;
-	
-	@Column(name="day_of_birth")
-	private Integer dayOfBirth;
-	
-	@Column(name="time_of_birth")
-	private String timeOfBirth;
-	
-	@ManyToOne
-	@JoinColumn(name="race_concept_id")
-	private Concept raceConcept;
-	
-	@ManyToOne
-	@JoinColumn(name="ethnicity_concept_id")
-	private Concept ethnicityConcept;
-	
-	@ManyToOne(cascade={CascadeType.ALL})
-	@JoinColumn(name="location_id")
-	private Location location;
-	
-	@ManyToOne(cascade={CascadeType.ALL})
-	@JoinColumn(name="provider_id")
-	private Provider provider;
 
 	@ManyToOne(cascade={CascadeType.MERGE})
-	@JoinColumn(name="care_site_id")
-	private CareSite careSite;
+	@JoinColumn(name = "condtion_concept_id", nullable = false)
+	private Concept conceptId;
 	
-	@Column(name="person_source_value")
-	private String personSourceValue;
-	
-	@Column(name="gender_source_value")
-	private String genderSourceValue;
-	
-	@ManyToOne
-	@JoinColumn(name="gender_source_concept_id")
-	private Concept genderSourceConcept;
-	
-	@Column(name="race_source_value")
-	private String raceSourceValue;
-	
-	@ManyToOne
-	@JoinColumn(name="race_source_concept_id")
-	private Concept raceSourceConcept;
+	@Column(name="condition_start_date", nullable = false)
+	private Date startDate;
 
-	@Column(name="ethnicity_source_value")
-	private String ethnicitySourceValue;
-	
-	@ManyToOne
-	@JoinColumn(name="ethnicity_source_concept_id")
-	private Concept ethnicitySourceConcept;
+	@Column(name="condition_end_date")
+	private Date endDate;
+
+	@ManyToOne(cascade={CascadeType.MERGE})
+	@JoinColumn(name = "condtion_type_concept_id", nullable = false)
+	private Concept typeConceptId;
+
+	@Column(name="stop_reason")
+	private String stopReason;
+
+	@ManyToOne(cascade = { CascadeType.MERGE })
+	@JoinColumn(name = "provider_id")
+	private Provider provider;
+
+	@ManyToOne(cascade = { CascadeType.MERGE })
+	@JoinColumn(name = "visit_occurrence_id")
+	private VisitOccurrence visitOccurrence;
+
+	@Column(name="condition_source_value")
+	private String conditionSourceValue;
+
+	@ManyToOne(cascade={CascadeType.MERGE})
+	@JoinColumn(name = "condition_source_concept_id")
+	private Concept sourceConceptId;
+
 
 	public Long getId() {
 		return id;
@@ -89,15 +70,87 @@ public class ConditionOccurrence extends BaseEntity{
 	public void setId(Long id) {
 		this.id = id;
 	}
-	
-	public FPerson getFPerson() {
-		return this.fPerson;
+
+	public FPerson getfPerson() {
+		return fPerson;
 	}
 
-	public void setFPerson(FPerson fPerson) {
+	public void setfPerson(FPerson fPerson) {
 		this.fPerson = fPerson;
 	}
-	
+
+	public Concept getConceptId() {
+		return conceptId;
+	}
+
+	public void setConceptId(Concept conceptId) {
+		this.conceptId = conceptId;
+	}
+
+	public Date getStartDate() {
+		return startDate;
+	}
+
+	public void setStartDate(Date startDate) {
+		this.startDate = startDate;
+	}
+
+	public Date getEndDate() {
+		return endDate;
+	}
+
+	public void setEndDate(Date endDate) {
+		this.endDate = endDate;
+	}
+
+	public Concept getTypeConceptId() {
+		return typeConceptId;
+	}
+
+	public void setTypeConceptId(Concept typeConceptId) {
+		this.typeConceptId = typeConceptId;
+	}
+
+	public String getStopReason() {
+		return stopReason;
+	}
+
+	public void setStopReason(String stopReason) {
+		this.stopReason = stopReason;
+	}
+
+	public Provider getProvider() {
+		return provider;
+	}
+
+	public void setProvider(Provider provider) {
+		this.provider = provider;
+	}
+
+	public VisitOccurrence getVisitOccurrence() {
+		return visitOccurrence;
+	}
+
+	public void setVisitOccurrence(VisitOccurrence visitOccurrence) {
+		this.visitOccurrence = visitOccurrence;
+	}
+
+	public String getConditionSourceValue() {
+		return conditionSourceValue;
+	}
+
+	public void setConditionSourceValue(String conditionSourceValue) {
+		this.conditionSourceValue = conditionSourceValue;
+	}
+
+	public Concept getSourceConceptId() {
+		return sourceConceptId;
+	}
+
+	public void setSourceConceptId(Concept sourceConceptId) {
+		this.sourceConceptId = sourceConceptId;
+	}
+
 	@Override
 	public Long getIdAsLong() {
 		return getId();

@@ -2,6 +2,7 @@ package edu.gatech.chai.gtfhir2.servlet;
 
 import java.util.*;
 
+import edu.gatech.chai.gtfhir2.provider.*;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.cors.CorsConfiguration;
 
@@ -14,12 +15,6 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
-import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
-import edu.gatech.chai.gtfhir2.provider.MedicationStatementResourceProvider;
-import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
-import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
-import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
-import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
 
 /**
  * This servlet is the actual FHIR server itself
@@ -53,6 +48,7 @@ public class RestfulServlet extends RestfulServer {
 		providers.add(new OrganizationResourceProvider());
 		providers.add(new PractitionerResourceProvider());
 		providers.add(new PatientResourceProvider());
+		providers.add(new ConditionResourceProvider());
 		setResourceProviders(providers);
 		
 		/*
