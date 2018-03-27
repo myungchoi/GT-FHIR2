@@ -31,7 +31,7 @@ public class ConditionOccurrence extends BaseEntity{
 	private FPerson fPerson;
 
 	@ManyToOne(cascade={CascadeType.MERGE})
-	@JoinColumn(name = "condtion_concept_id", nullable = false)
+	@JoinColumn(name = "condition_concept_id", nullable = false)
 	private Concept conceptId;
 	
 	@Column(name="condition_start_date", nullable = false)
@@ -41,7 +41,7 @@ public class ConditionOccurrence extends BaseEntity{
 	private Date endDate;
 
 	@ManyToOne(cascade={CascadeType.MERGE})
-	@JoinColumn(name = "condtion_type_concept_id", nullable = false)
+	@JoinColumn(name = "condition_type_concept_id", nullable = false)
 	private Concept typeConceptId;
 
 	@Column(name="stop_reason")

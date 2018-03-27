@@ -407,15 +407,19 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
     private void addAsserterToCondition(ConditionOccurrence conditionOccurrence, Condition condition){
         //Condition.asserter
         Provider provider = conditionOccurrence.getProvider();
-        Reference providerRef = new Reference(new IdType(PractitionerResourceProvider.getType(), provider.getId()));
-        providerRef.setDisplay(provider.getProviderName());
-        condition.setAsserter(providerRef);
+        if( provider != null ) {
+            Reference providerRef = new Reference(new IdType(PractitionerResourceProvider.getType(), provider.getId()));
+            providerRef.setDisplay(provider.getProviderName());
+            condition.setAsserter(providerRef);
+        }
     }
 
     private void addContextToCondition(ConditionOccurrence conditionOccurrence, Condition condition){
         //Condition.context
         VisitOccurrence visitOccurrence = conditionOccurrence.getVisitOccurrence();
-        Reference visitRef = new Reference(new IdType(visitOccurrence.getId()));
-        condition.setContext(visitRef);
+        if( visitOccurrence != null ) {
+            Reference visitRef = new Reference(new IdType(visitOccurrence.getId()));
+            condition.setContext(visitRef);
+        }
     }
 }

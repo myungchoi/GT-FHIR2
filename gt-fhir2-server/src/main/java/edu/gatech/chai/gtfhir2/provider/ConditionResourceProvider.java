@@ -129,20 +129,13 @@ public class ConditionResourceProvider implements IResourceProvider {
 
     @Search()
     public IBundleProvider findConditionByParams(
-            @OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
-            @OptionalParam(name = MyOrganization.SP_NAME) StringParam theName,
-
-            @IncludeParam(allow={"Organization:partof"})
-            final Set<Include> theIncludes
+            @OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId
     ) {
         final InstantType searchTime = InstantType.withCurrentTime();
         Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
 
         if (thePatientId != null) {
             mapParameter (paramMap, MyOrganization.SP_RES_ID, thePatientId);
-        }
-        if (theName != null) {
-            mapParameter (paramMap, MyOrganization.SP_NAME, theName);
         }
 
         // Now finalize the parameter map.
@@ -167,9 +160,6 @@ public class ConditionResourceProvider implements IResourceProvider {
 
                 // _Include
                 List<String> includes = new ArrayList<String>();
-                if (theIncludes.contains(new Include("Organization:partof"))) {
-                    includes.add("Organization:partof");
-                }
 
                 if (finalParamMap.size() == 0) {
                     myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
@@ -196,6 +186,77 @@ public class ConditionResourceProvider implements IResourceProvider {
                 return totalSize.intValue();
             }};
     }
+
+
+//    @Search()
+//    public IBundleProvider findConditionByParams(
+//            @OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
+//            @OptionalParam(name = MyOrganization.SP_NAME) StringParam theName,
+//
+//            @IncludeParam(allow={"Organization:partof"})
+//            final Set<Include> theIncludes
+//    ) {
+//        final InstantType searchTime = InstantType.withCurrentTime();
+//        Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+//
+//        if (thePatientId != null) {
+//            mapParameter (paramMap, MyOrganization.SP_RES_ID, thePatientId);
+//        }
+//        if (theName != null) {
+//            mapParameter (paramMap, MyOrganization.SP_NAME, theName);
+//        }
+//
+//        // Now finalize the parameter map.
+//        final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
+//        final Long totalSize;
+//        if (paramMap.size() == 0) {
+//            totalSize = myMapper.getSize();
+//        } else {
+//            totalSize = myMapper.getSize(finalParamMap);
+//        }
+//
+//        return new IBundleProvider() {
+//
+//            @Override
+//            public IPrimitiveType<Date> getPublished() {
+//                return searchTime;
+//            }
+//
+//            @Override
+//            public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+//                List<IBaseResource> retv = new ArrayList<IBaseResource>();
+//
+//                // _Include
+//                List<String> includes = new ArrayList<String>();
+//                if (theIncludes.contains(new Include("Organization:partof"))) {
+//                    includes.add("Organization:partof");
+//                }
+//
+//                if (finalParamMap.size() == 0) {
+//                    myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+//                } else {
+//                    myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
+//                }
+//
+//                return retv;
+//            }
+//
+//            @Override
+//            public String getUuid() {
+//                // TODO Auto-generated method stub
+//                return null;
+//            }
+//
+//            @Override
+//            public Integer preferredPageSize() {
+//                return preferredPageSize;
+//            }
+//
+//            @Override
+//            public Integer size() {
+//                return totalSize.intValue();
+//            }};
+//    }
 
     private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
         List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
