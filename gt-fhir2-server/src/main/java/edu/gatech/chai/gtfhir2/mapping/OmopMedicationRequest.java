@@ -478,11 +478,10 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 		case MedicationRequest.SP_CONTEXT:
 			Long fhirEncounterId = ((ReferenceParam) value).getIdPartAsLong();
 			Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, EncounterResourceProvider.getType());
-			String resourceName = ((ReferenceParam) value).getResourceType();
+//			String resourceName = ((ReferenceParam) value).getResourceType();
 			
 			// We support Encounter so the resource type should be Encounter.
-			if (EncounterResourceProvider.getType().equals(resourceName)
-					&& omopVisitOccurrenceId != null) {
+			if (omopVisitOccurrenceId != null) {
 				paramWrapper.setParameterType("Long");
 				paramWrapper.setParameters(Arrays.asList("visitOccurrence.id"));
 				paramWrapper.setOperators(Arrays.asList("="));

@@ -25,6 +25,8 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.DateParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -144,7 +146,13 @@ public class ProcedureResourceProvider implements IResourceProvider {
 	@Search()
 	public IBundleProvider findProceduresByParams(
 			@OptionalParam(name = Procedure.SP_RES_ID) TokenParam theProcedureId,
-			@OptionalParam(name = Procedure.SP_CODE) TokenParam theCode
+			@OptionalParam(name = Procedure.SP_CODE) TokenParam theCode,
+			@OptionalParam(name = Procedure.SP_CONTEXT) ReferenceParam theContextParam,
+			@OptionalParam(name = Procedure.SP_DATE) DateParam theDateParm,
+			@OptionalParam(name = Procedure.SP_ENCOUNTER) ReferenceParam theEncounterParam,
+			@OptionalParam(name = Procedure.SP_SUBJECT) ReferenceParam theSubjectParam,
+			@OptionalParam(name = Procedure.SP_PATIENT) ReferenceParam thePatientParam,
+			@OptionalParam(name = Procedure.SP_PERFORMER) ReferenceParam thePerformerParam
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 
@@ -162,6 +170,24 @@ public class ProcedureResourceProvider implements IResourceProvider {
 		}
 		if (theCode != null) {
 			mapParameter (paramMap, Procedure.SP_CODE, theCode);
+		}
+		if (theContextParam != null) {
+			mapParameter (paramMap, Procedure.SP_CONTEXT, theContextParam);
+		}
+		if (theDateParm != null) {
+			mapParameter (paramMap, Procedure.SP_DATE, theDateParm);
+		}
+		if (theEncounterParam != null) {
+			mapParameter (paramMap, Procedure.SP_ENCOUNTER, theEncounterParam);
+		}
+		if (theSubjectParam != null) {
+			mapParameter (paramMap, Procedure.SP_SUBJECT, theSubjectParam);
+		}
+		if (thePatientParam != null) {
+			mapParameter (paramMap, Procedure.SP_PATIENT, thePatientParam);
+		}
+		if (thePerformerParam != null) {
+			mapParameter (paramMap, Procedure.SP_PERFORMER, thePerformerParam);
 		}
 		
 		// Now finalize the parameter map.

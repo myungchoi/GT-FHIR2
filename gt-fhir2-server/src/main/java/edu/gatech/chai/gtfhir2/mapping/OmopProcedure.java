@@ -8,7 +8,6 @@ import java.util.List;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DateTimeType;
-import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Procedure;
 import org.hl7.fhir.dstu3.model.Procedure.ProcedurePerformerComponent;
@@ -18,6 +17,9 @@ import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.rest.param.DateParam;
+import ca.uhn.fhir.rest.param.ParamPrefixEnum;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
@@ -353,6 +355,79 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 			}
 			paramWrapper.setRelationship("and");
 			mapList.add(paramWrapper);
+			break;
+		case Procedure.SP_CONTEXT:
+		case Procedure.SP_ENCOUNTER:
+			Long fhirEncounterId = ((ReferenceParam) value).getIdPartAsLong();
+			Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(fhirEncounterId, EncounterResourceProvider.getType());
+//			String resourceName = ((ReferenceParam) value).getResourceType();
+			
+			// We support Encounter so the resource type should be Encounter.
+			if (omopVisitOccurrenceId != null) {
+				paramWrapper.setParameterType("Long");
+				paramWrapper.setParameters(Arrays.asList("visitOccurrence.id"));
+				paramWrapper.setOperators(Arrays.asList("="));
+				paramWrapper.setValues(Arrays.asList(String.valueOf(omopVisitOccurrenceId)));
+				paramWrapper.setRelationship("or");
+				mapList.add(paramWrapper);
+			}
+			break;
+		case Procedure.SP_DATE:
+			DateParam dateParam = ((DateParam) value);
+			ParamPrefixEnum apiOperator = dateParam.getPrefix();
+			String sqlOperator = null;
+			if (apiOperator.equals(ParamPrefixEnum.GREATERTHAN)) {
+				sqlOperator = ">";
+			} else if (apiOperator.equals(ParamPrefixEnum.GREATERTHAN_OR_EQUALS)) {
+				sqlOperator = ">=";
+			} else if (apiOperator.equals(ParamPrefixEnum.LESSTHAN)) {
+				sqlOperator = "<";
+			} else if (apiOperator.equals(ParamPrefixEnum.LESSTHAN_OR_EQUALS)) {
+				sqlOperator = "<=";
+			} else if (apiOperator.equals(ParamPrefixEnum.NOT_EQUAL)) {
+				sqlOperator = "!=";
+			} else {
+				sqlOperator = "=";
+			}
+			Date date = dateParam.getValue();
+			
+			paramWrapper.setParameterType("Date");
+			paramWrapper.setParameters(Arrays.asList("procedureDate"));
+			paramWrapper.setOperators(Arrays.asList(sqlOperator));
+			paramWrapper.setValues(Arrays.asList(String.valueOf(date.getTime())));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Procedure.SP_SUBJECT:
+		case Procedure.SP_PATIENT:
+			ReferenceParam patientReference = ((ReferenceParam) value);
+			Long fhirPatientId = patientReference.getIdPartAsLong();
+			Long omopPersonId = IdMapping.getOMOPfromFHIR(fhirPatientId, PatientResourceProvider.getType());
+
+			String omopPersonIdString = String.valueOf(omopPersonId);
+			
+			paramWrapper.setParameterType("Long");
+			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
+			paramWrapper.setOperators(Arrays.asList("="));
+			paramWrapper.setValues(Arrays.asList(omopPersonIdString));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Procedure.SP_PERFORMER:
+			// We only support provider (Practitioner).
+			Long fhirPractitionerId = ((ReferenceParam) value).getIdPartAsLong();
+			Long omopProviderId = IdMapping.getOMOPfromFHIR(fhirPractitionerId, PractitionerResourceProvider.getType());
+//			String performerResourceName = ((ReferenceParam) value).getResourceType();
+			
+			// We support Encounter so the resource type should be Encounter.
+			if (omopProviderId != null) {
+				paramWrapper.setParameterType("Long");
+				paramWrapper.setParameters(Arrays.asList("provider.id"));
+				paramWrapper.setOperators(Arrays.asList("="));
+				paramWrapper.setValues(Arrays.asList(String.valueOf(omopProviderId)));
+				paramWrapper.setRelationship("or");
+				mapList.add(paramWrapper);
+			}
 			break;
 		default:
 			mapList = null;
