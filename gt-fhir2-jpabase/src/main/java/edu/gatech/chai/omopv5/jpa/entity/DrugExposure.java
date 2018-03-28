@@ -4,7 +4,6 @@ import java.util.Date;
 
 import javax.persistence.Access;
 import javax.persistence.AccessType;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -45,22 +44,22 @@ public class DrugExposure extends BaseEntity {
 	@Column(name = "lot_number")
 	private String lotNumber;
 	
-	@ManyToOne()
+	@ManyToOne
 	@JoinColumn(name = "provider_id")
 	private Provider provider;
 	
-	@ManyToOne()
+	@ManyToOne
 	@JoinColumn(name = "visit_occurrence_id")
 	private VisitOccurrence visitOccurrence;
 
 	@Column(name = "drug_source_value")
 	private String drugSourceValue;
 	
-	@ManyToOne()
+	@ManyToOne
 	@JoinColumn(name = "drug_source_concept_id")
 	private Concept drugSourceConcept;
 	
-	@ManyToOne()
+	@ManyToOne
 	@JoinColumn(name = "person_id", nullable = false)
 	private FPerson fPerson;
 	
@@ -70,7 +69,7 @@ public class DrugExposure extends BaseEntity {
 	@Column(name = "dose_unit_source_value")
 	private String doseUnitSourceValue;
 	
-	@ManyToOne()
+	@ManyToOne
 	@JoinColumn(name = "drug_concept_id", nullable = false)
 	private Concept drugConcept;
 	
@@ -80,7 +79,7 @@ public class DrugExposure extends BaseEntity {
 	@Column(name ="drug_exposure_end_date")
 	private Date drugExposureEndDate;
 	
-	@ManyToOne()
+	@ManyToOne
 	@JoinColumn(name = "drug_type_concept_id", nullable = false)
 	private Concept drugTypeConcept;
 	
@@ -93,6 +92,14 @@ public class DrugExposure extends BaseEntity {
 	@Column(name = "quantity")
 	private Double quantity;
 
+	
+	public DrugExposure() {
+	}
+
+	public DrugExposure(Long id) {
+		this.id = id;
+	}
+	
 	public Long getId() {
 		return id;
 	}

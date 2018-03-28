@@ -74,6 +74,14 @@ private int preferredPageSize = 30;
 		}
 	}
 
+	/**
+	 * The getResourceType method comes from IResourceProvider, and must be overridden to indicate what type of resource this provider supplies.
+	 */
+	@Override
+	public Class<Patient> getResourceType() {
+		return Patient.class;
+	}
+
 	public static String getType() {
 		return "Patient";
 	}
@@ -311,14 +319,6 @@ private int preferredPageSize = 30;
 
 	
 	/**
-	 * The getResourceType method comes from IResourceProvider, and must be overridden to indicate what type of resource this provider supplies.
-	 */
-	@Override
-	public Class<Patient> getResourceType() {
-		return Patient.class;
-	}
-
-	/**
 	 * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
 	 * <p>
 	 * Read operations take a single parameter annotated with the {@link IdParam} paramater, and should return a single resource instance.
@@ -356,7 +356,6 @@ private int preferredPageSize = 30;
 		try {
 			fhirId = myMapper.toDbase(thePatient, theId);
 		} catch (FHIRException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		if (fhirId == null) {

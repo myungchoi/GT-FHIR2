@@ -51,7 +51,8 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
-public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonService> implements IResourceMapping<Patient, FPerson> {
+public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonService> 
+	implements IResourceMapping<Patient, FPerson> {
 
 	private static OmopPatient omopPatient = new OmopPatient();
 	private LocationService locationService;

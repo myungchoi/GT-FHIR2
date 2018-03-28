@@ -30,7 +30,7 @@ import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
-import edu.gatech.chai.gtfhir2.provider.MedicationRequestProvider;
+import edu.gatech.chai.gtfhir2.provider.MedicationRequestResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.MedicationStatementResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
@@ -81,7 +81,7 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 	private FPersonService fPersonService;
 
 	public OmopMedicationRequest(WebApplicationContext context) {
-		super(context, DrugExposure.class, DrugExposureService.class, MedicationRequestProvider.getType());
+		super(context, DrugExposure.class, DrugExposureService.class, MedicationRequestResourceProvider.getType());
 		initialize(context);
 	}
 	
@@ -108,7 +108,7 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 		if (fhirId != null) {
 			// Update
 			Long fhirIdLong = fhirId.getIdPartAsLong();
-			omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, MedicationRequestProvider.getType());
+			omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, MedicationRequestResourceProvider.getType());
 			drugExposure = getMyOmopService().findById(omopId);
 			if (drugExposure == null) { 
 				// PUT (update) to non-existing data

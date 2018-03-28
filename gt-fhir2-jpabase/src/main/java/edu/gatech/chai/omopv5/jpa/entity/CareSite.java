@@ -28,11 +28,11 @@ public class CareSite extends BaseEntity {
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	
-	@ManyToOne(cascade={CascadeType.ALL})
+	@ManyToOne
 	@JoinColumn(name="location_id")
 	private Location location;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="place_of_service_concept_id")
 	private Concept placeOfServiceConcept;
 	

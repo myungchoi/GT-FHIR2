@@ -8,12 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
-import org.hl7.fhir.dstu3.model.OperationOutcome;
-import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
@@ -35,8 +33,8 @@ import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopPractitioner;
+import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 /**
@@ -81,7 +79,14 @@ public class PractitionerResourceProvider implements IResourceProvider {
 	public MethodOutcome createPractitioner(@ResourceParam Practitioner thePractitioner) {
 		validateResource(thePractitioner);
 
-		Long id = myMapper.toDbase(thePractitioner, null);
+		Long id = null;
+		try {
+			id = myMapper.toDbase(thePractitioner, null);
+		} catch (FHIRException e) {
+			e.printStackTrace();
+			ThrowFHIRExceptions.unprocessableEntityException(e.getMessage());
+		}
+		
 		return new MethodOutcome(new IdDt(id));
 	}
 
@@ -239,30 +244,23 @@ public class PractitionerResourceProvider implements IResourceProvider {
 	 * 
 	 * @param theId
 	 *            This is the ID of the patient to update
-	 * @param thePatient
+	 * @param thePractitioner
 	 *            This is the actual resource to save
 	 * @return This method returns a "MethodOutcome"
 	 */
 	@Update()
-	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Practitioner thePractitioner) {
+	public MethodOutcome updatePractitioner(@IdParam IdType theId, @ResourceParam Practitioner thePractitioner) {
 		validateResource(thePractitioner);
 
-		// Long id;
-		// try {
-		// id = theId.getIdPartAsLong();
-		// } catch (DataFormatException e) {
-		// throw new InvalidRequestException("Invalid ID " + theId.getValue() +
-		// " - Must be numeric");
-		// }
-		//
-		// /*
-		// * Throw an exception (HTTP 404) if the ID is not known
-		// */
-		// if (!myIdToPatientVersions.containsKey(id)) {
-		// throw new ResourceNotFoundException(theId);
-		// }
-		//
-		// addNewVersion(thePatient, id);
+		Long fhirId=null;
+		try {
+			fhirId = myMapper.toDbase(thePractitioner, theId);
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
 		return new MethodOutcome();
 	}
@@ -271,8 +269,8 @@ public class PractitionerResourceProvider implements IResourceProvider {
 	 * This method just provides simple business validation for resources we are
 	 * storing.
 	 * 
-	 * @param thePatient
-	 *            The patient to validate
+	 * @param thePractitioner
+	 *            The thePractitioner to validate
 	 */
 	private void validateResource(Practitioner thePractitioner) {
 		/*
@@ -280,11 +278,7 @@ public class PractitionerResourceProvider implements IResourceProvider {
 		 * will reject them
 		 */
 		if (thePractitioner.getName().isEmpty()) {
-			OperationOutcome outcome = new OperationOutcome();
-			CodeableConcept detailCode = new CodeableConcept();
-			detailCode.setText("No name provided, Practictioner resources must have at least one name.");
-			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-			throw new UnprocessableEntityException(outcome);
+			ThrowFHIRExceptions.unprocessableEntityException("No name provided, Practictioner resources must have at least one name.");
 		}
 	}
 

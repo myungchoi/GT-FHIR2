@@ -6,19 +6,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
-import org.hl7.fhir.dstu3.model.MedicationRequest;
-import org.hl7.fhir.dstu3.model.OperationOutcome;
-import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
+import org.hl7.fhir.dstu3.model.Procedure;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
-import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
@@ -29,29 +25,27 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.DateParam;
-import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-import edu.gatech.chai.gtfhir2.mapping.OmopMedicationRequest;
+import edu.gatech.chai.gtfhir2.mapping.OmopProcedure;
+import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-public class MedicationRequestProvider implements IResourceProvider {
+public class ProcedureResourceProvider implements IResourceProvider {
 
 	private WebApplicationContext myAppCtx;
 	private String myDbType;
-	private OmopMedicationRequest myMapper;
+	private OmopProcedure myMapper;
 	private int preferredPageSize = 30;
 
-	public MedicationRequestProvider() {
+	public ProcedureResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
 		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
 		if (myDbType.equalsIgnoreCase("omopv5") == true) {
-			myMapper = new OmopMedicationRequest(myAppCtx);
+			myMapper = new OmopProcedure(myAppCtx);
 		} else {
-			myMapper = new OmopMedicationRequest(myAppCtx);
+			myMapper = new OmopProcedure(myAppCtx);
 		}
 
 		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
@@ -60,55 +54,57 @@ public class MedicationRequestProvider implements IResourceProvider {
 			if (pageSize > 0) {
 				preferredPageSize = pageSize;
 			}
-		}
+		}	
 	}
 	
-	public static String getType() {
-		return "MedicationRequest";
+	@Override
+	public Class<Procedure> getResourceType() {
+		return Procedure.class;
 	}
 
-	@Override
-	public Class<? extends IBaseResource> getResourceType() {
-		return MedicationRequest.class;
+	public static String getType() {
+		return "Procedure";
 	}
 
 	/**
-	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
-	 * new instance of a resource to the server.
+	 * The "@Create" annotation indicates that this method implements
+	 * "create=type", which adds a new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createMedicationRequest(@ResourceParam MedicationRequest theMedicationRequest) {
-		validateResource(theMedicationRequest);
-		
-		Long id=null;
+	public MethodOutcome createProcedure(@ResourceParam Procedure theProcedure) {
+		validateResource(theProcedure);
+
+		Long id = null;
 		try {
-			id = myMapper.toDbase(theMedicationRequest, null);
+			id = myMapper.toDbase(theProcedure, null);
 		} catch (FHIRException e) {
 			e.printStackTrace();
+			ThrowFHIRExceptions.unprocessableEntityException(e.getMessage());
 		}
-		
-		if (id == null) {
-			OperationOutcome outcome = new OperationOutcome();
-			CodeableConcept detailCode = new CodeableConcept();
-			detailCode.setText("Failed to create entity.");
-			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
-		}
-
 		return new MethodOutcome(new IdDt(id));
 	}
 
+	/**
+	 * The "@Update" annotation indicates that this method supports replacing an
+	 * existing resource (by ID) with a new instance of that resource.
+	 * 
+	 * @param theId
+	 *            This is the ID of the patient to update
+	 * @param theProcedure
+	 *            This is the actual resource to save
+	 * @return This method returns a "MethodOutcome"
+	 */
 	@Update()
-	public MethodOutcome updateMedicationRequest(@IdParam IdType theId, @ResourceParam MedicationRequest theMedicationRequest) {
-		validateResource(theMedicationRequest);
-		
+	public MethodOutcome updatePractitioner(@IdParam IdType theId, @ResourceParam Procedure theProcedure) {
+		validateResource(theProcedure);
+
 		Long fhirId=null;
 		try {
-			fhirId = myMapper.toDbase(theMedicationRequest, theId);
+			fhirId = myMapper.toDbase(theProcedure, theId);
 		} catch (FHIRException e) {
 			e.printStackTrace();
+			ThrowFHIRExceptions.unprocessableEntityException(e.getMessage());
 		}
-
 		if (fhirId == null) {
 			throw new ResourceNotFoundException(theId);
 		}
@@ -116,53 +112,54 @@ public class MedicationRequestProvider implements IResourceProvider {
 		return new MethodOutcome();
 	}
 
+	/**
+	 * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
+	 * <p>
+	 * Read operations take a single parameter annotated with the {@link IdParam} paramater, and should return a single resource instance.
+	 * </p>
+	 * 
+	 * @param theId
+	 *            The read operation takes one parameter, which must be of type IdDt and must be annotated with the "@Read.IdParam" annotation.
+	 * @return Returns a resource matching this identifier, or null if none exists.
+	 */
 	@Read()
-	public MedicationRequest readMedicationRequest(@IdParam IdType theId) {
-		MedicationRequest retval = (MedicationRequest) myMapper.toFHIR(theId);
+	public Procedure readProcedure(@IdParam IdType theId) {
+		Procedure retval = myMapper.toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);
 		}
 			
 		return retval;
 	}
-
+	
+	/**
+	 * The "@Search" annotation indicates that this method supports the search operation. You may have many different method annotated with this annotation, to support many different search criteria.
+	 * This example searches by family name.
+	 * 
+	 * @param theFamilyName
+	 *            This operation takes one parameter which is the search criteria. It is annotated with the "@Required" annotation. This annotation takes one argument, a string containing the name of
+	 *            the search criteria. The datatype here is StringParam, but there are other possible parameter types depending on the specific search criteria.
+	 * @return This method returns a list of Patients in bundle. This list may contain multiple matching resources, or it may also be empty.
+	 */
 	@Search()
-	public IBundleProvider findMedicationRequestsByParams(
-			@OptionalParam(name = MedicationRequest.SP_RES_ID) TokenParam theMedicationRequestId,
-			@OptionalParam(name = MedicationRequest.SP_CODE) TokenParam theCode,
-			@OptionalParam(name = MedicationRequest.SP_CONTEXT) ReferenceParam theContext,
-			@OptionalParam(name = MedicationRequest.SP_AUTHOREDON) DateParam theDate,
-			@OptionalParam(name = MedicationRequest.SP_PATIENT) ReferenceParam thePatient,
-			@OptionalParam(name = MedicationRequest.SP_SUBJECT) ReferenceParam theSubject
+	public IBundleProvider findProceduresByParams(
+			@OptionalParam(name = Procedure.SP_RES_ID) TokenParam theProcedureId
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 
+		/*
+		 * Create parameter map, which will be used later to construct
+		 * predicate. The predicate construction should depend on the DB schema.
+		 * Therefore, we should let our mapper to do any necessary mapping on the
+		 * parameter(s). If the FHIR parameter is not mappable, the mapper should
+		 * return null, which will be skipped when predicate is constructed.
+		 */
 		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
-		
-		if (theMedicationRequestId != null) {
-			mapParameter (paramMap, MedicationRequest.SP_RES_ID, theMedicationRequestId);
-		}
-		
-		if (theCode != null) {
-			mapParameter (paramMap, MedicationRequest.SP_CODE, theCode);
-		}
 
-		if (theContext != null) {
-			mapParameter (paramMap, MedicationRequest.SP_CONTEXT, theContext);
+		if (theProcedureId != null) {
+			mapParameter (paramMap, Procedure.SP_RES_ID, theProcedureId);
 		}
-
-		if (theDate != null) {
-			mapParameter (paramMap, MedicationRequest.SP_AUTHOREDON, theDate);
-		}
-
-		if (thePatient != null || theSubject != null) {
-			// We only support Patient for subject so we handle it here.
-			if (thePatient != null)
-				mapParameter (paramMap, MedicationRequest.SP_PATIENT, thePatient);
-			else
-				mapParameter (paramMap, MedicationRequest.SP_SUBJECT, theSubject);
-		}
-
+			
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize;
@@ -191,7 +188,7 @@ public class MedicationRequestProvider implements IResourceProvider {
 				} else {
 					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
 				}
-
+				
 				return retv;
 			}
 
@@ -210,10 +207,9 @@ public class MedicationRequestProvider implements IResourceProvider {
 			public Integer size() {
 				return totalSize.intValue();
 			}
-			
 		};
 	}
-	
+
 	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
 		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
 		if (paramList != null) {
@@ -221,7 +217,14 @@ public class MedicationRequestProvider implements IResourceProvider {
 		}
 	}
 
-	private void validateResource(MedicationRequest theMedication) {
-		// TODO: implement validation method
+	/**
+	 * This method just provides simple business validation for resources we are
+	 * storing.
+	 * 
+	 * @param thePractitioner
+	 *            The thePractitioner to validate
+	 */
+	private void validateResource(Procedure theProcedure) {
 	}
+
 }
