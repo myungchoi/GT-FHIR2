@@ -163,6 +163,18 @@ public class ParameterWrapper {
 							} else {
 								subWhere = builder.and(subWhere, builder.like(path, valueName));
 							}
+						else if (oper.equalsIgnoreCase("="))
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.equal(path, valueName));
+							} else {
+								subWhere = builder.and(subWhere, builder.equal(path, valueName));
+							}
+						else if (oper.equalsIgnoreCase("!="))
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.notEqual(path, valueName));
+							} else {
+								subWhere = builder.and(subWhere, builder.notEqual(path, valueName));
+							}
 						else
 							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 								subWhere = builder.or(subWhere, builder.notLike(path, valueName));
