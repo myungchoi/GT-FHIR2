@@ -143,7 +143,8 @@ public class ProcedureResourceProvider implements IResourceProvider {
 	 */
 	@Search()
 	public IBundleProvider findProceduresByParams(
-			@OptionalParam(name = Procedure.SP_RES_ID) TokenParam theProcedureId
+			@OptionalParam(name = Procedure.SP_RES_ID) TokenParam theProcedureId,
+			@OptionalParam(name = Procedure.SP_CODE) TokenParam theCode
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 
@@ -159,7 +160,10 @@ public class ProcedureResourceProvider implements IResourceProvider {
 		if (theProcedureId != null) {
 			mapParameter (paramMap, Procedure.SP_RES_ID, theProcedureId);
 		}
-			
+		if (theCode != null) {
+			mapParameter (paramMap, Procedure.SP_CODE, theCode);
+		}
+		
 		// Now finalize the parameter map.
 		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize;

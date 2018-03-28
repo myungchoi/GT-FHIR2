@@ -9,6 +9,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
@@ -17,11 +18,16 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 @Entity
-@Table(name="procedure_occurrence")
+@Table(
+		name="procedure_occurrence",
+		indexes = { 
+				@Index(name = "idx_procedure_concept_id", columnList = "procedure_concept_id"), 
+				@Index(name = "idx_procedure_fperson_id", columnList = "person_id")
+				}
+		)
 public class ProcedureOccurrence extends BaseEntity {
 
 	@Id
-
 	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="procedure_occurrence_seq_gen")
 	@SequenceGenerator(name="procedure_occurrence_seq_gen", sequenceName="procedure_occurrence_id_seq", allocationSize=1)
 	@Column(name = "procedure_occurrence_id")

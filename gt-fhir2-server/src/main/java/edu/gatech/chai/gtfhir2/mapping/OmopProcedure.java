@@ -312,13 +312,46 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
 		switch (parameter) {
-		case Encounter.SP_RES_ID:
+		case Procedure.SP_RES_ID:
 			String procedureId = ((TokenParam) value).getValue();
 			paramWrapper.setParameterType("Long");
 			paramWrapper.setParameters(Arrays.asList("id"));
 			paramWrapper.setOperators(Arrays.asList("="));
 			paramWrapper.setValues(Arrays.asList(procedureId));
 			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
+		case Procedure.SP_CODE:
+			String system = ((TokenParam) value).getSystem();
+			String code = ((TokenParam) value).getValue();
+			
+			if ((system == null || system.isEmpty()) && (code == null || code.isEmpty()))
+				break;
+			
+			String omopVocabulary = "None";
+			if (system != null && !system.isEmpty()) {
+				try {
+					omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(system);
+				} catch (FHIRException e) {
+					e.printStackTrace();
+				}
+			} 
+
+			paramWrapper.setParameterType("String");
+			if ("None".equals(omopVocabulary) && code != null && !code.isEmpty()) {
+				paramWrapper.setParameters(Arrays.asList("procedureConcept.conceptCode"));
+				paramWrapper.setOperators(Arrays.asList("like"));
+				paramWrapper.setValues(Arrays.asList(code));
+			} else if (!"None".equals(omopVocabulary) && (code == null || code.isEmpty())) {
+				paramWrapper.setParameters(Arrays.asList("procedureConcept.vocabulary.id"));
+				paramWrapper.setOperators(Arrays.asList("like"));
+				paramWrapper.setValues(Arrays.asList(omopVocabulary));				
+			} else {
+				paramWrapper.setParameters(Arrays.asList("procedureConcept.vocabulary.id", "procedureConcept.conceptCode"));
+				paramWrapper.setOperators(Arrays.asList("like","like"));
+				paramWrapper.setValues(Arrays.asList(omopVocabulary, code));
+			}
+			paramWrapper.setRelationship("and");
 			mapList.add(paramWrapper);
 			break;
 		default:
