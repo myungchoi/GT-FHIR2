@@ -20,6 +20,7 @@ import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Patient.PatientLinkComponent;
+import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
@@ -93,8 +94,8 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 							// We map generalPractitioner to Provider, which is Practitioner.
 							IIdType generalPractitionerId = generalPractitioner.getReferenceElement();
 							Long generalPractFhirId = generalPractitionerId.getIdPartAsLong();
-							// TODO: finish this up. This should get FHIR Practitioner to OMOP mapping done.
-							// We need to get constructFHIR static method done to populate this.
+							Practitioner practitioner = OmopPractitioner.getInstance().constructFHIR(generalPractFhirId, entity.getProvider());
+							generalPractitioner.setResource(practitioner);
 						}
 					}
 				}

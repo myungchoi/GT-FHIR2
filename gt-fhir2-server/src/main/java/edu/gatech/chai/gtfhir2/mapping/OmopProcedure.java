@@ -8,7 +8,10 @@ import java.util.List;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DateTimeType;
+import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Procedure;
 import org.hl7.fhir.dstu3.model.Procedure.ProcedurePerformerComponent;
 import org.hl7.fhir.dstu3.model.Reference;
@@ -220,11 +223,45 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 		return IdMapping.getFHIRfromOMOP(OmopRecordId, ProcedureResourceProvider.getType());
 	}
 
-//	@Override
-//	public Procedure constructResource(Long fhirId, ProcedureOccurrence entity,List<String> includes) {
-//		Procedure procedure = constructFHIR(fhirId,entity); //Assuming default active state
-//		return procedure;
-//	}
+	@Override
+	public Procedure constructResource(Long fhirId, ProcedureOccurrence entity,List<String> includes) {
+		Procedure procedure = constructFHIR(fhirId,entity); 
+		Long omopId = entity.getId();
+		
+		if (!includes.isEmpty()) {
+			if (includes.contains("Procedure:patient")) {
+				if (procedure.hasSubject()) {
+					Long patientFhirId = procedure.getSubject().getReferenceElement().getIdPartAsLong();
+					Patient patient = OmopPatient.getInstance().constructFHIR(patientFhirId, entity.getFPerson());
+					procedure.getSubject().setResource(patient);
+				}
+			}
+			
+			if (includes.contains("Procedure:performer")) {
+				if (procedure.hasPerformer()) {
+					List<ProcedurePerformerComponent> performers = procedure.getPerformer();
+					for (ProcedurePerformerComponent performer: performers) {
+						if (!performer.isEmpty()) {
+							Long practitionerFhirId = performer.getActor().getReferenceElement().getIdPartAsLong();
+							Practitioner practitioner = OmopPractitioner.getInstance().constructFHIR(practitionerFhirId, entity.getProvider());
+							performer.getActor().setResource(practitioner);
+						}
+					}
+				}
+			}
+
+			if (includes.contains("Procedure:context")) {
+				if (procedure.hasContext()) {
+					Long encounterFhirId = procedure.getContext().getReferenceElement().getIdPartAsLong();
+					Encounter encounter = OmopEncounter.getInstance().constructFHIR(encounterFhirId, entity.getVisitOccurrence());
+					procedure.getContext().setResource(encounter);
+				}
+			}
+
+		}
+		
+		return procedure;
+	}
 
 	@Override
 	public Procedure constructFHIR(Long fhirId, ProcedureOccurrence entity) {

@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
@@ -15,9 +16,11 @@ import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
@@ -152,7 +155,10 @@ public class ProcedureResourceProvider implements IResourceProvider {
 			@OptionalParam(name = Procedure.SP_ENCOUNTER) ReferenceParam theEncounterParam,
 			@OptionalParam(name = Procedure.SP_SUBJECT) ReferenceParam theSubjectParam,
 			@OptionalParam(name = Procedure.SP_PATIENT) ReferenceParam thePatientParam,
-			@OptionalParam(name = Procedure.SP_PERFORMER) ReferenceParam thePerformerParam
+			@OptionalParam(name = Procedure.SP_PERFORMER) ReferenceParam thePerformerParam,
+			
+			@IncludeParam(allow={"Procedure:patient", "Procedure:performer", "Procedure:context"})
+			final Set<Include> theIncludes
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 
@@ -212,6 +218,17 @@ public class ProcedureResourceProvider implements IResourceProvider {
 
 				// _Include
 				List<String> includes = new ArrayList<String>();
+				if (theIncludes.contains(new Include("Procedure:patient"))) {
+					includes.add("Procedure:patient");
+				}
+				
+				if (theIncludes.contains(new Include("Procedure:performer"))) {
+					includes.add("Procedure:performer");
+				}
+				
+				if (theIncludes.contains(new Include("Procedure:context"))) {
+					includes.add("Procedure:context");
+				}
 
 				if (finalParamMap.size() == 0) {
 					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);

@@ -1037,8 +1037,8 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	// is selected. Since we are selecting this already, we need to skip diastolic.
 	final ParameterWrapper exceptionParam = new ParameterWrapper(
 			"Long",
-			Arrays.asList("observationConcept.id"),
-			Arrays.asList("!="),
+			Arrays.asList("measurementConcept.id"),
+			Arrays.asList("="),
 			Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)),
 			"or"
 			);
@@ -1051,16 +1051,21 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		exceptions.add(exceptionParam);
 		map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
 
-		return getMyOmopService().getSize(map);
+		return measurementService.getSize()-measurementService.getSize(map)+observationService.getSize();
 	}
 
 	@Override
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
+//		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
+//		exceptions.add(exceptionParam);
+//		map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
+		Map<String, List<ParameterWrapper>> exceptionMap = new HashMap<String, List<ParameterWrapper>> ();
+
 		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
 		exceptions.add(exceptionParam);
-		map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
+		exceptionMap.put(MAP_EXCEPTION_EXCLUDE, exceptions);
 		
-		return getMyOmopService().getSize(map);
+		return getMyOmopService().getSize(map)-measurementService.getSize(exceptionMap);
 	}
 
 	@Override
@@ -1092,11 +1097,19 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 //		
 	}
 
+	final ParameterWrapper exceptionParam4Search = new ParameterWrapper(
+			"Long",
+			Arrays.asList("observationConcept.id"),
+			Arrays.asList("!="),
+			Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)),
+			"or"
+			);
+
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
 		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(exceptionParam);
+		exceptions.add(exceptionParam4Search);
 		map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
 
 		List<FObservationView> fObservationViews = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
