@@ -30,7 +30,7 @@ pipeline{
                 //element. The script below registers the HDAP Docker registry with the Docker instance used by
                 //the Jenkins Pipeline, builds a Docker image of the project, and pushes it to the registry.
                 script{
-                    docker.withRegistry('https://build.hdap.gatech.edu:5000'){
+                    docker.withRegistry('http://build.hdap.gatech.edu'){
                         //Build and push the database image
                         def databaseImage = docker.build("gtfhir2:1.0", "-f Dockerfile .")
                         databaseImage.push('latest')
