@@ -30,7 +30,7 @@ pipeline{
                 //element. The script below registers the HDAP Docker registry with the Docker instance used by
                 //the Jenkins Pipeline, builds a Docker image of the project, and pushes it to the registry.
                 script{
-                    docker.withRegistry('https://apps2.hdap.gatech.edu'){
+                    docker.withRegistry('https://build.hdap.gatech.edu'){
                         //Build and push the database image
                         def databaseImage = docker.build("gtfhir2:1.0", "-f Dockerfile .")
                         databaseImage.push('latest')
@@ -43,7 +43,7 @@ pipeline{
         stage('Notify'){
             steps{
                 script{
-                    rancher confirm: true, credentialId: 'rancher-server', endpoint: 'https://apps3.hdap.gatech.edu/v2-beta', environmentId: '1a16', environments: '', image: 'apps2.hdap.gatech.edu/gtfhir2:latest', ports: '', service: 'GT-FHIR-2/gtfhir2', timeout: 50
+                    rancher confirm: true, credentialId: 'rancher-server', endpoint: 'http://rancher.hdap.gatech.edu:8080/v2-beta', environmentId: '1a7', environments: '', image: 'build.hdap.gatech.edu/gtfhir2:latest', ports: '', service: 'GT-FHIR-2/gtfhir2', timeout: 50
                 }
             }
         }

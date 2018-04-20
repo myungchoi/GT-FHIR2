@@ -38,14 +38,14 @@ import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopMedicationRequest;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-public class MedicationRequestProvider implements IResourceProvider {
+public class MedicationRequestResourceProvider implements IResourceProvider {
 
 	private WebApplicationContext myAppCtx;
 	private String myDbType;
 	private OmopMedicationRequest myMapper;
 	private int preferredPageSize = 30;
 
-	public MedicationRequestProvider() {
+	public MedicationRequestResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
 		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
 		if (myDbType.equalsIgnoreCase("omopv5") == true) {
