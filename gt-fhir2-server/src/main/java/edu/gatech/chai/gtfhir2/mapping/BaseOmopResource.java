@@ -12,7 +12,8 @@ import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.service.IService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-public abstract class BaseOmopResource<v extends DomainResource, t extends BaseEntity, p extends IService<t>> implements IResourceMapping<v, t> {
+public abstract class BaseOmopResource<v extends DomainResource, t extends BaseEntity, p extends IService<t>> 
+	implements IResourceMapping<v, t> {
 	
 	private p myOmopService;
 	private Class<t> myEntityClass;
