@@ -54,6 +54,10 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 		locationService = context.getBean(LocationService.class);
 	}
 	
+	public static OmopPractitioner getInstance() {
+		return omopPractitioner;
+	}
+	
 //	@Override
 //	public Practitioner toFHIR(IdType id) {
 //		String practitioncerResourceName = ResourceType.Practitioner.getPath();
@@ -68,11 +72,11 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 //		return constructResource(fhirId, omopProvider, null);
 //	}
 	
-	@Override
-	public Practitioner constructResource(Long fhirId, Provider entity,List<String> includes) {
-		Practitioner practitioner = constructFHIR(fhirId,entity); //Assuming default active state
-		return practitioner;
-	}
+//	@Override
+//	public Practitioner constructResource(Long fhirId, Provider entity,List<String> includes) {
+//		Practitioner practitioner = constructFHIR(fhirId,entity); //Assuming default active state
+//		return practitioner;
+//	}
 	
 	@Override
 	public Practitioner constructFHIR(Long fhirId, Provider omopProvider) {
@@ -115,7 +119,7 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 	}
 
 	@Override
-	public Long toDbase(Practitioner Fhir, IdType fhirId) {
+	public Long toDbase(Practitioner Fhir, IdType fhirId) throws FHIRException {
 		Provider omopProvider = new Provider();
 		String providerSourceValue = null;
 		CareSite omopCareSite = new CareSite();
@@ -138,12 +142,10 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 		//Set gender concept
 		omopProvider.setGenderConcept(new Concept());
 		String genderCode = Fhir.getGender().toCode();
-		try {
-			omopProvider.getGenderConcept().setId(OmopConceptMapping.omopForAdministrativeGenderCode(genderCode));
-		} catch (FHIRException e) {
-			e.printStackTrace();
-		}
+		omopProvider.getGenderConcept().setId(OmopConceptMapping.omopForAdministrativeGenderCode(genderCode));
+		
 		//Create a new caresite if does not exist
+		// TODO: Should we?
 		if(!Fhir.getAddress().isEmpty()) {
 			CareSite careSite = searchAndUpdateCareSite(Fhir.getAddress().get(0));
 			if (careSite.getId() != null) {
@@ -195,8 +197,7 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 		} else {
 			omopRecordId = getMyOmopService().create(omopProvider).getId();
 		}
-		Long fhirRecordId = IdMapping.getFHIRfromOMOP(omopRecordId, PractitionerResourceProvider.getType());
-		return fhirRecordId;
+		return IdMapping.getFHIRfromOMOP(omopRecordId, PractitionerResourceProvider.getType());
 	}
 	
 //	@Override

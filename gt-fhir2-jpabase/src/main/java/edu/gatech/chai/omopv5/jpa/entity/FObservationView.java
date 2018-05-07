@@ -8,6 +8,7 @@ import javax.persistence.AccessType;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
@@ -28,7 +29,7 @@ public class FObservationView extends BaseEntity {
 
 	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name = "person_id", nullable = false)
-	private FPerson person;
+	private FPerson fPerson;
 
 	@ManyToOne(cascade = { CascadeType.MERGE })
 	@JoinColumn(name = "observation_concept_id", nullable = false)
@@ -60,18 +61,18 @@ public class FObservationView extends BaseEntity {
 	@JoinColumn(name = "provider_id")
 	private Provider provider;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne(cascade = { CascadeType.MERGE }, fetch=FetchType.LAZY)
 	@JoinColumn(name = "visit_occurrence_id")
 	private VisitOccurrence visitOccurrence;
 
 	@Column(name = "source_value")
 	private String sourceValue;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne(cascade = { CascadeType.MERGE }, fetch=FetchType.LAZY)
 	@JoinColumn(name = "source_concept_id")
 	private Concept sourceConcept;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne(cascade = { CascadeType.MERGE }, fetch=FetchType.LAZY)
 	@JoinColumn(name = "qualifier_concept_id")
 	private Concept qualifierConcept;
 
@@ -94,7 +95,7 @@ public class FObservationView extends BaseEntity {
 	@Column(name = "value_source_value")
 	private String valueSourceValue;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne(cascade = { CascadeType.MERGE }, fetch=FetchType.LAZY)
 	@JoinColumn(name = "observation_operator_concept_id")
 	private Concept operatorConcept;
 
@@ -114,12 +115,12 @@ public class FObservationView extends BaseEntity {
 		this.time = time;
 	}
 
-	public FPerson getPerson() {
-		return person;
+	public FPerson getFPerson() {
+		return fPerson;
 	}
 
-	public void setPerson(FPerson person) {
-		this.person = person;
+	public void setFPerson(FPerson person) {
+		this.fPerson = person;
 	}
 
 	public Concept getObservationConcept() {

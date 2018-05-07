@@ -2,10 +2,8 @@ package edu.gatech.chai.omopv5.jpa.entity;
 
 import javax.persistence.Access;
 import javax.persistence.AccessType;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-//import javax.persistence.EntityManager;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -38,18 +36,18 @@ public class Provider extends BaseEntity {
 	@Column(name="dea", length = 20)
 	private String dea;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="specialty_concept_id")
 	private Concept specialtyConcept;
 	
-	@ManyToOne(cascade={CascadeType.ALL})
+	@ManyToOne
 	@JoinColumn(name="care_site_id")
 	private CareSite careSite;
 	
 	@Column(name="year_of_birth")
 	private Integer yearOfBirth;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="gender_concept_id")
 	private Concept genderConcept;
 
@@ -59,14 +57,14 @@ public class Provider extends BaseEntity {
 	@Column(name="specialty_source_value", length = 50)
 	private String specialtySourceValue;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="specialty_source_concept_id")
 	private Concept specialtySourceConcept;
 
 	@Column(name="gender_source_value", length = 50)
 	private String genderSourceValue;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="gender_source_concept_id")
 	private Concept genderSourceConcept;
 

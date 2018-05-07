@@ -109,11 +109,11 @@ public class Observation extends BaseEntity {
 		this.time = time;
 	}
 
-	public FPerson getFperson() {
+	public FPerson getFPerson() {
 		return fPerson;
 	}
 
-	public void setFperson(FPerson fPerson) {
+	public void setFPerson(FPerson fPerson) {
 		this.fPerson = fPerson;
 	}
 

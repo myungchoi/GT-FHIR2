@@ -4,7 +4,6 @@ import java.util.Date;
 
 import javax.persistence.Access;
 import javax.persistence.AccessType;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -26,11 +25,11 @@ public class VisitOccurrence extends BaseEntity {
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name="person_id", nullable=false)
-	private FPerson person;
+	private FPerson fPerson;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne()
 	@JoinColumn(name="visit_concept_id")
 	private Concept visitConcept;
 	
@@ -50,11 +49,11 @@ public class VisitOccurrence extends BaseEntity {
 	@JoinColumn(name="visit_type_concept_id")
 	private Concept visitTypeConcept;
 	
-	@ManyToOne(cascade={CascadeType.ALL})
+	@ManyToOne()
 	@JoinColumn(name="provider_id")
 	private Provider provider;
 	
-	@ManyToOne(cascade={CascadeType.ALL})
+	@ManyToOne()
 	@JoinColumn(name="care_site_id")
 	private CareSite careSite; //FIXME field names should reflect fhir names, for validation purposes.
 	
@@ -66,6 +65,13 @@ public class VisitOccurrence extends BaseEntity {
 	private Concept visitSourceConcept;
 	
 
+	public VisitOccurrence() {
+	}
+	
+	public VisitOccurrence(Long id) {
+		this.id = id;
+	}
+	
 	public Long getId() {
 		return id;
 	}
@@ -74,12 +80,12 @@ public class VisitOccurrence extends BaseEntity {
 		this.id = id;
 	}
 
-	public FPerson getPerson() {
-		return person;
+	public FPerson getFPerson() {
+		return fPerson;
 	}
 	
-	public void setPerson(FPerson person) {
-		this.person = person;
+	public void setFPerson(FPerson person) {
+		this.fPerson = person;
 	}
 	
 	public Concept getVisitConcept() {

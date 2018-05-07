@@ -15,6 +15,14 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
+import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.MedicationRequestResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.MedicationStatementResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.ProcedureResourceProvider;
 
 /**
  * This servlet is the actual FHIR server itself
@@ -48,8 +56,10 @@ public class RestfulServlet extends RestfulServer {
 		providers.add(new OrganizationResourceProvider());
 		providers.add(new PractitionerResourceProvider());
 		providers.add(new PatientResourceProvider());
+		providers.add(new MedicationRequestResourceProvider());
+		providers.add(new ProcedureResourceProvider());
 		providers.add(new ConditionResourceProvider());
-		setResourceProviders(providers);
+    setResourceProviders(providers);
 		
 		/*
 		 * Add page provider. Use memory based on for now.

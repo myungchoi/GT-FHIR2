@@ -60,6 +60,7 @@ public class FhirServerConfig {
 		extraProperties.put("hibernate.show_sql", "false");
 		extraProperties.put("hibernate.hbm2ddl.auto", "update");
 //		extraProperties.put("hibernate.hbm2ddl.auto", "none");
+//		extraProperties.put("hibernate.enable_lazy_load_no_trans", "true");
 		extraProperties.put("hibernate.jdbc.batch_size", "20");
 		extraProperties.put("hibernate.cache.use_query_cache", "false");
 		extraProperties.put("hibernate.cache.use_second_level_cache", "false");

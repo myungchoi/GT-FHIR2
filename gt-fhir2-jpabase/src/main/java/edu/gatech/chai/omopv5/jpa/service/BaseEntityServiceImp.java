@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import javax.persistence.Table;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Path;
@@ -74,15 +76,23 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	@Transactional(readOnly = true)
 	public Long getSize() {
 		EntityManager em = vDao.getEntityManager();
-		
 		CriteriaBuilder builder = em.getCriteriaBuilder();
-		CriteriaQuery<Long> query = builder.createQuery(Long.class);
-		Root<T> root = query.from(entityClass);
-		
-		query.select(builder.count(root));
-		
-		return em.createQuery(query).getSingleResult();		
-		
+
+		Table t = entityClass.getAnnotation(Table.class);
+		if (t != null) {
+			String tableName = t.name();
+			String queryString = "SELECT p.reltuples AS approximate_row_count FROM pg_class p WHERE p.relname = :table_name";
+			Query query = em.createNativeQuery(queryString);
+			query = query.setParameter("table_name", tableName);
+			float res = (float) query.getSingleResult();
+			return (long) res;
+		} else {
+			CriteriaQuery<Long> query = builder.createQuery(Long.class);
+			Root<T> root = query.from(entityClass);
+	
+			query.select(builder.count(root));		
+			return em.createQuery(query).getSingleResult();		
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -115,11 +125,15 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		query.select(root);
 		query.orderBy(builder.asc(root.get("id")));
 		
-		retvals = em.createQuery(query)
-				.setFirstResult(fromIndex)
-				.setMaxResults(length)
-				.getResultList();
-
+		if (length <= 0) {
+			retvals = em.createQuery(query)
+					.getResultList();
+		} else {
+			retvals = em.createQuery(query)
+					.setFirstResult(fromIndex)
+					.setMaxResults(length)
+					.getResultList();
+		}
 		return retvals;	
 	}
 
@@ -139,10 +153,15 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		query.select(root);
 		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
 
-		retvals = em.createQuery(query)
-				.setFirstResult(fromIndex)
-				.setMaxResults(length)
-				.getResultList();
+		if (length <= 0) {
+			retvals = em.createQuery(query)
+					.getResultList();			
+		} else {
+			retvals = em.createQuery(query)
+					.setFirstResult(fromIndex)
+					.setMaxResults(length)
+					.getResultList();
+		}
 		return retvals;
 	}
 

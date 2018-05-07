@@ -105,11 +105,11 @@ public class Measurement extends BaseEntity {
 		this.id = id;
 	}
 	
-	public Person getFperson() {
+	public FPerson getFPerson() {
 		return fPerson;
 	}
 	
-	public void setFperson(FPerson fPerson) {
+	public void setFPerson(FPerson fPerson) {
 		this.fPerson = fPerson;
 	}
 	

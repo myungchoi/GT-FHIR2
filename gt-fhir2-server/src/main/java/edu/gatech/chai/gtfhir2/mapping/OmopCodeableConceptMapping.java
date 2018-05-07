@@ -6,6 +6,7 @@ public enum OmopCodeableConceptMapping {
 	ATC("http://www.whocc.no/atc", "ATC"),
 	CPT("http://www.ama-assn.org/go/cpt", "CPT4"),
 	ICD9CM("http://hl7.org/fhir/sid/icd-9-cm", "ICD9CM"),
+	ICD9PROC("http://hl7.org/fhir/sid/icd-9-proc", "ICD9Proc"),
 	ICD10("http://hl7.org/fhir/sid/icd-10", "ICD10"),
 	ICD10CM("http://hl7.org/fhir/sid/icd-10-cm", "ICD10CM"),
 	LOINC("http://loinc.org", "LOINC"),
@@ -27,6 +28,8 @@ public enum OmopCodeableConceptMapping {
 			return "CPT4";
 		if ("http://hl7.org/fhir/sid/icd-9-cm".equals(fhirUri))
 			return "ICD9CM";
+		if ("http://hl7.org/fhir/sid/icd-9-proc".equals(fhirUri))
+			return "ICD9Proc";
 		if ("http://hl7.org/fhir/sid/icd-10".equals(fhirUri))
 			return "ICD10";
 		if ("http://hl7.org/fhir/sid/icd-10-cm".equals(fhirUri))
@@ -48,7 +51,7 @@ public enum OmopCodeableConceptMapping {
 		
 	}
 
-	public static String fhirUriforOmopVocabularyi(String omopVocabulary) throws FHIRException {
+	public static String fhirUriforOmopVocabulary(String omopVocabulary) throws FHIRException {
 		if (omopVocabulary == null || omopVocabulary.isEmpty()) {
 			throw new FHIRException("Omop Vocabulary ID cannot be null or empty: '"+omopVocabulary+"'");
 		}
@@ -59,6 +62,8 @@ public enum OmopCodeableConceptMapping {
 			return "http://www.ama-assn.org/go/cpt";
 		if ("ICD9CM".equals(omopVocabulary))
 			return "http://hl7.org/fhir/sid/icd-9-cm";
+		if ("ICD9Proc".equals(omopVocabulary))
+			return "http://hl7.org/fhir/sid/icd-9-proc";
 		if ("ICD10".equals(omopVocabulary))
 			return "http://hl7.org/fhir/sid/icd-10";
 		if ("ICD10CM".equals(omopVocabulary))
