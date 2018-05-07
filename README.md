@@ -29,8 +29,8 @@ sudo docker-compose up --build -d
 
 Application URLs
 -
-UI - http://<my_host>:8080/gt-fhir/tester/
-API -  	http://<my_host>:8080/gt-fhir/fhir
+- UI - http://<my_host>:8080/gt-fhir/tester/
+- API -  	http://<my_host>:8080/gt-fhir/fhir
 
 Additional Information
 -

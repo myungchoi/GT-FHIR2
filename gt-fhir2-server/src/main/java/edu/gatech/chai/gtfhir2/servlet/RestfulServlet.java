@@ -2,6 +2,7 @@ package edu.gatech.chai.gtfhir2.servlet;
 
 import java.util.*;
 
+import edu.gatech.chai.gtfhir2.provider.*;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.cors.CorsConfiguration;
 
@@ -57,7 +58,8 @@ public class RestfulServlet extends RestfulServer {
 		providers.add(new PatientResourceProvider());
 		providers.add(new MedicationRequestResourceProvider());
 		providers.add(new ProcedureResourceProvider());
-		setResourceProviders(providers);
+		providers.add(new ConditionResourceProvider());
+    setResourceProviders(providers);
 		
 		/*
 		 * Add page provider. Use memory based on for now.
