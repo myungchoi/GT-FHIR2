@@ -100,8 +100,8 @@ public class ObservationResourceProvider implements IResourceProvider {
 	public IBundleProvider findObservationsByParams(
 			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
 			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
-			
-			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
 
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
@@ -122,6 +122,9 @@ public class ObservationResourceProvider implements IResourceProvider {
 		if (theCode != null) {
 			mapParameter (paramMap, Observation.SP_CODE, theCode);
 		}
+		
+		// With OMOP, we only support subject to be patient.
+		if (theSubject != null) thePatient = theSubject;
 		
 		if (thePatient != null) {
 			String patientChain = thePatient.getChain();

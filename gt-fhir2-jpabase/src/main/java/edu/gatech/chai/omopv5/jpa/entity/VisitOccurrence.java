@@ -27,7 +27,7 @@ public class VisitOccurrence extends BaseEntity {
 	
 	@ManyToOne()
 	@JoinColumn(name="person_id", nullable=false)
-	private FPerson person;
+	private FPerson fPerson;
 	
 	@ManyToOne()
 	@JoinColumn(name="visit_concept_id")
@@ -80,12 +80,12 @@ public class VisitOccurrence extends BaseEntity {
 		this.id = id;
 	}
 
-	public FPerson getPerson() {
-		return person;
+	public FPerson getFPerson() {
+		return fPerson;
 	}
 	
-	public void setPerson(FPerson person) {
-		this.person = person;
+	public void setFPerson(FPerson person) {
+		this.fPerson = person;
 	}
 	
 	public Concept getVisitConcept() {
