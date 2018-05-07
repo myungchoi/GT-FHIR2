@@ -124,7 +124,13 @@ public class ObservationResourceProvider implements IResourceProvider {
 		}
 		
 		// With OMOP, we only support subject to be patient.
-		if (theSubject != null) thePatient = theSubject;
+		if (theSubject != null) {
+			if (theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
+				thePatient = theSubject;
+			} else {
+				errorProcessing("subject search allows Only Patient Resource.");
+			}
+		}
 		
 		if (thePatient != null) {
 			String patientChain = thePatient.getChain();
@@ -279,6 +285,14 @@ public class ObservationResourceProvider implements IResourceProvider {
 		if (paramList != null) {
 			paramMap.put(FHIRparam, paramList);
 		}
+	}
+	
+	private void errorProcessing(String msg) {
+		OperationOutcome outcome = new OperationOutcome();
+		CodeableConcept detailCode = new CodeableConcept();
+		detailCode.setText(msg);
+		outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+		throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);		
 	}
 
 	// TODO: Add more validation code here.

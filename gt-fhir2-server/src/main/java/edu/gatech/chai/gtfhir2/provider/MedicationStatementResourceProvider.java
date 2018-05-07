@@ -129,6 +129,7 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 			@OptionalParam(name = MedicationStatement.SP_CONTEXT) ReferenceParam theContext,
 			@OptionalParam(name = MedicationStatement.SP_EFFECTIVE) DateParam theDate,
 			@OptionalParam(name = MedicationStatement.SP_PATIENT) ReferenceParam thePatient,
+			@OptionalParam(name = MedicationStatement.SP_SUBJECT) ReferenceParam theSubject,
 			@OptionalParam(name = MedicationStatement.SP_SOURCE) ReferenceParam theSource
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
@@ -146,6 +147,13 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		}
 		if (theDate != null) {
 			mapParameter (paramMap, MedicationStatement.SP_EFFECTIVE, theDate);
+		}
+		if (theSubject != null) {
+			if (theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
+				thePatient = theSubject;
+			} else {
+				errorProcessing("subject search allows Only Patient Resource.");
+			}
 		}
 		if (thePatient != null) {
 			mapParameter (paramMap, MedicationStatement.SP_PATIENT, thePatient);
@@ -217,6 +225,14 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		return MedicationStatement.class;
 	}
 
+	private void errorProcessing(String msg) {
+		OperationOutcome outcome = new OperationOutcome();
+		CodeableConcept detailCode = new CodeableConcept();
+		detailCode.setText(msg);
+		outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+		throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);		
+	}
+	
 	/**
 	 * This method just provides simple business validation for resources we are storing.
 	 * 
