@@ -84,7 +84,7 @@ public class CodeableConceptUtil {
      */
 	public static CodeableConcept createFromConcept(Concept concept) throws FHIRException{
 		String conceptVocab = concept.getVocabulary().getId();
-		String conceptFhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabularyi(conceptVocab);
+		String conceptFhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabulary(conceptVocab);
 		String conceptCode = concept.getConceptCode();
 		String conceptName = concept.getName();
 

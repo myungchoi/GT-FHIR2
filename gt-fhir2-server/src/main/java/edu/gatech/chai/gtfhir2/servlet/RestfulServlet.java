@@ -50,16 +50,18 @@ public class RestfulServlet extends RestfulServer {
 		 * type of resource.
 		 */
 		List<IResourceProvider> providers = new ArrayList<IResourceProvider>();
+		providers.add(new ConditionResourceProvider());
 		providers.add(new EncounterResourceProvider());
+		providers.add(new MedicationResourceProvider());
 		providers.add(new MedicationStatementResourceProvider());
+		providers.add(new MedicationRequestResourceProvider());
 		providers.add(new ObservationResourceProvider());
 		providers.add(new OrganizationResourceProvider());
 		providers.add(new PractitionerResourceProvider());
 		providers.add(new PatientResourceProvider());
-		providers.add(new MedicationRequestResourceProvider());
 		providers.add(new ProcedureResourceProvider());
-		providers.add(new ConditionResourceProvider());
-    setResourceProviders(providers);
+
+		setResourceProviders(providers);
 		
 		/*
 		 * Add page provider. Use memory based on for now.
