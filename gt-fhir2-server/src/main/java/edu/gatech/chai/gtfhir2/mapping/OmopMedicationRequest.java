@@ -305,34 +305,36 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 			return null;
 		}
 		
-		// Get ingredient codeable concept for medication
-		Concept ingredient = conceptService.getIngredient(omopDrugConcept);
+		medicationRequest.setMedication(medicationCodeableConcept);
 
-		// If ingredient is available, then use contained. Otherwise
-		// use medicationCodeableConcept.
-		if (ingredient != null) {
-			CodeableConcept ingredientCodeableConcept;
-			try {
-				ingredientCodeableConcept = CodeableConceptUtil.getCodeableConceptFromOmopConcept(ingredient);
-				if (!ingredientCodeableConcept.isEmpty()) {
-					// We have ingredient information. Add this to MedicationStatement.
-					// To do this, we need to add Medication resource to contained section.
-					Medication medicationResource = new Medication();
-					medicationResource.setCode(medicationCodeableConcept);
-					MedicationIngredientComponent medIngredientComponent = new MedicationIngredientComponent();
-					medIngredientComponent.setItem(ingredientCodeableConcept);
-					medicationResource.addIngredient(medIngredientComponent);
-					medicationResource.setId("med1");
-					medicationRequest.addContained(medicationResource);
-					medicationRequest.setMedication(new Reference("#med1"));
-				}
-			} catch (FHIRException e) {
-				e.printStackTrace();
-				return null;
-			}
-		} else {
-			medicationRequest.setMedication(medicationCodeableConcept);
-		}
+		// Get ingredient codeable concept for medication
+//		Concept ingredient = conceptService.getIngredient(omopDrugConcept);
+//
+//		// If ingredient is available, then use contained. Otherwise
+//		// use medicationCodeableConcept.
+//		if (ingredient != null) {
+//			CodeableConcept ingredientCodeableConcept;
+//			try {
+//				ingredientCodeableConcept = CodeableConceptUtil.getCodeableConceptFromOmopConcept(ingredient);
+//				if (!ingredientCodeableConcept.isEmpty()) {
+//					// We have ingredient information. Add this to MedicationStatement.
+//					// To do this, we need to add Medication resource to contained section.
+//					Medication medicationResource = new Medication();
+//					medicationResource.setCode(medicationCodeableConcept);
+//					MedicationIngredientComponent medIngredientComponent = new MedicationIngredientComponent();
+//					medIngredientComponent.setItem(ingredientCodeableConcept);
+//					medicationResource.addIngredient(medIngredientComponent);
+//					medicationResource.setId("med1");
+//					medicationRequest.addContained(medicationResource);
+//					medicationRequest.setMedication(new Reference("#med1"));
+//				}
+//			} catch (FHIRException e) {
+//				e.printStackTrace();
+//				return null;
+//			}
+//		} else {
+//			medicationRequest.setMedication(medicationCodeableConcept);
+//		}
 
 		// Dosage mapping
 		Double dose = entity.getEffectiveDrugDose();

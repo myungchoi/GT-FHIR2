@@ -10,6 +10,7 @@ import java.util.Set;
 import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
@@ -67,15 +68,21 @@ public class EncounterResourceProvider implements IResourceProvider {
 	 * new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createPatient(@ResourceParam Encounter theEncounter) {
+	public MethodOutcome createEncounter(@ResourceParam Encounter theEncounter) {
 		validateResource(theEncounter);
 		
-		Long id = myMapper.toDbase(theEncounter, null);		
+		Long id=null;
+		try {
+			id = myMapper.toDbase(theEncounter, null);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 		return new MethodOutcome(new IdDt(id));
 	}
 
 	@Search()
-	public IBundleProvider findPatientsByParams(
+	public IBundleProvider findEncounterByParams(
 			@OptionalParam(name=Encounter.SP_RES_ID) TokenParam theEncounterId,
 
 			@IncludeParam(allow={"Encounter:appointment", "Encounter:diagnosis", 
@@ -227,7 +234,13 @@ public class EncounterResourceProvider implements IResourceProvider {
 	public MethodOutcome updateObservation(@IdParam IdType theId, @ResourceParam Encounter theEncounter) {
 		validateResource(theEncounter);
 
-		Long fhirId = myMapper.toDbase(theEncounter, theId);
+		Long fhirId = null;
+		try {
+			fhirId = myMapper.toDbase(theEncounter, theId);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		if (fhirId == null) {
 			throw new ResourceNotFoundException(theId);
 		}

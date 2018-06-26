@@ -2,9 +2,19 @@ package edu.gatech.chai.gtfhir2.mapping;
 
 import org.hl7.fhir.exceptions.FHIRException;
 
+/***
+ * 
+ * @author mc142
+ *
+ * URI information for coding system is obtained from 
+ *   https://www.hl7.org/fhir/terminologies-systems.html
+ * 
+ * 
+ */
 public enum OmopCodeableConceptMapping {
 	ATC("http://www.whocc.no/atc", "ATC"),
 	CPT("http://www.ama-assn.org/go/cpt", "CPT4"),
+	HCPCS("2.16.840.1.113883.6.14", "HCPCS"),
 	ICD9CM("http://hl7.org/fhir/sid/icd-9-cm", "ICD9CM"),
 	ICD9PROC("http://hl7.org/fhir/sid/icd-9-proc", "ICD9Proc"),
 	ICD10("http://hl7.org/fhir/sid/icd-10", "ICD10"),
@@ -26,6 +36,8 @@ public enum OmopCodeableConceptMapping {
 			return "ATC";
 		if ("http://www.ama-assn.org/go/cpt".equals(fhirUri))
 			return "CPT4";
+		if ("2.16.840.1.113883.6.14".equals(fhirUri))
+			return "HCPCS";
 		if ("http://hl7.org/fhir/sid/icd-9-cm".equals(fhirUri))
 			return "ICD9CM";
 		if ("http://hl7.org/fhir/sid/icd-9-proc".equals(fhirUri))
@@ -60,6 +72,8 @@ public enum OmopCodeableConceptMapping {
 			return "http://www.whocc.no/atc";
 		if ("CPT4".equals(omopVocabulary))
 			return "http://www.ama-assn.org/go/cpt";
+		if ("HCPCS".equals(omopVocabulary))
+			return "2.16.840.1.113883.6.14";
 		if ("ICD9CM".equals(omopVocabulary))
 			return "http://hl7.org/fhir/sid/icd-9-cm";
 		if ("ICD9Proc".equals(omopVocabulary))

@@ -76,4 +76,26 @@ public class CodeableConceptUtil {
 		return null;
 	}
 
+	/**
+	 * Creates a {@link CodeableConcept} from a {@link Concept}
+	 * @param concept the {@link Concept} to use to generate the {@link CodeableConcept}
+	 * @return a {@link CodeableConcept} generated from the passed in {@link Concept}
+	 * @throws FHIRException if the {@link Concept} vocabulary cannot be mapped by the {@link OmopCodeableConceptMapping} fhirUriforOmopVocabularyi method.
+     */
+	public static CodeableConcept createFromConcept(Concept concept) throws FHIRException{
+		String conceptVocab = concept.getVocabulary().getId();
+		String conceptFhirUri = OmopCodeableConceptMapping.fhirUriforOmopVocabulary(conceptVocab);
+		String conceptCode = concept.getConceptCode();
+		String conceptName = concept.getName();
+
+		Coding conceptCoding = new Coding();
+		conceptCoding.setSystem(conceptFhirUri);
+		conceptCoding.setCode(conceptCode);
+		conceptCoding.setDisplay(conceptName);
+
+		CodeableConcept codeableConcept = new CodeableConcept();
+		codeableConcept.addCoding(conceptCoding);
+		return codeableConcept;
+	}
+
 }

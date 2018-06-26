@@ -29,7 +29,7 @@ public class FObservationViewServiceImp extends BaseEntityServiceImp<FObservatio
 		Root<FObservationView> from = criteria.from(FObservationView.class);
 		criteria.select(from).where(
 				builder.equal(from.get("observationConcept").get("id"), conceptId),
-				builder.equal(from.get("person").get("id"), personId),
+				builder.equal(from.get("fPerson").get("id"), personId),
 				builder.equal(from.get("date"), date),
 				builder.equal(from.get("time"),  time)
 				);

@@ -1,5 +1,6 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -18,12 +19,14 @@ public class ConceptServiceImp extends BaseEntityServiceImp<Concept, ConceptDao>
 	}
 	
 	@Transactional(readOnly = true)
-	public Concept getIngredient(Concept concept) {
+	public List<Concept> getIngredient(Concept concept) {
 		EntityManager em = getEntityDao().getEntityManager();
+		
+		List<Concept> concepts = new ArrayList<Concept>();
 		
 		if ("Ingredient".equals(concept.getConceptClass())) {
 			// This is ingredient. Just return null
-			return null;
+			return concepts;
 		}
 		
 		String sqlQuery = null;
@@ -57,16 +60,17 @@ public class ConceptServiceImp extends BaseEntityServiceImp<Concept, ConceptDao>
 					+ "AND src.invalidReason is null "
 					+ "AND c.invalidReason is null";
 		} else {
-			return null;
+			return concepts;
 		}
 		
 		TypedQuery<Concept> query = em.createQuery(sqlQuery, Concept.class);
 		query = query.setParameter("med_code", concept.getConceptCode());
-		List<Concept> results = query.getResultList();
-		if (results.size() > 0) {
-			return results.get(0);
-		} else {
-			return null;
-		}
+		return query.getResultList();
+//		List<Concept> results = query.getResultList();
+//		if (results.size() > 0) {
+//			return results.get(0);
+//		} else {
+//			return null;
+//		}
 	}
 }

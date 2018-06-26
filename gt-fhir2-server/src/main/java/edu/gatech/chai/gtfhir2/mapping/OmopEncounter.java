@@ -16,6 +16,7 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Encounter.EncounterParticipantComponent;
 import org.hl7.fhir.dstu3.model.Encounter.EncounterStatus;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActCode;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -97,8 +98,8 @@ public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, 
 		encounter.setStatus(EncounterStatus.FINISHED);
 		
 		// set Patient Reference
-		Reference patientReference = new Reference(new IdType(PatientResourceProvider.getType(), visitOccurrence.getPerson().getId()));
-		patientReference.setDisplay(visitOccurrence.getPerson().getNameAsSingleString());
+		Reference patientReference = new Reference(new IdType(PatientResourceProvider.getType(), visitOccurrence.getFPerson().getId()));
+		patientReference.setDisplay(visitOccurrence.getFPerson().getNameAsSingleString());
 		encounter.setSubject(patientReference);
 		
 		// set Period
@@ -151,7 +152,7 @@ public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, 
 	}
 	
 	@Override
-	public Long toDbase(Encounter fhirResource, IdType fhirId) {
+	public Long toDbase(Encounter fhirResource, IdType fhirId) throws FHIRException {
 		// TODO Auto-generated method stub
 		return null;
 	}

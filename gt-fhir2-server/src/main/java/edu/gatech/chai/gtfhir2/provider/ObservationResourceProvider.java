@@ -100,8 +100,8 @@ public class ObservationResourceProvider implements IResourceProvider {
 	public IBundleProvider findObservationsByParams(
 			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
 			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
-			
-			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
 
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
@@ -121,6 +121,16 @@ public class ObservationResourceProvider implements IResourceProvider {
 		}
 		if (theCode != null) {
 			mapParameter (paramMap, Observation.SP_CODE, theCode);
+		}
+		
+		// With OMOP, we only support subject to be patient.
+		if (theSubject != null) {
+			if (theSubject.getResourceType() != null && 
+					theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
+				thePatient = theSubject;
+			} else {
+				errorProcessing("subject search allows Only Patient Resource.");
+			}
 		}
 		
 		if (thePatient != null) {
@@ -276,6 +286,14 @@ public class ObservationResourceProvider implements IResourceProvider {
 		if (paramList != null) {
 			paramMap.put(FHIRparam, paramList);
 		}
+	}
+	
+	private void errorProcessing(String msg) {
+		OperationOutcome outcome = new OperationOutcome();
+		CodeableConcept detailCode = new CodeableConcept();
+		detailCode.setText(msg);
+		outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+		throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);		
 	}
 
 	// TODO: Add more validation code here.

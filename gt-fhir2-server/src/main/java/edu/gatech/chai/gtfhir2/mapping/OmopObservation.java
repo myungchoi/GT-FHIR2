@@ -140,7 +140,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			// Now search for diastolic component.
 			WebApplicationContext myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
 			FObservationViewService myService = myAppCtx.getBean(FObservationViewService.class);
-			FObservationView diastolicDb = myService.findDiastolic(DIASTOLIC_CONCEPT_ID, fObservationView.getPerson().getId(), fObservationView.getDate(), fObservationView.getTime());
+			FObservationView diastolicDb = myService.findDiastolic(DIASTOLIC_CONCEPT_ID, fObservationView.getFPerson().getId(), fObservationView.getDate(), fObservationView.getTime());
 			if (diastolicDb != null) {
 				comp = new ObservationComponentComponent();
 				coding = new Coding(diastolicDb.getObservationConcept().getVocabulary().getSystemUri(),
@@ -214,9 +214,9 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				observation.setEffective(appliesDate);
 			}
 		}
-		if (fObservationView.getPerson() != null) {
-			Reference personRef = new Reference(new IdType(PatientResourceProvider.getType(), fObservationView.getPerson().getId()));
-			personRef.setDisplay(fObservationView.getPerson().getNameAsSingleString());
+		if (fObservationView.getFPerson() != null) {
+			Reference personRef = new Reference(new IdType(PatientResourceProvider.getType(), fObservationView.getFPerson().getId()));
+			personRef.setDisplay(fObservationView.getFPerson().getNameAsSingleString());
 			observation.setSubject(personRef);
 		}
 		if (fObservationView.getVisitOccurrence() != null)
@@ -352,7 +352,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				if (identifier_value != null) {
 					systolicMeasurement.setSourceValue(identifier_value);
 				}
-				systolicMeasurement.setFperson(tPerson);
+				systolicMeasurement.setFPerson(tPerson);
 				
 			}
 			if (diastolicMeasurement == null && diastolicValue != null) {
@@ -361,7 +361,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				if (identifier_value != null) {
 					diastolicMeasurement.setSourceValue(identifier_value);
 				}
-				diastolicMeasurement.setFperson(tPerson);
+				diastolicMeasurement.setFPerson(tPerson);
 			}
 			
 			
@@ -732,7 +732,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				if (identifier_value != null) {
 					measurement.setSourceValue(identifier_value);
 				}
-				measurement.setFperson(tPerson);
+				measurement.setFPerson(tPerson);
 			}
 			if ("Observation".equals(omopTableName) && observation == null) {
 				// This is NEW.
@@ -740,7 +740,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				if (identifier_value != null) {
 					observation.setSourceValue(identifier_value);
 				}
-				observation.setFperson(tPerson);
+				observation.setFPerson(tPerson);
 			}
 		} else {
 			// This is UPDATE
@@ -752,7 +752,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 					throw new FHIRException("We have no matching FHIR Observation (Measurement) to update.");
 				}
 				// Update subject.
-				measurement.getFperson().setId(omopPersonId);
+				measurement.getFPerson().setId(omopPersonId);
 				// We may have the identifier changed, which is source column in OMOP.
 				// We always use the first identifier.
 				Identifier identifier = fhirResource.getIdentifierFirstRep();
@@ -768,7 +768,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 					throw new FHIRException("We have no matching FHIR Observation (Observation) to update.");
 				}
 				// Update subject.
-				observation.getFperson().setId(omopPersonId);
+				observation.getFPerson().setId(omopPersonId);
 				// We may have the identifier changed, which is source column in OMOP.
 				// We always use the first identifier.
 				Identifier identifier = fhirResource.getIdentifierFirstRep();
@@ -1038,11 +1038,19 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	final ParameterWrapper exceptionParam = new ParameterWrapper(
 			"Long",
 			Arrays.asList("measurementConcept.id"),
-			Arrays.asList("="),
+			Arrays.asList("!="),
 			Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)),
 			"or"
 			);
 	
+	final ParameterWrapper exceptionParam4Search = new ParameterWrapper(
+			"Long",
+			Arrays.asList("observationConcept.id"),
+			Arrays.asList("!="),
+			Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)),
+			"or"
+			);
+
 	@Override
 	public Long getSize() {
 		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>> ();
@@ -1059,13 +1067,14 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 //		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
 //		exceptions.add(exceptionParam);
 //		map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
-		Map<String, List<ParameterWrapper>> exceptionMap = new HashMap<String, List<ParameterWrapper>> ();
+		Map<String, List<ParameterWrapper>> exceptionMap = new HashMap<String, List<ParameterWrapper>> (map);
 
 		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(exceptionParam);
+		exceptions.add(exceptionParam4Search);
 		exceptionMap.put(MAP_EXCEPTION_EXCLUDE, exceptions);
 		
-		return getMyOmopService().getSize(map)-measurementService.getSize(exceptionMap);
+//		return getMyOmopService().getSize(map)-measurementService.getSize(exceptionMap);
+		return getMyOmopService().getSize(exceptionMap);
 	}
 
 	@Override
@@ -1096,14 +1105,6 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 //		}
 //		
 	}
-
-	final ParameterWrapper exceptionParam4Search = new ParameterWrapper(
-			"Long",
-			Arrays.asList("observationConcept.id"),
-			Arrays.asList("!="),
-			Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)),
-			"or"
-			);
 
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
@@ -1246,7 +1247,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		case "Patient:"+Patient.SP_RES_ID:
 			String pId = (String) value;
 			paramWrapper.setParameterType("Long");
-			paramWrapper.setParameters(Arrays.asList("person.id"));
+			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
 			paramWrapper.setOperators(Arrays.asList("="));
 			paramWrapper.setValues(Arrays.asList(pId));
 			paramWrapper.setRelationship("or");
@@ -1255,7 +1256,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		case "Patient:"+Patient.SP_NAME:
 			String patientName = (String) value;
 			paramWrapper.setParameterType("String");
-			paramWrapper.setParameters(Arrays.asList("person.familyName", "person.givenName1", "person.givenName2", "person.prefixName", "person.suffixName"));
+			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2", "fPerson.prefixName", "fPerson.suffixName"));
 			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
 			paramWrapper.setValues(Arrays.asList("%"+patientName+"%"));
 			paramWrapper.setRelationship("or");

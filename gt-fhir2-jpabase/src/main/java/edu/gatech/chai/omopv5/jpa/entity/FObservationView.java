@@ -29,7 +29,7 @@ public class FObservationView extends BaseEntity {
 
 	@ManyToOne(cascade={CascadeType.MERGE})
 	@JoinColumn(name = "person_id", nullable = false)
-	private FPerson person;
+	private FPerson fPerson;
 
 	@ManyToOne(cascade = { CascadeType.MERGE })
 	@JoinColumn(name = "observation_concept_id", nullable = false)
@@ -115,12 +115,12 @@ public class FObservationView extends BaseEntity {
 		this.time = time;
 	}
 
-	public FPerson getPerson() {
-		return person;
+	public FPerson getFPerson() {
+		return fPerson;
 	}
 
-	public void setPerson(FPerson person) {
-		this.person = person;
+	public void setFPerson(FPerson person) {
+		this.fPerson = person;
 	}
 
 	public Concept getObservationConcept() {
