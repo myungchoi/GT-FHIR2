@@ -54,7 +54,8 @@ public class FhirTesterConfig {
 		 * Use the method below to supply a client "factory" which can be used 
 		 * if your server requires authentication
 		 */
-		// retVal.setClientFactory(clientFactory);
+		MyBearerTokenClientFactory clientFactory = new MyBearerTokenClientFactory();
+		retVal.setClientFactory(clientFactory);
 		
 		return retVal;
 	}

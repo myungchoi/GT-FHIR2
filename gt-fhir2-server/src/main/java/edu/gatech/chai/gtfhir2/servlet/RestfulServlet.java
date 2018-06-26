@@ -2,6 +2,7 @@ package edu.gatech.chai.gtfhir2.servlet;
 
 import java.util.*;
 
+import edu.gatech.chai.gtfhir2.provider.*;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.cors.CorsConfiguration;
 
@@ -49,22 +50,25 @@ public class RestfulServlet extends RestfulServer {
 		 * type of resource.
 		 */
 		List<IResourceProvider> providers = new ArrayList<IResourceProvider>();
+		providers.add(new ConditionResourceProvider());
 		providers.add(new EncounterResourceProvider());
+		providers.add(new MedicationResourceProvider());
 		providers.add(new MedicationStatementResourceProvider());
+		providers.add(new MedicationRequestResourceProvider());
 		providers.add(new ObservationResourceProvider());
 		providers.add(new OrganizationResourceProvider());
 		providers.add(new PractitionerResourceProvider());
 		providers.add(new PatientResourceProvider());
-		providers.add(new MedicationRequestResourceProvider());
 		providers.add(new ProcedureResourceProvider());
+
 		setResourceProviders(providers);
 		
 		/*
 		 * Add page provider. Use memory based on for now.
 		 */
 		FifoMemoryPagingProvider pp = new FifoMemoryPagingProvider(5);
-        pp.setDefaultPageSize(10);
-        pp.setMaximumPageSize(100);
+        pp.setDefaultPageSize(50);
+        pp.setMaximumPageSize(200);
         setPagingProvider(pp);
         
 		/*

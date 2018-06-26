@@ -421,31 +421,33 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 			return null;
 		}		
 		
+		medicationStatement.setMedication(medication);
+
 		// See if we can add ingredient version of this medication.
-		Concept ingredient = conceptService.getIngredient(drugConcept);
-		if (ingredient != null) {
-			CodeableConcept ingredientCodeableConcept;
-			try {
-				ingredientCodeableConcept = CodeableConceptUtil.getCodeableConceptFromOmopConcept(ingredient);
-				if (!ingredientCodeableConcept.isEmpty()) {
-					// We have ingredient information. Add this to MedicationStatement.
-					// To do this, we need to add Medication resource to contained section.
-					Medication medicationResource = new Medication();
-					medicationResource.setCode(medication);
-					MedicationIngredientComponent medIngredientComponent = new MedicationIngredientComponent();
-					medIngredientComponent.setItem(ingredientCodeableConcept);
-					medicationResource.addIngredient(medIngredientComponent);
-					medicationResource.setId("med1");
-					medicationStatement.addContained(medicationResource);
-					medicationStatement.setMedication(new Reference("#med1"));
-				}
-			} catch (FHIRException e) {
-				e.printStackTrace();
-				return null;
-			}
-		} else {
-			medicationStatement.setMedication(medication);
-		}
+//		Concept ingredient = conceptService.getIngredient(drugConcept);
+//		if (ingredient != null) {
+//			CodeableConcept ingredientCodeableConcept;
+//			try {
+//				ingredientCodeableConcept = CodeableConceptUtil.getCodeableConceptFromOmopConcept(ingredient);
+//				if (!ingredientCodeableConcept.isEmpty()) {
+//					// We have ingredient information. Add this to MedicationStatement.
+//					// To do this, we need to add Medication resource to contained section.
+//					Medication medicationResource = new Medication();
+//					medicationResource.setCode(medication);
+//					MedicationIngredientComponent medIngredientComponent = new MedicationIngredientComponent();
+//					medIngredientComponent.setItem(ingredientCodeableConcept);
+//					medicationResource.addIngredient(medIngredientComponent);
+//					medicationResource.setId("med1");
+//					medicationStatement.addContained(medicationResource);
+//					medicationStatement.setMedication(new Reference("#med1"));
+//				}
+//			} catch (FHIRException e) {
+//				e.printStackTrace();
+//				return null;
+//			}
+//		} else {
+//			medicationStatement.setMedication(medication);
+//		}
 		
 		// Get effectivePeriod
 		Period period = new Period();
