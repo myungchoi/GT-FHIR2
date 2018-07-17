@@ -11,7 +11,7 @@ We are constantly working on mapping new concepts and adding to new features. *P
 [Deployment scripts] GT-FHIR2 includes docker composer, which helps deploying the server in the docker container.
 
 ## People
-**FHIR** 
+**FHIR and Lead** 
  * [Myung Choi](https://github.com/myungchoi)
 
 **OMOP CDM**
