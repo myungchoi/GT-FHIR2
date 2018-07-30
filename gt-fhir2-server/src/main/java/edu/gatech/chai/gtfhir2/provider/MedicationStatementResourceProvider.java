@@ -21,6 +21,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
@@ -67,6 +68,11 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		return "MedicationStatement";
 	}
 
+	public OmopMedicationStatement getMyMapper() {
+		return myMapper;
+		
+	}
+	
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
@@ -92,6 +98,13 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		}
 
 		return new MethodOutcome(new IdDt(id));
+	}
+
+	@Delete()
+	public void deleteMedicationStatement(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
 	}
 
 	@Update()

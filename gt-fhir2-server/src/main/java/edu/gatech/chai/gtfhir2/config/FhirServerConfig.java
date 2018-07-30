@@ -5,7 +5,6 @@ import java.util.Properties;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +23,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 @ComponentScans(value = { @ComponentScan("edu.gatech.chai.omopv5.jpa.dao"),
 		@ComponentScan("edu.gatech.chai.omopv5.jpa.service"),
-		@ComponentScan("edu.gatech.chai.fhir.jpa.service") })
+		@ComponentScan("edu.gatech.chai.smart.jpa.dao"),
+		@ComponentScan("edu.gatech.chai.smart.jpa.service") })
 @ImportResource({
     "classpath:database-config.xml"
 })
@@ -47,7 +47,7 @@ public class FhirServerConfig {
 		retVal.setPersistenceUnitName("GT-FHIR2");
 //		retVal.setDataSource(dataSource());
 		retVal.setDataSource(dataSource);
-		retVal.setPackagesToScan("edu.gatech.chai.omopv5.jpa.entity", "edu.gatech.chai.fhir.jpa.entity");
+		retVal.setPackagesToScan("edu.gatech.chai.omopv5.jpa.entity", "edu.gatech.chai.smart.jpa.entity");
 		retVal.setPersistenceProvider(new HibernatePersistenceProvider());
 		retVal.setJpaProperties(jpaProperties());
 		return retVal;
@@ -55,7 +55,8 @@ public class FhirServerConfig {
 
 	private Properties jpaProperties() {
 		Properties extraProperties = new Properties();
-		extraProperties.put("hibernate.dialect", org.hibernate.dialect.PostgreSQL94Dialect.class.getName());
+//		extraProperties.put("hibernate.dialect", org.hibernate.dialect.PostgreSQL94Dialect.class.getName());
+		extraProperties.put("hibernate.dialect", edu.gatech.chai.omopv5.jpa.enity.noomop.OmopPostgreSQLDialect.class.getName());
 		extraProperties.put("hibernate.format_sql", "true");
 		extraProperties.put("hibernate.show_sql", "false");
 		extraProperties.put("hibernate.hbm2ddl.auto", "update");
@@ -82,9 +83,5 @@ public class FhirServerConfig {
 		retVal.setEntityManagerFactory(entityManagerFactory);
 		return retVal;
 	}
-//	
-//	@Bean()
-//	public CareSiteService careSiteService() {
-//		return new CareSiteServiceImp();
-//	}
+
 }

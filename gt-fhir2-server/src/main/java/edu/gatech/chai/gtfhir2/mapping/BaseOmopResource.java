@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -12,7 +13,7 @@ import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.service.IService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
-public abstract class BaseOmopResource<v extends DomainResource, t extends BaseEntity, p extends IService<t>> 
+public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity, p extends IService<t>> 
 	implements IResourceMapping<v, t> {
 	
 	private p myOmopService;
@@ -38,6 +39,17 @@ public abstract class BaseOmopResource<v extends DomainResource, t extends BaseE
 	
 	public Class<t> getMyEntityClass() {
 		return this.myEntityClass;
+	}
+	
+	public void removeDbase(Long id) {		
+		myOmopService.removeById(id);
+	}
+	
+	public Long removeByFhirId (IdType fhirId) {
+		Long id_long_part = fhirId.getIdPartAsLong();
+		Long myId = IdMapping.getOMOPfromFHIR(id_long_part, getMyFhirResourceType());
+		
+		return myOmopService.removeById(myId);
 	}
 	
 	public Long getSize() {

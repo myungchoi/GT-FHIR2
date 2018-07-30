@@ -71,11 +71,11 @@ public class ConditionOccurrence extends BaseEntity{
 		this.id = id;
 	}
 
-	public FPerson getfPerson() {
+	public FPerson getFPerson() {
 		return fPerson;
 	}
 
-	public void setfPerson(FPerson fPerson) {
+	public void setFPerson(FPerson fPerson) {
 		this.fPerson = fPerson;
 	}
 

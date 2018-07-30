@@ -40,7 +40,7 @@ public class CodeableConceptUtil {
 				"String",
 				Arrays.asList("vocabulary.id", "conceptCode"),
 				Arrays.asList("like", "like"),
-				Arrays.asList(omopVocabularyId.toLowerCase(), code),
+				Arrays.asList(omopVocabularyId, code),
 				"and"
 				);
 		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>> ();

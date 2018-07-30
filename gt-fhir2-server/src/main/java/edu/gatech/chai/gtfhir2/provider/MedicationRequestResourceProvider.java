@@ -21,6 +21,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
@@ -67,6 +68,10 @@ public class MedicationRequestResourceProvider implements IResourceProvider {
 		return "MedicationRequest";
 	}
 
+    public OmopMedicationRequest getMyMapper() {
+    	return myMapper;
+    }
+
 	@Override
 	public Class<? extends IBaseResource> getResourceType() {
 		return MedicationRequest.class;
@@ -96,6 +101,13 @@ public class MedicationRequestResourceProvider implements IResourceProvider {
 		}
 
 		return new MethodOutcome(new IdDt(id));
+	}
+
+	@Delete()
+	public void deleteMedicationRequest(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
 	}
 
 	@Update()

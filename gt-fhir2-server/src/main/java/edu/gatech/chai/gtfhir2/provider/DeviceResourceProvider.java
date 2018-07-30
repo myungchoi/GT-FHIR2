@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Device;
+import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -15,6 +16,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
+import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
@@ -22,6 +25,7 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import edu.gatech.chai.gtfhir2.mapping.OmopDevice;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -54,6 +58,11 @@ public class DeviceResourceProvider implements IResourceProvider {
 	public static String getType() {
 		return "Device";
 	}
+	
+    public OmopDevice getMyMapper() {
+    	return myMapper;
+    }
+
 
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
@@ -72,6 +81,14 @@ public class DeviceResourceProvider implements IResourceProvider {
 		}		
 		return new MethodOutcome(new IdDt(id));
 	}
+
+	@Delete()
+	public void deleteDevice(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
+
 
 	@Search()
 	public IBundleProvider findDevicesByParams(

@@ -24,6 +24,7 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -70,6 +71,10 @@ public class ObservationResourceProvider implements IResourceProvider {
 		return "Observation";
 	}
 
+	public OmopObservation getMyMapper() {
+		return myMapper;
+	}
+	
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
@@ -94,6 +99,13 @@ public class ObservationResourceProvider implements IResourceProvider {
 			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
 		}
 		return new MethodOutcome(new IdDt(id));
+	}
+
+	@Delete()
+	public void deleteObservation(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
 	}
 
 	@Search()

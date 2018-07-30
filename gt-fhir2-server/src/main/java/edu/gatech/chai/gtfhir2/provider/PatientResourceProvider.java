@@ -24,6 +24,7 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -86,6 +87,10 @@ private int preferredPageSize = 30;
 		return "Patient";
 	}
 	
+	public OmopPatient getMyMapper() {
+		return myMapper;
+	}
+	
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
@@ -104,6 +109,13 @@ private int preferredPageSize = 30;
 		return new MethodOutcome(new IdDt(id));
 	}
 
+	@Delete()
+	public void deletePatient(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
+	
 	/**
 	 * The "@Search" annotation indicates that this method supports the search operation. You may have many different method annotated with this annotation, to support many different search criteria.
 	 * This example searches by family name.
@@ -116,6 +128,7 @@ private int preferredPageSize = 30;
 	@Search()
 	public IBundleProvider findPatientsByParams(
 			@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
+			@OptionalParam(name = Patient.SP_IDENTIFIER) TokenParam thePatientIdentifier,
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
@@ -150,6 +163,9 @@ private int preferredPageSize = 30;
 		
 		if (thePatientId != null) {
 			mapParameter (paramMap, Patient.SP_RES_ID, thePatientId);
+		}
+		if (thePatientIdentifier != null) {
+			mapParameter (paramMap, Patient.SP_IDENTIFIER, thePatientIdentifier);
 		}
 		if (theActive != null) {
 			mapParameter (paramMap, Patient.SP_ACTIVE, theActive);

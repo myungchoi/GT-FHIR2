@@ -66,6 +66,11 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		vDao.add(entity);
 		return entity;
 	}
+	
+	@Transactional
+	public Long removeById(Long id) {
+		return vDao.delete(entityClass, id);
+	}
 
 	@Transactional
 	public T update(T entity) {

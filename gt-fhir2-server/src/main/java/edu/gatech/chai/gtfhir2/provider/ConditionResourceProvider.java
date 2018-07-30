@@ -22,6 +22,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 //import ca.uhn.fhir.model.dstu2.composite.ContactPointDt;
 //import ca.uhn.fhir.model.dstu2.valueset.ContactPointUseEnum;
 //import ca.uhn.fhir.model.primitive.CodeDt;
@@ -79,6 +80,10 @@ public class ConditionResourceProvider implements IResourceProvider {
     public static String getType() {
         return "Condition";
     }
+    
+    public OmopCondition getMyMapper() {
+    	return myMapper;
+    }
 
     /**
      * The "@Create" annotation indicates that this method implements
@@ -105,6 +110,14 @@ public class ConditionResourceProvider implements IResourceProvider {
     public Class<Condition> getResourceType() {
         return Condition.class;
     }
+
+	@Delete()
+	public void deleteCondition(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
+
 
     /**
      * The "@Read" annotation indicates that this method supports the read

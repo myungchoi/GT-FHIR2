@@ -197,4 +197,11 @@ public class OmopMedication extends BaseOmopResource<Medication, Concept, Concep
 
 		}
 	}
+
+	@Override
+	public Concept constructOmop(Long omopId, Medication fhirResource) {
+		// This is READ-ONLY. We are reading medication information from
+		// concept table.
+		return null;
+	}
 }

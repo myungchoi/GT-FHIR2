@@ -29,9 +29,14 @@ public abstract class BaseEntityDao<T extends BaseEntity> implements IDao<T> {
 	}
 
 	@Override
-	public void delete(Class<T> entityClass, Long id) {
+	public Long delete(Class<T> entityClass, Long id) {
 		T entity = findById(entityClass, id);
-		em.remove(entity);
+		if (entity != null) {
+			em.remove(entity);
+			return id;
+		} else {
+			return 0L;
+		}
 	}
 
 }

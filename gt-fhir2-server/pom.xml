@@ -95,6 +95,18 @@
 			<artifactId>thymeleaf</artifactId>
 		</dependency>
 
+		<!-- Security OAuth2 related libraries -->
+		<dependency>
+			<groupId>org.apache.oltu.oauth2</groupId>
+			<artifactId>org.apache.oltu.oauth2.common</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.oltu.oauth2</groupId>
+			<artifactId>org.apache.oltu.oauth2.resourceserver</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+
 		<!-- Used for CORS support -->
 		<dependency>
 			<groupId>org.springframework</groupId>

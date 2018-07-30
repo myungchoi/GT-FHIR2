@@ -19,6 +19,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -70,6 +71,10 @@ public class ProcedureResourceProvider implements IResourceProvider {
 	public static String getType() {
 		return "Procedure";
 	}
+	
+	public OmopProcedure getMyMapper() {
+		return myMapper;
+	}
 
 	/**
 	 * The "@Create" annotation indicates that this method implements
@@ -100,7 +105,7 @@ public class ProcedureResourceProvider implements IResourceProvider {
 	 * @return This method returns a "MethodOutcome"
 	 */
 	@Update()
-	public MethodOutcome updatePractitioner(@IdParam IdType theId, @ResourceParam Procedure theProcedure) {
+	public MethodOutcome updateProcedure(@IdParam IdType theId, @ResourceParam Procedure theProcedure) {
 		validateResource(theProcedure);
 
 		Long fhirId=null;
@@ -115,6 +120,13 @@ public class ProcedureResourceProvider implements IResourceProvider {
 		}
 
 		return new MethodOutcome();
+	}
+
+	@Delete()
+	public void deleteProcedure(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
 	}
 
 	/**

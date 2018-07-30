@@ -18,6 +18,7 @@ import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
@@ -25,6 +26,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
+import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopMedication;
@@ -59,6 +61,16 @@ public class MedicationResourceProvider implements IResourceProvider {
 		return "Medication";
 	}
 	
+    public OmopMedication getMyMapper() {
+    	return myMapper;
+    }
+
+	@Delete()
+	public void deleteMedication(@IdParam IdType theId) {
+		throw new MethodNotAllowedException("Medication Delete is not Allowed.");
+	}
+
+
 	@Read()
 	public Medication readMedication(@IdParam IdType theId) {
 		Medication retval = (Medication) myMapper.toFHIR(theId);

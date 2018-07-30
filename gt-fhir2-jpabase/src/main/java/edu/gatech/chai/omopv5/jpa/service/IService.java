@@ -9,6 +9,7 @@ public interface IService<v extends BaseEntity> {
 	static String version = "5.x";
 	
 	v findById (Long id);
+	public Long removeById (Long id);
 	List<v> searchByColumnString (String column, String value);
 	public List<v> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap);
 	public List<v> searchWithoutParams(int fromIndex, int toIndex);

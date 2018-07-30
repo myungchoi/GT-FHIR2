@@ -40,4 +40,10 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public DeviceExposure constructOmop(Long omopId, Device fhirResource) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

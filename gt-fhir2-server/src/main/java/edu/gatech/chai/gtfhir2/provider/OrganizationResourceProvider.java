@@ -20,6 +20,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 //import ca.uhn.fhir.model.dstu2.composite.ContactPointDt;
 //import ca.uhn.fhir.model.dstu2.valueset.ContactPointUseEnum;
 //import ca.uhn.fhir.model.primitive.CodeDt;
@@ -80,12 +81,16 @@ public class OrganizationResourceProvider implements IResourceProvider {
 		return "Organization";
 	}
 	
+	public OmopOrganization getMyMapper() {
+		return myMapper;
+	}
+	
 	/**
 	 * The "@Create" annotation indicates that this method implements
 	 * "create=type", which adds a new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createPatient(@ResourceParam MyOrganization theOrganization) {
+	public MethodOutcome createOrganization(@ResourceParam MyOrganization theOrganization) {
 		// validateResource(thePatient);
 
 		Long id=null;
@@ -96,6 +101,13 @@ public class OrganizationResourceProvider implements IResourceProvider {
 			e.printStackTrace();
 		}
 		return new MethodOutcome(new IdDt(id));
+	}
+
+	@Delete()
+	public void deleteOrganization(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
 	}
 
 	/**
