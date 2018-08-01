@@ -150,9 +150,42 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
             case Condition.SP_CLINICAL_STATUS:
                 break;
             case Condition.SP_CODE:
-                //Condition.code -> Omop Concept
-                putConditionInParamWrapper(paramWrapper, value);
-                mapList.add(paramWrapper);
+    			String system = ((TokenParam) value).getSystem();
+    			String code = ((TokenParam) value).getValue();
+    			
+    			if ((system == null || system.isEmpty()) && (code == null || code.isEmpty()))
+    				break;
+    			
+    			String omopVocabulary = "None";
+    			if (system != null && !system.isEmpty()) {
+    				try {
+    					omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(system);
+    				} catch (FHIRException e) {
+    					e.printStackTrace();
+    				}
+    			} 
+
+    			paramWrapper.setParameterType("String");
+    			if ("None".equals(omopVocabulary) && code != null && !code.isEmpty()) {
+    				paramWrapper.setParameters(Arrays.asList("conceptId.conceptCode"));
+    				paramWrapper.setOperators(Arrays.asList("="));
+    				paramWrapper.setValues(Arrays.asList(code));
+    			} else if (!"None".equals(omopVocabulary) && (code == null || code.isEmpty())) {
+    				paramWrapper.setParameters(Arrays.asList("conceptId.vocabulary.id"));
+    				paramWrapper.setOperators(Arrays.asList("="));
+    				paramWrapper.setValues(Arrays.asList(omopVocabulary));				
+    			} else {
+    				paramWrapper.setParameters(Arrays.asList("conceptId.vocabulary.id", "conceptId.conceptCode"));
+    				paramWrapper.setOperators(Arrays.asList("=","="));
+    				paramWrapper.setValues(Arrays.asList(omopVocabulary, code));
+    			}
+    			paramWrapper.setRelationship("and");
+    			mapList.add(paramWrapper);
+            	
+//                //Condition.code -> Omop Concept
+//                putConditionInParamWrapper(paramWrapper, value);
+//                mapList.add(paramWrapper);
+
                 break;
             case Condition.SP_CONTEXT:
                 //Condition.context -> Omop VisitOccurrence

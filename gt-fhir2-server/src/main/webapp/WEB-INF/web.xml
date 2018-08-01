@@ -25,6 +25,11 @@
 		<param-value>100</param-value>
 	</context-param>
 	<context-param>
+		<param-name>terminologyServerUrl</param-name>
+		<param-value>http://measure.eval.kanvix.com/cqf-ruler/baseDstu3
+		</param-value>
+	</context-param>
+	<context-param>
 		<param-name>transactionServer</param-name>
 		<param-value>http://localhost:8080/</param-value>
 	</context-param>

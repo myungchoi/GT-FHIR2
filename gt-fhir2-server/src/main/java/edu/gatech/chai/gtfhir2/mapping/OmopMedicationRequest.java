@@ -57,6 +57,7 @@ import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
  * 43542357	Physician administered drug (identified from referral record), MedicationAdministration
  * 43542358	Physician administered drug (identified from EHR observation), MedicationAdministration
  * 581373	Physician administered drug (identified from EHR order), MedicationAdministration
+ * ******
  * 38000175	Prescription dispensed in pharmacy, MedicationDispense
  * 38000176	Prescription dispensed through mail order, MedicationDispense
  * 581452	Dispensed in Outpatient office, MedicationDispense
@@ -72,7 +73,7 @@ import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, DrugExposure, DrugExposureService>
 		implements IResourceMapping<MedicationRequest, DrugExposure> {
 
-	private static Long MEDICATIONREQUEST_CONCEPT_TYPE_ID = 38000177L;
+	public static Long MEDICATIONREQUEST_CONCEPT_TYPE_ID = 38000177L;
 	private static OmopMedicationRequest omopMedicationRequest = new OmopMedicationRequest();
 	private VisitOccurrenceService visitOccurrenceService;
 	private ConceptService conceptService;

@@ -33,6 +33,7 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
+import ca.uhn.fhir.rest.param.TokenParamModifier;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
@@ -153,7 +154,11 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 			mapParameter (paramMap, MedicationStatement.SP_RES_ID, theMedicationStatementId);
 		}
 		if (theCode != null) {
-			mapParameter (paramMap, MedicationStatement.SP_CODE, theCode);
+			if (theCode.getModifier().compareTo(TokenParamModifier.IN) == 0) {
+				// We have modifier to search data in certain code value set. 
+			} else {
+				mapParameter (paramMap, MedicationStatement.SP_CODE, theCode);
+			}
 		}
 		if (theContext != null) {
 			mapParameter (paramMap, MedicationStatement.SP_CONTEXT, theContext);

@@ -16,12 +16,13 @@ import ca.uhn.fhir.rest.server.interceptor.InterceptorAdapter;
  * @author MC142
  *
  */
+
 public class OIDCInterceptor extends InterceptorAdapter {
 
 	private static final org.slf4j.Logger ourLog = org.slf4j.LoggerFactory.getLogger(OIDCInterceptor.class);
 
 	private String enableOAuth;
-	private String introspectUrl;
+	private String introspectUrl;	
 	private String clientId;
 	private String clientSecret;
 	private String localByPass;

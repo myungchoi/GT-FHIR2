@@ -34,6 +34,7 @@ import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
+import edu.gatech.chai.gtfhir2.provider.MedicationRequestResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.MedicationStatementResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
@@ -54,23 +55,28 @@ import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
  * 
  * @author mc142
  *
- *         concept id OHDSI drug type FHIR 38000179 Physician administered drug
- *         (identified as procedure), MedicationAdministration 38000180
- *         Inpatient administration, MedicationAdministration 43542356 Physician
- *         administered drug (identified from EHR problem list),
- *         MedicationAdministration 43542357 Physician administered drug
- *         (identified from referral record), MedicationAdministration 43542358
- *         Physician administered drug (identified from EHR observation),
- *         MedicationAdministration 581373 Physician administered drug
- *         (identified from EHR order), MedicationAdministration 38000175
- *         Prescription dispensed in pharmacy, MedicationDispense 38000176
- *         Prescription dispensed through mail order, MedicationDispense 581452
- *         Dispensed in Outpatient office, MedicationDispense 38000177
- *         Prescription written, MedicationRequest ****** 44787730 Patient
- *         Self-Reported Medication, MedicationStatement ****** 38000178
- *         Medication list entry 38000181 Drug era - 0 days persistence window
- *         38000182 Drug era - 30 days persistence window 44777970 Randomized
- *         Drug
+ * concept id	OHDSI drug type	FHIR
+ * 38000179		Physician administered drug (identified as procedure), MedicationAdministration
+ * 38000180		Inpatient administration, MedicationAdministration
+ * 43542356	Physician administered drug (identified from EHR problem list), MedicationAdministration
+ * 43542357	Physician administered drug (identified from referral record), MedicationAdministration
+ * 43542358	Physician administered drug (identified from EHR observation), MedicationAdministration
+ * 581373	Physician administered drug (identified from EHR order), MedicationAdministration
+ * 38000175	Prescription dispensed in pharmacy, MedicationDispense
+ * 38000176	Prescription dispensed through mail order, MedicationDispense
+ * 581452	Dispensed in Outpatient office, MedicationDispense
+ * ******
+ * 38000177	Prescription written, MedicationRequest
+ * ******
+ * 44787730	Patient Self-Reported Medication, MedicationStatement
+ * 38000178	Medication list entry	 
+ * 38000181	Drug era - 0 days persistence window	 
+ * 38000182	Drug era - 30 days persistence window	 
+ * 44777970	Randomized Drug	 
+ * 
+ * NOTE: We will take all the drug exposure into MedicationStatement. 
+ *       It's hard to distinguish the medicaitons for MedicationStatement.
+ *
  */
 public class OmopMedicationStatement extends BaseOmopResource<MedicationStatement, DrugExposure, DrugExposureService>
 		implements IResourceMapping<MedicationStatement, DrugExposure> {
@@ -324,6 +330,35 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		// taken. We do not have this information. Set to y
 		medicationStatement.setTaken(MedicationStatementTaken.Y);
 
+		// If OMOP medication type has the following prescription type, we set
+		// basedOn reference to the prescription.
+		if (entity.getDrugTypeConcept() != null) { 
+			if (entity.getDrugTypeConcept().getId() == OmopMedicationRequest.MEDICATIONREQUEST_CONCEPT_TYPE_ID) {
+				IdType referenceIdType = new IdType(MedicationRequestResourceProvider.getType(), IdMapping.getFHIRfromOMOP(entity.getId(), MedicationRequestResourceProvider.getType()));
+				Reference basedOnReference = new Reference(referenceIdType);
+				medicationStatement.addBasedOn(basedOnReference);
+			} else if (entity.getDrugTypeConcept().getId() == 38000179L ||
+					entity.getDrugTypeConcept().getId() == 38000180L ||
+					entity.getDrugTypeConcept().getId() == 43542356L ||
+					entity.getDrugTypeConcept().getId() == 43542357L ||
+					entity.getDrugTypeConcept().getId() == 43542358L ||
+					entity.getDrugTypeConcept().getId() == 581373L) {
+				// This is administration related...
+				// TODO: add partOf to MedicationAdministration reference after we implement Medication Administration
+			} else if (entity.getDrugTypeConcept().getId() == 38000175L ||
+					entity.getDrugTypeConcept().getId() == 38000176L ||
+					entity.getDrugTypeConcept().getId() == 581452L) {
+				// TODO: add partOf to MedicationDispense reference.
+//				IdType referenceIdType = new IdType("MedicationDispense", IdMapping.getFHIRfromOMOP(entity.getId(), "MedicationDispense"));
+//				medicationStatement.addPartOf(new Reference(referenceIdType));
+			}
+				
+		}
+		
+		// If OMOP medicaiton type has the administration or dispense, we set
+		// partOf reference to this.
+		
+		
 		return medicationStatement;
 	}
 
@@ -448,8 +483,8 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		return mapList;
 	}
 
-	final ParameterWrapper filterParam = new ParameterWrapper("Long", Arrays.asList("drugTypeConcept.id"),
-			Arrays.asList("="), Arrays.asList(String.valueOf(MEDICATIONSTATEMENT_CONCEPT_TYPE_ID)), "or");
+//	final ParameterWrapper filterParam = new ParameterWrapper("Long", Arrays.asList("drugTypeConcept.id"),
+//			Arrays.asList("="), Arrays.asList(String.valueOf(MEDICATIONSTATEMENT_CONCEPT_TYPE_ID)), "or");
 
 	@Override
 	public Long getSize() {
@@ -459,9 +494,9 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 
 	@Override
 	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(filterParam);
-		map.put(MAP_EXCEPTION_FILTER, exceptions);
+//		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
+//		exceptions.add(filterParam);
+//		map.put(MAP_EXCEPTION_FILTER, exceptions);
 
 		return getMyOmopService().getSize(map);
 	}
@@ -480,9 +515,9 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(filterParam);
-		map.put(MAP_EXCEPTION_FILTER, exceptions);
+//		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
+//		exceptions.add(filterParam);
+//		map.put(MAP_EXCEPTION_FILTER, exceptions);
 
 		List<DrugExposure> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
 
@@ -793,10 +828,33 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 		}
 
 		// Drug type concept should be hard-coded to MedicationStatement
-		Concept drugTypeConcept = new Concept();
-		drugTypeConcept.setId(MEDICATIONSTATEMENT_CONCEPT_TYPE_ID);
-		drugExposure.setDrugTypeConcept(drugTypeConcept);
+		Concept drugTypeConcept = null;
+		for (Reference basedOnReference : fhirResource.getBasedOn()) {
+			if (basedOnReference.getReferenceElement().getResourceType().equals(MedicationRequestResourceProvider.getType())) {
+				drugTypeConcept = new Concept();
+				drugTypeConcept.setId(OmopMedicationRequest.MEDICATIONREQUEST_CONCEPT_TYPE_ID);
+			}
+		}
+		
+		if (drugTypeConcept == null) {
+			for (Reference partOfReference : fhirResource.getPartOf()) {
+				if (partOfReference.getReferenceElement().getResourceType().equals("MedicationAdministration")) {
+					drugTypeConcept = new Concept();
+					drugTypeConcept.setId(38000179L);
+				} else if (partOfReference.getReferenceElement().getResourceType().equals("MedicationDispense")) {
+					drugTypeConcept = new Concept();
+					drugTypeConcept.setId(38000175L);
+				}
+			}
+		}
+		
+		if (drugTypeConcept != null) {
+			drugExposure.setDrugTypeConcept(drugTypeConcept);
+		} else {
+			drugTypeConcept = new Concept();
+			drugTypeConcept.setId(MEDICATIONSTATEMENT_CONCEPT_TYPE_ID);
+		}
 
-		return null;
+		return drugExposure;
 	}
 }

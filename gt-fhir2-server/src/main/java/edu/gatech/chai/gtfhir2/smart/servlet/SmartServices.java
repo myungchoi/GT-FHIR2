@@ -27,6 +27,7 @@ import edu.gatech.chai.smart.jpa.service.SmartOnFhirLaunchContextService;
  * Servlet implementation class SmartServices
 @WebServlet(description = "SMART on FHIR internal services", urlPatterns = { "/_services/smart/Launch" })
  */
+
 public class SmartServices extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
