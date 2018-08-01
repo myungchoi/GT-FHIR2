@@ -222,6 +222,15 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
             case Condition.SP_PATIENT:
                 //not supporting
                 break;
+    		case Procedure.SP_RES_ID:
+    			String conditionId = ((TokenParam) value).getValue();
+    			paramWrapper.setParameterType("Long");
+    			paramWrapper.setParameters(Arrays.asList("id"));
+    			paramWrapper.setOperators(Arrays.asList("="));
+    			paramWrapper.setValues(Arrays.asList(conditionId));
+    			paramWrapper.setRelationship("or");
+    			mapList.add(paramWrapper);
+    			break;
             case Condition.SP_SEVERITY:
                 //not supporting
                 break;
