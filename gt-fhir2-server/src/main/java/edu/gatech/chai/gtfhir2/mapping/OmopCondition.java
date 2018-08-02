@@ -152,7 +152,7 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
             case Condition.SP_CODE:
     			String system = ((TokenParam) value).getSystem();
     			String code = ((TokenParam) value).getValue();
-    			
+    			System.out.println("\n\n\n\n\nSystem:"+system+"\n\ncode:"+code+"\n\n\n\n\n");
     			if ((system == null || system.isEmpty()) && (code == null || code.isEmpty()))
     				break;
     			
