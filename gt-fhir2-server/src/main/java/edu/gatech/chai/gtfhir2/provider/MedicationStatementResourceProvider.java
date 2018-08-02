@@ -12,6 +12,7 @@ import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.MedicationStatement;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
+import org.hl7.fhir.dstu3.model.ValueSet.ConceptSetComponent;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
@@ -38,6 +39,7 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopMedicationStatement;
+import edu.gatech.chai.gtfhir2.utilities.TerminologyServiceClient;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class MedicationStatementResourceProvider implements IResourceProvider {
@@ -155,10 +157,14 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		}
 		if (theCode != null) {
 			if (theCode.getModifier().compareTo(TokenParamModifier.IN) == 0) {
-				// We have modifier to search data in certain code value set. 
-			} else {
-				mapParameter (paramMap, MedicationStatement.SP_CODE, theCode);
+				// We have modifier to search data in certain code value set.
+				// With this modifier, the code is URI for value set.
+				String valueSetValue = theCode.getValue();
+				if (valueSetValue.split("?").length > 1) {
+					errorProcessing("code:in="+valueSetValue+" is not supported. We only support simple value set URL");
+				} 
 			}
+			mapParameter (paramMap, MedicationStatement.SP_CODE, theCode);
 		}
 		if (theContext != null) {
 			mapParameter (paramMap, MedicationStatement.SP_CONTEXT, theContext);

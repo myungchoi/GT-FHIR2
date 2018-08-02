@@ -24,6 +24,8 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.SimpleQuantity;
 import org.hl7.fhir.dstu3.model.Type;
+import org.hl7.fhir.dstu3.model.ValueSet.ConceptReferenceComponent;
+import org.hl7.fhir.dstu3.model.ValueSet.ConceptSetComponent;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.ContextLoaderListener;
@@ -33,12 +35,15 @@ import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
+import ca.uhn.fhir.rest.param.TokenParamModifier;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.MedicationRequestResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.MedicationStatementResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
 import edu.gatech.chai.gtfhir2.utilities.CodeableConceptUtil;
+import edu.gatech.chai.gtfhir2.utilities.TerminologyServiceClient;
+import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.DrugExposure;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
@@ -377,37 +382,103 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 			mapList.add(paramWrapper);
 			break;
 		case MedicationStatement.SP_CODE:
-			String system = ((TokenParam) value).getSystem();
-			String code = ((TokenParam) value).getValue();
-
+			TokenParam theCode = (TokenParam) value;
+			String system = theCode.getSystem();
+			String code = theCode.getValue();
+			String omopVocabulary = "None";
+			
 			if ((system == null || system.isEmpty()) && (code == null || code.isEmpty()))
 				break;
 
-			String omopVocabulary = "None";
-			if (system != null && !system.isEmpty()) {
-				try {
-					omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(system);
-				} catch (FHIRException e) {
-					e.printStackTrace();
-				}
-			}
+			if (theCode.getModifier().compareTo(TokenParamModifier.IN) == 0) {
+				// code has URI for the valueset search.
+				TerminologyServiceClient terminologyService = TerminologyServiceClient.getInstance();
+				Map<String, List<ConceptSetComponent>> theIncExcl = terminologyService.getValueSetByUrl(code);
+				
+				List<ConceptSetComponent> includes = theIncExcl.get("include");				
+				List<String> values = new ArrayList<String>();
+				for (ConceptSetComponent include : includes) {
+					// We need to loop 
+					ParameterWrapper myParamWrapper = new ParameterWrapper();
+					myParamWrapper.setParameterType("Code:In");
+					myParamWrapper.setParameters(Arrays.asList("drugConcept.vocabulary.id", "drugConcept.conceptCode"));
+					myParamWrapper.setOperators(Arrays.asList("=", "in"));
 
-			paramWrapper.setParameterType("String");
-			if ("None".equals(omopVocabulary) && code != null && !code.isEmpty()) {
-				paramWrapper.setParameters(Arrays.asList("drugConcept.conceptCode"));
-				paramWrapper.setOperators(Arrays.asList("like"));
-				paramWrapper.setValues(Arrays.asList(code));
-			} else if (!"None".equals(omopVocabulary) && (code == null || code.isEmpty())) {
-				paramWrapper.setParameters(Arrays.asList("drugConcept.vocabulary.id"));
-				paramWrapper.setOperators(Arrays.asList("like"));
-				paramWrapper.setValues(Arrays.asList(omopVocabulary));
+					String valueSetSystem = include.getSystem();
+					try {
+						omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(valueSetSystem);
+					} catch (FHIRException e) {
+						e.printStackTrace();
+					}
+					if ("None".equals(omopVocabulary)) {
+						ThrowFHIRExceptions.unprocessableEntityException("We don't understand the system, "+valueSetSystem+" in code:in valueset");
+					}
+					values.add(valueSetSystem);
+					
+					List<ConceptReferenceComponent> concepts = include.getConcept();
+					for (ConceptReferenceComponent concept : concepts) {
+						String valueSetCode = concept.getCode();
+						values.add(valueSetCode);
+					}
+					myParamWrapper.setValues(values);
+					myParamWrapper.setUpperRelationship("or");
+					mapList.add(myParamWrapper);
+				}
+				
+				List<ConceptSetComponent> excludes = theIncExcl.get("exclude");
+				for (ConceptSetComponent exclude : excludes) {
+					// We need to loop 
+					ParameterWrapper myParamWrapper = new ParameterWrapper();
+					myParamWrapper.setParameterType("Code:In");
+					myParamWrapper.setParameters(Arrays.asList("drugConcept.vocabulary.id", "drugConcept.conceptCode"));
+					myParamWrapper.setOperators(Arrays.asList("=", "out"));
+
+					String valueSetSystem = exclude.getSystem();
+					try {
+						omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(valueSetSystem);
+					} catch (FHIRException e) {
+						e.printStackTrace();
+					}
+					if ("None".equals(omopVocabulary)) {
+						ThrowFHIRExceptions.unprocessableEntityException("We don't understand the system, "+valueSetSystem+" in code:in valueset");
+					}
+					values.add(valueSetSystem);
+					
+					List<ConceptReferenceComponent> concepts = exclude.getConcept();
+					for (ConceptReferenceComponent concept : concepts) {
+						String valueSetCode = concept.getCode();
+						values.add(valueSetCode);
+					}
+					myParamWrapper.setValues(values);
+					myParamWrapper.setUpperRelationship("and");
+					mapList.add(myParamWrapper);
+				}
 			} else {
-				paramWrapper.setParameters(Arrays.asList("drugConcept.vocabulary.id", "drugConcept.conceptCode"));
-				paramWrapper.setOperators(Arrays.asList("like", "like"));
-				paramWrapper.setValues(Arrays.asList(omopVocabulary, code));
+				if (system != null && !system.isEmpty()) {
+					try {
+						omopVocabulary = OmopCodeableConceptMapping.omopVocabularyforFhirUri(system);
+					} catch (FHIRException e) {
+						e.printStackTrace();
+					}
+				}
+	
+				paramWrapper.setParameterType("String");
+				if ("None".equals(omopVocabulary) && code != null && !code.isEmpty()) {
+					paramWrapper.setParameters(Arrays.asList("drugConcept.conceptCode"));
+					paramWrapper.setOperators(Arrays.asList("like"));
+					paramWrapper.setValues(Arrays.asList(code));
+				} else if (!"None".equals(omopVocabulary) && (code == null || code.isEmpty())) {
+					paramWrapper.setParameters(Arrays.asList("drugConcept.vocabulary.id"));
+					paramWrapper.setOperators(Arrays.asList("like"));
+					paramWrapper.setValues(Arrays.asList(omopVocabulary));
+				} else {
+					paramWrapper.setParameters(Arrays.asList("drugConcept.vocabulary.id", "drugConcept.conceptCode"));
+					paramWrapper.setOperators(Arrays.asList("like", "like"));
+					paramWrapper.setValues(Arrays.asList(omopVocabulary, code));
+				}
+				paramWrapper.setRelationship("and");
+				mapList.add(paramWrapper);
 			}
-			paramWrapper.setRelationship("and");
-			mapList.add(paramWrapper);
 			break;
 		case MedicationStatement.SP_CONTEXT:
 			Long fhirEncounterId = ((ReferenceParam) value).getIdPartAsLong();

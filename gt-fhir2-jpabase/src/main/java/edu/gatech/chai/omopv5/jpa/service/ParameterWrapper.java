@@ -60,6 +60,7 @@ public class ParameterWrapper {
 	private List<String> operators;
 	private List<String> values;
 	private String relationship;
+	private String upperRelationship;
 
 	public ParameterWrapper() {
 	}
@@ -71,6 +72,7 @@ public class ParameterWrapper {
 		this.operators = operators;
 		this.values = values;
 		this.relationship = relationship;
+		this.upperRelationship = null; // this is used only at the special case.
 	}
 
 	public String getParameterType() {
@@ -113,6 +115,14 @@ public class ParameterWrapper {
 		this.relationship = relationship;
 	}
 
+	public String getUpperRelationship() {
+		return upperRelationship;
+	}
+	
+	public void setUpperRelationship(String upperRelationship) {
+		this.upperRelationship = upperRelationship;
+	}
+	
 	public static List<Predicate> constructPredicate(CriteriaBuilder builder,
 			Map<String, List<ParameterWrapper>> paramMap, Root<? extends BaseEntity> rootUser) {
 		List<Predicate> predicates = new ArrayList<Predicate>();
@@ -157,30 +167,92 @@ public class ParameterWrapper {
 							path = rootUser.get(attributeName);
 						}
 
-						if (oper.equalsIgnoreCase("like"))
+						if (oper.equalsIgnoreCase("like")) {
 							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 								subWhere = builder.or(subWhere, builder.like(path, valueName));
 							} else {
 								subWhere = builder.and(subWhere, builder.like(path, valueName));
 							}
-						else if (oper.equalsIgnoreCase("="))
+						} else if (oper.equalsIgnoreCase("=")) {
 							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 								subWhere = builder.or(subWhere, builder.equal(path, valueName));
 							} else {
 								subWhere = builder.and(subWhere, builder.equal(path, valueName));
 							}
-						else if (oper.equalsIgnoreCase("!="))
+						} else if (oper.equalsIgnoreCase("!=")) {
 							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 								subWhere = builder.or(subWhere, builder.notEqual(path, valueName));
 							} else {
 								subWhere = builder.and(subWhere, builder.notEqual(path, valueName));
 							}
-						else
+						} else {
 							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
 								subWhere = builder.or(subWhere, builder.notLike(path, valueName));
 							} else {
 								subWhere = builder.and(subWhere, builder.notLike(path, valueName));
 							}
+						}
+					}
+					break;
+				case "Code:In":
+					logger.debug("Code:In parameter type found.");
+					attributeName = null;
+					valueName = null;
+					for (Iterator<String> attributeIter = param.getParameters().iterator(), 
+							operIter = param.getOperators().iterator(),
+							valueIter = param.getValues().iterator();
+							(attributeIter.hasNext() || valueIter.hasNext()) && operIter.hasNext();
+						) {
+
+						if (attributeIter.hasNext())
+							attributeName = attributeIter.next();
+						if (valueIter.hasNext())
+							valueName = valueIter.next();
+						String oper = operIter.next();						
+						logger.debug("--- Attribute name:"+attributeName);
+						logger.debug("--- value:"+valueName);
+						logger.debug("--- operator:"+oper);
+						Path<String> path;
+						String[] columnPath = attributeName.split("\\.");
+						if (columnPath.length == 2) {
+							path = rootUser.get(columnPath[0]).get(columnPath[1]);
+						} else if (columnPath.length == 3) {
+							path = rootUser.get(columnPath[0]).get(columnPath[1]).get(columnPath[2]);
+						} else {
+							path = rootUser.get(attributeName);
+						}
+
+						if (oper.equalsIgnoreCase("like")) {
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.like(path, valueName));
+							} else {
+								subWhere = builder.and(subWhere, builder.like(path, valueName));
+							}
+						} else if (oper.equalsIgnoreCase("=")) {
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.equal(path, valueName));
+							} else {
+								subWhere = builder.and(subWhere, builder.equal(path, valueName));
+							}
+						} else if (oper.equalsIgnoreCase("!=")) {
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.notEqual(path, valueName));
+							} else {
+								subWhere = builder.and(subWhere, builder.notEqual(path, valueName));
+							}
+						} else if (oper.equalsIgnoreCase("in")) {  
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.notLike(path, valueName));
+							} else {
+								subWhere = builder.and(subWhere, builder.notLike(path, valueName));
+							}
+						} else {
+							if (param.getRelationship() == null || param.getRelationship().equals("or")) {
+								subWhere = builder.or(subWhere, builder.notLike(path, valueName));
+							} else {
+								subWhere = builder.and(subWhere, builder.notLike(path, valueName));
+							}
+						}
 					}
 					break;
 				case "Date":
@@ -260,7 +332,11 @@ public class ParameterWrapper {
 					break;
 				}
 
-				where = builder.and(where, subWhere);
+				if (param.getUpperRelationship() != null && param.getUpperRelationship().equalsIgnoreCase("or")) {
+					where = builder.or(where, subWhere);
+				} else {
+					where = builder.and(where, subWhere);
+				}
 			}
 		}
 		predicates.add(where);

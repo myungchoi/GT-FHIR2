@@ -10,7 +10,7 @@ import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
 import edu.gatech.chai.gtfhir2.utilities.CodeableConceptUtil;
 import edu.gatech.chai.omopv5.jpa.entity.*;
 import edu.gatech.chai.omopv5.jpa.service.*;
-
+import edu.gatech.chai.gtfhir2.mapping.IdMapping;
 import edu.gatech.chai.gtfhir2.provider.ConditionResourceProvider;
 import org.hl7.fhir.dstu3.model.*;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -220,8 +220,20 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
                 //not supporting
                 break;
             case Condition.SP_PATIENT:
-                //not supporting
-                break;
+    		case Condition.SP_SUBJECT:
+    			ReferenceParam subjectReference = ((ReferenceParam) value);
+    			Long fhirPatientId = subjectReference.getIdPartAsLong();
+    			Long omopPersonId = IdMapping.getOMOPfromFHIR(fhirPatientId, PatientResourceProvider.getType());
+
+    			String omopPersonIdString = String.valueOf(omopPersonId);
+    			
+    			paramWrapper.setParameterType("Long");
+    			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
+    			paramWrapper.setOperators(Arrays.asList("="));
+    			paramWrapper.setValues(Arrays.asList(omopPersonIdString));
+    			paramWrapper.setRelationship("or");
+    			mapList.add(paramWrapper);
+    			break;
     		case Procedure.SP_RES_ID:
     			String conditionId = ((TokenParam) value).getValue();
     			paramWrapper.setParameterType("Long");
@@ -236,17 +248,6 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
                 break;
             case Condition.SP_STAGE:
                 //not supporting
-                break;
-            case Condition.SP_SUBJECT:
-                //Condition.subject -> Omop FPerson
-                ReferenceParam subjectReference = ((ReferenceParam) value);
-                String subjectId = String.valueOf(subjectReference.getIdPartAsLong());
-                paramWrapper.setParameterType("Long");
-                paramWrapper.setParameters(Arrays.asList("fPerson.id"));
-                paramWrapper.setOperators(Arrays.asList("="));
-                paramWrapper.setValues(Arrays.asList(subjectId));
-                paramWrapper.setRelationship("or");
-                mapList.add(paramWrapper);
                 break;
             case Condition.SP_VERIFICATION_STATUS:
                 //not supporting

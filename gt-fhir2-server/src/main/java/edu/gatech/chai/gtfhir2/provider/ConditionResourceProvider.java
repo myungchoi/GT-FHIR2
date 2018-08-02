@@ -8,6 +8,8 @@ import java.util.Map;
 
 //import org.hl7.fhir.dstu3.model.ContactPoint.ContactPointUse;
 import edu.gatech.chai.gtfhir2.mapping.OmopCondition;
+import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
+
 import org.hl7.fhir.dstu3.model.Condition;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.InstantType;
@@ -32,6 +34,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -137,7 +140,9 @@ public class ConditionResourceProvider implements IResourceProvider {
     @Search()
     public IBundleProvider findConditionByParams(
             @OptionalParam(name = Condition.SP_RES_ID) TokenParam theConditionId,
-            @OptionalParam(name = Condition.SP_CODE) TokenParam theCode
+            @OptionalParam(name = Condition.SP_CODE) TokenParam theCode,
+            @OptionalParam(name = Condition.SP_SUBJECT) ReferenceParam theSubjectId,
+            @OptionalParam(name = Condition.SP_PATIENT) ReferenceParam thePatientId
     ) {
         final InstantType searchTime = InstantType.withCurrentTime();
         Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
@@ -146,13 +151,18 @@ public class ConditionResourceProvider implements IResourceProvider {
             mapParameter (paramMap, Condition.SP_RES_ID, theConditionId);
         }
 		if (theCode != null) {
-			String system = theCode.getSystem();
-			String code = theCode.getValue();
-			System.out.println("\nConditionResrouce Provider\n\n\n\nSystem:"+system+"\n\ncode:"+code+"\n\n\n\n\n");
-
 			mapParameter (paramMap, Condition.SP_CODE, theCode);
 		}
-
+		if (theSubjectId != null) {
+			if (theSubjectId.getResourceType().equals(PatientResourceProvider.getType())) {
+				mapParameter (paramMap, Condition.SP_SUBJECT, theSubjectId);
+			} else {
+				ThrowFHIRExceptions.unprocessableEntityException("We only support Patient resource for subject");
+			}
+		}
+		if (thePatientId != null) {
+			mapParameter (paramMap, Condition.SP_PATIENT, thePatientId);
+		}
 
         // Now finalize the parameter map.
         final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
