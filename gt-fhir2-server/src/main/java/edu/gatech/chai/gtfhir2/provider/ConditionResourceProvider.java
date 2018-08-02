@@ -146,6 +146,10 @@ public class ConditionResourceProvider implements IResourceProvider {
             mapParameter (paramMap, Condition.SP_RES_ID, theConditionId);
         }
 		if (theCode != null) {
+			String system = theCode.getSystem();
+			String code = theCode.getValue();
+			System.out.println("\nConditionResrouce Provider\n\n\n\nSystem:"+system+"\n\ncode:"+code+"\n\n\n\n\n");
+
 			mapParameter (paramMap, Condition.SP_CODE, theCode);
 		}
 
