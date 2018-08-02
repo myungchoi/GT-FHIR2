@@ -46,7 +46,7 @@ public class Concept extends BaseEntity {
 	@Column(name="standard_concept", updatable=false)
 	private Character standardConcept;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="vocabulary_id", referencedColumnName="vocabulary_id", insertable=false, updatable=false)
 	private Vocabulary vocabulary;
 	
