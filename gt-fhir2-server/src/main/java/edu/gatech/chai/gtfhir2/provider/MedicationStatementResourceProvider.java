@@ -1,21 +1,15 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.MedicationStatement;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
-import org.hl7.fhir.dstu3.model.ValueSet.ConceptSetComponent;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -39,7 +33,6 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopMedicationStatement;
-import edu.gatech.chai.gtfhir2.utilities.TerminologyServiceClient;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class MedicationStatementResourceProvider implements IResourceProvider {
@@ -76,6 +69,17 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 		
 	}
 	
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
+	}
+
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
@@ -148,12 +152,10 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 			@OptionalParam(name = MedicationStatement.SP_SUBJECT) ReferenceParam theSubject,
 			@OptionalParam(name = MedicationStatement.SP_SOURCE) ReferenceParam theSource
 			) {
-		final InstantType searchTime = InstantType.withCurrentTime();
-
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 		
 		if (theMedicationStatementId != null) {
-			mapParameter (paramMap, MedicationStatement.SP_RES_ID, theMedicationStatementId);
+			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_RES_ID, theMedicationStatementId, false));
 		}
 		if (theCode != null) {
 			if (theCode.getModifier().compareTo(TokenParamModifier.IN) == 0) {
@@ -164,13 +166,13 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 					errorProcessing("code:in="+valueSetValue+" is not supported. We only support simple value set URL");
 				} 
 			}
-			mapParameter (paramMap, MedicationStatement.SP_CODE, theCode);
+			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_CODE, theCode, false));
 		}
 		if (theContext != null) {
-			mapParameter (paramMap, MedicationStatement.SP_CONTEXT, theContext);
+			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_CONTEXT, theContext, false));
 		}
 		if (theDate != null) {
-			mapParameter (paramMap, MedicationStatement.SP_EFFECTIVE, theDate);
+			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_EFFECTIVE, theDate, false));
 		}
 		if (theSubject != null) {
 			if (theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
@@ -180,68 +182,16 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 			}
 		}
 		if (thePatient != null) {
-			mapParameter (paramMap, MedicationStatement.SP_PATIENT, thePatient);
+			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_PATIENT, thePatient, false));
 		}
 		if (theSource != null) {
-			mapParameter (paramMap, MedicationStatement.SP_SOURCE, theSource);
+			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_SOURCE, theSource, false));
 		}
 
-		// Now finalize the parameter map.
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize;
-		if (paramMap.size() == 0) {
-			totalSize = myMapper.getSize();
-		} else {
-			totalSize = myMapper.getSize(finalParamMap);
-		}
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-
-				// _Include
-				List<String> includes = new ArrayList<String>();
-
-				if (finalParamMap.size() == 0) {
-					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-				} else {
-					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-				}
-
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-
-		};
-	}
-
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		return myBundleProvider;
+		
 	}
 
 	@Override
@@ -276,4 +226,26 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 //		}
 	}
 
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+
+		public MyBundleProvider(List<ParameterWrapper> paramList) {
+			super(paramList);
+		}
+
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
+
+			// _Include
+			List<String> includes = new ArrayList<String>();
+
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
+
+			return retv;
+		}
+	}
 }

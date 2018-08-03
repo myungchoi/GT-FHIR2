@@ -1,9 +1,8 @@
 package edu.gatech.chai.gtfhir2.provider;
 
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Device;
 import org.hl7.fhir.dstu3.model.IdType;
@@ -96,14 +95,13 @@ public class DeviceResourceProvider implements IResourceProvider {
 			) {
 		final InstantType searchTime = InstantType.withCurrentTime();
 
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		List<ParameterWrapper> paramMap = new ArrayList<ParameterWrapper> ();
 
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
 		final Long totalSize;
 		if (paramMap.size() == 0) {
 			totalSize = myMapper.getSize();
 		} else {
-			totalSize = myMapper.getSize(finalParamMap);
+			totalSize = myMapper.getSize(paramMap);
 		}
 
 		return new IBundleProvider() {

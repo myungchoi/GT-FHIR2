@@ -217,9 +217,12 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 	}
 
 	@Override
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case Procedure.SP_RES_ID:
 			String procedureId = ((TokenParam) value).getValue();

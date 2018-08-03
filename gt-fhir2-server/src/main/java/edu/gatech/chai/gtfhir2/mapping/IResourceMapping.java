@@ -17,13 +17,13 @@ public interface IResourceMapping<v extends Resource, t extends BaseEntity> {
 	public void removeDbase(Long id);
 	public Long removeByFhirId (IdType fhirId) throws FHIRException;
 	public Long getSize();
-	public Long getSize(Map<String, List<ParameterWrapper>> map);
+	public Long getSize(List<ParameterWrapper> mapList);
 
 	public v constructResource(Long fhirId, t entity, List<String> includes);
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes);
-	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map, List<IBaseResource> listResources, List<String> includes);
+	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> map, List<IBaseResource> listResources, List<String> includes);
 
-	public List<ParameterWrapper> mapParameter(String parameter, Object value);
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or);
 	public v constructFHIR(Long fhirId, t entity);
 	public t constructOmop(Long omopId, v fhirResource);
 }

@@ -194,9 +194,12 @@ public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, 
 		return IdMapping.getFHIRfromOMOP(retval, getMyFhirResourceType());
 	}
 
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case Encounter.SP_RES_ID:
 			String encounterId = ((TokenParam) value).getValue();

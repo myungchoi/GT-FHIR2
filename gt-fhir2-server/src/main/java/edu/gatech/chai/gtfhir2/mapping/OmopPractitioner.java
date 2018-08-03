@@ -225,9 +225,12 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 	 * @return returns ParameterWrapper class, which contains OMOP attribute name
 	 *         and value with operator.
 	 */
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case Practitioner.SP_RES_ID:
 			String practitionerId = ((TokenParam) value).getValue();

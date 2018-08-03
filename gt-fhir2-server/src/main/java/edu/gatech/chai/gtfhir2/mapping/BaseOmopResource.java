@@ -1,9 +1,7 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
 import java.util.List;
-import java.util.Map;
 
-import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -56,8 +54,8 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 		return myOmopService.getSize();
 	}
 
-	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		return myOmopService.getSize(map);
+	public Long getSize(List<ParameterWrapper> mapList) {
+		return myOmopService.getSize(mapList);
 	}
 	
 	public v constructResource(Long fhirId, t entity, List<String> includes) {
@@ -89,7 +87,7 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
 			List<String> includes) {
-		List<t> entities = myOmopService.searchWithoutParams(fromIndex, toIndex);
+		List<t> entities = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -105,9 +103,9 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 		}		
 	}
 
-	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
+	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> mapList,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<t> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
+		List<t> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, mapList);
 
 		for (t entity : entities) {
 			Long omopId = entity.getIdAsLong();

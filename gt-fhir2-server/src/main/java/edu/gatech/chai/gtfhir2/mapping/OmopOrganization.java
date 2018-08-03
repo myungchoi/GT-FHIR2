@@ -171,9 +171,12 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 		return myOrganization;
 	}
 
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case MyOrganization.SP_RES_ID:
 			String orgnizationId = ((TokenParam) value).getValue();

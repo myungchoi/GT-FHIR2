@@ -4,10 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -355,17 +353,15 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 
 	@Override
 	public void addRevIncludes(Long omopId, List<String> includes, List<IBaseResource> listResources) {
-		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>>();
+		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 
 		if (includes.contains("Encounter:subject")) {
-			final ParameterWrapper param = new ParameterWrapper("Long", Arrays.asList("fPerson.id"), Arrays.asList("="),
+			final ParameterWrapper revIncludeparam = new ParameterWrapper("Long", Arrays.asList("fPerson.id"), Arrays.asList("="),
 					Arrays.asList(String.valueOf(omopId)), "or");
 
-			List<ParameterWrapper> revIncludeParams = new ArrayList<ParameterWrapper>();
-			revIncludeParams.add(param);
-			map.put(Encounter.SP_SUBJECT, revIncludeParams);
+			mapList.add(revIncludeparam);
 
-			List<VisitOccurrence> VisitOccurrences = visitOccurrenceService.searchWithParams(0, 0, map);
+			List<VisitOccurrence> VisitOccurrences = visitOccurrenceService.searchWithParams(0, 0, mapList);
 			for (VisitOccurrence visitOccurrence : VisitOccurrences) {
 				Long fhirId = IdMapping.getFHIRfromOMOP(visitOccurrence.getId(), EncounterResourceProvider.getType());
 				Encounter enc = OmopEncounter.getInstance().constructFHIR(fhirId, visitOccurrence);
@@ -456,9 +452,12 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 	 * @return returns ParameterWrapper class, which contains OMOP column name
 	 *         and value with operator.
 	 */
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case Patient.SP_ACTIVE:
 			// True of False in FHIR. In OMOP, this is 1 or 0.

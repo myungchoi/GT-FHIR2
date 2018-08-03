@@ -43,13 +43,11 @@ public class CodeableConceptUtil {
 				Arrays.asList(omopVocabularyId, code),
 				"and"
 				);
-		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>> ();
-
+		
 		List<ParameterWrapper> params = new ArrayList<ParameterWrapper>();
 		params.add(param);
-		map.put("code", params);
 
-		List<Concept> conceptIds = conceptService.searchWithParams(0, 0, map);
+		List<Concept> conceptIds = conceptService.searchWithParams(0, 0, params);
 		if (conceptIds.isEmpty()) {
 			return null;
 		}

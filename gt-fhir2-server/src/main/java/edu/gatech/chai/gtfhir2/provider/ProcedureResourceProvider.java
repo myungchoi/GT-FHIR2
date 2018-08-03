@@ -1,10 +1,7 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.IdType;
@@ -12,7 +9,6 @@ import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Procedure;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -74,6 +70,17 @@ public class ProcedureResourceProvider implements IResourceProvider {
 	
 	public OmopProcedure getMyMapper() {
 		return myMapper;
+	}
+
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
 	}
 
 	/**
@@ -172,8 +179,6 @@ public class ProcedureResourceProvider implements IResourceProvider {
 			@IncludeParam(allow={"Procedure:patient", "Procedure:performer", "Procedure:context"})
 			final Set<Include> theIncludes
 			) {
-		final InstantType searchTime = InstantType.withCurrentTime();
-
 		/*
 		 * Create parameter map, which will be used later to construct
 		 * predicate. The predicate construction should depend on the DB schema.
@@ -181,99 +186,36 @@ public class ProcedureResourceProvider implements IResourceProvider {
 		 * parameter(s). If the FHIR parameter is not mappable, the mapper should
 		 * return null, which will be skipped when predicate is constructed.
 		 */
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
 		if (theProcedureId != null) {
-			mapParameter (paramMap, Procedure.SP_RES_ID, theProcedureId);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_RES_ID, theProcedureId, false));
 		}
 		if (theCode != null) {
-			mapParameter (paramMap, Procedure.SP_CODE, theCode);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_CODE, theCode, false));
 		}
 		if (theContextParam != null) {
-			mapParameter (paramMap, Procedure.SP_CONTEXT, theContextParam);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_CONTEXT, theContextParam, false));
 		}
 		if (theDateParm != null) {
-			mapParameter (paramMap, Procedure.SP_DATE, theDateParm);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_DATE, theDateParm, false));
 		}
 		if (theEncounterParam != null) {
-			mapParameter (paramMap, Procedure.SP_ENCOUNTER, theEncounterParam);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_ENCOUNTER, theEncounterParam, false));
 		}
 		if (theSubjectParam != null) {
-			mapParameter (paramMap, Procedure.SP_SUBJECT, theSubjectParam);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_SUBJECT, theSubjectParam, false));
 		}
 		if (thePatientParam != null) {
-			mapParameter (paramMap, Procedure.SP_PATIENT, thePatientParam);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_PATIENT, thePatientParam, false));
 		}
 		if (thePerformerParam != null) {
-			mapParameter (paramMap, Procedure.SP_PERFORMER, thePerformerParam);
+			paramList.addAll(myMapper.mapParameter (Procedure.SP_PERFORMER, thePerformerParam, false));
 		}
 		
-		// Now finalize the parameter map.
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize;
-		if (paramMap.size() == 0) {
-			totalSize = myMapper.getSize();
-		} else {
-			totalSize = myMapper.getSize(finalParamMap);
-		}
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-
-				// _Include
-				List<String> includes = new ArrayList<String>();
-				if (theIncludes.contains(new Include("Procedure:patient"))) {
-					includes.add("Procedure:patient");
-				}
-				
-				if (theIncludes.contains(new Include("Procedure:performer"))) {
-					includes.add("Procedure:performer");
-				}
-				
-				if (theIncludes.contains(new Include("Procedure:context"))) {
-					includes.add("Procedure:context");
-				}
-
-				if (finalParamMap.size() == 0) {
-					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-				} else {
-					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-				}
-				
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-		};
-	}
-
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
+		MyBundleProvider myBundleProvider = new MyBundleProvider (paramList, theIncludes, null);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		return myBundleProvider;
 	}
 
 	/**
@@ -286,4 +228,43 @@ public class ProcedureResourceProvider implements IResourceProvider {
 	private void validateResource(Procedure theProcedure) {
 	}
 
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+		Set<Include> theIncludes;
+		Set<Include> theReverseIncludes;
+
+		public MyBundleProvider(List<ParameterWrapper> paramList, Set<Include> theIncludes, Set<Include>theReverseIncludes) {
+			super(paramList);
+			setPreferredPageSize (preferredPageSize);
+			this.theIncludes = theIncludes;
+			this.theReverseIncludes = theReverseIncludes;
+		}
+
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
+
+			// _Include
+			List<String> includes = new ArrayList<String>();
+			if (theIncludes.contains(new Include("Procedure:patient"))) {
+				includes.add("Procedure:patient");
+			}
+			
+			if (theIncludes.contains(new Include("Procedure:performer"))) {
+				includes.add("Procedure:performer");
+			}
+			
+			if (theIncludes.contains(new Include("Procedure:context"))) {
+				includes.add("Procedure:context");
+			}
+
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
+			
+			return retv;
+		}
+
+	}
 }

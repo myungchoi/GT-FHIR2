@@ -104,9 +104,12 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
         return IdMapping.getFHIRfromOMOP(retval, getMyFhirResourceType());
     }
 
-    public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+    public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
         List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
         ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+        
         switch (parameter) {
             case Condition.SP_ABATEMENT_AGE:
                 //not supporting

@@ -11,10 +11,10 @@ public interface IService<v extends BaseEntity> {
 	v findById (Long id);
 	public Long removeById (Long id);
 	List<v> searchByColumnString (String column, String value);
-	public List<v> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap);
+	public List<v> searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> paramList);
 	public List<v> searchWithoutParams(int fromIndex, int toIndex);
 	v create(v entity);
 	v update(v entity);
 	Long getSize();
-	Long getSize(Map<String, List<ParameterWrapper>> paramMap);
+	Long getSize(List<ParameterWrapper> paramList);
 }

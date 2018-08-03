@@ -2,9 +2,7 @@ package edu.gatech.chai.gtfhir2.mapping;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
@@ -90,10 +88,13 @@ public class OmopMedication extends BaseOmopResource<Medication, Concept, Concep
 	}
 	
 	@Override
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
-		switch (parameter) {
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
+        switch (parameter) {
 		case Medication.SP_RES_ID:
 			String medicationId = ((TokenParam) value).getValue();
 			paramWrapper.setParameterType("Long");
@@ -153,17 +154,15 @@ public class OmopMedication extends BaseOmopResource<Medication, Concept, Concep
 
 	@Override
 	public Long getSize() {
-		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>> ();
-		return getSize(map);
+		List<ParameterWrapper> map = new ArrayList<ParameterWrapper> ();
+		return getMyOmopService().getSize(map);
 	}
 
 	@Override
-	public Long getSize(Map<String, List<ParameterWrapper>> map) {
-		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(filterParam);
-		map.put(MAP_EXCEPTION_FILTER, exceptions);
+	public Long getSize(List<ParameterWrapper> mapList) {
+		mapList.add(filterParam);
 
-		return getMyOmopService().getSize(map);
+		return getMyOmopService().getSize(mapList);
 	}
 
 	@Override
@@ -172,18 +171,16 @@ public class OmopMedication extends BaseOmopResource<Medication, Concept, Concep
 
 		// This is read all. But, since we will add an exception conditions to add filter.
 		// we will call the search with params method.
-		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>> ();
-		searchWithParams (fromIndex, toIndex, map, listResources, includes);
+		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper> ();
+		searchWithParams (fromIndex, toIndex, mapList, listResources, includes);
 	}
 
 	@Override
-	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
+	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> mapList,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(filterParam);
-		map.put(MAP_EXCEPTION_FILTER, exceptions);
+		mapList.add(filterParam);
 
-		List<Concept> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
+		List<Concept> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, mapList);
 
 		for (Concept entity : entities) {
 			Long omopId = entity.getIdAsLong();

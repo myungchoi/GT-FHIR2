@@ -34,7 +34,6 @@ import ca.uhn.fhir.model.dstu2.resource.Patient;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
-import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
 import edu.gatech.chai.gtfhir2.utilities.CodeableConceptUtil;
@@ -1402,38 +1401,33 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 	@Override
 	public Long getSize() {
-		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>>();
+		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
+		mapList.add(exceptionParam);
 
-		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(exceptionParam);
-		map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
-
-		return measurementService.getSize() - measurementService.getSize(map) + observationService.getSize();
+		return measurementService.getSize() - measurementService.getSize(mapList) + observationService.getSize();
 	}
 
 	@Override
-	public Long getSize(Map<String, List<ParameterWrapper>> map) {
+	public Long getSize(List<ParameterWrapper> mapList) {
 		// List<ParameterWrapper> exceptions = new
 		// ArrayList<ParameterWrapper>();
 		// exceptions.add(exceptionParam);
 		// map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
-		Map<String, List<ParameterWrapper>> exceptionMap = new HashMap<String, List<ParameterWrapper>>(map);
+//		Map<String, List<ParameterWrapper>> exceptionMap = new HashMap<String, List<ParameterWrapper>>(map);
 
-		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(exceptionParam4Search);
-		exceptionMap.put(MAP_EXCEPTION_EXCLUDE, exceptions);
+		mapList.add(exceptionParam4Search);
 
 		// return
 		// getMyOmopService().getSize(map)-measurementService.getSize(exceptionMap);
-		return getMyOmopService().getSize(exceptionMap);
+		return getMyOmopService().getSize(mapList);
 	}
 
 	@Override
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
 			List<String> includes) {
 
-		Map<String, List<ParameterWrapper>> map = new HashMap<String, List<ParameterWrapper>>();
-		searchWithParams(fromIndex, toIndex, map, listResources, includes);
+		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
+		searchWithParams(fromIndex, toIndex, mapList, listResources, includes);
 
 		// List<ParameterWrapper> exceptions = new
 		// ArrayList<ParameterWrapper>();
@@ -1463,13 +1457,11 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	}
 
 	@Override
-	public void searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> map,
+	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> mapList,
 			List<IBaseResource> listResources, List<String> includes) {
-		List<ParameterWrapper> exceptions = new ArrayList<ParameterWrapper>();
-		exceptions.add(exceptionParam4Search);
-		map.put(MAP_EXCEPTION_EXCLUDE, exceptions);
+		mapList.add(exceptionParam4Search);
 
-		List<FObservationView> fObservationViews = getMyOmopService().searchWithParams(fromIndex, toIndex, map);
+		List<FObservationView> fObservationViews = getMyOmopService().searchWithParams(fromIndex, toIndex, mapList);
 
 		for (FObservationView fObservationView : fObservationViews) {
 			Long omopId = fObservationView.getId();
@@ -1503,9 +1495,12 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		return myDate;
 	}
 
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case Observation.SP_RES_ID:
 			String organizationId = ((TokenParam) value).getValue();
