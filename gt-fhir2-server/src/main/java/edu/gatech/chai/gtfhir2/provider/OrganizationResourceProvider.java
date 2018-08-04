@@ -154,7 +154,7 @@ public class OrganizationResourceProvider implements IResourceProvider {
 
 	@Search()
 	public IBundleProvider findOrganizationByParams(
-			@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
+			@OptionalParam(name = MyOrganization.SP_RES_ID) TokenParam theOrganizationId,
 			@OptionalParam(name = MyOrganization.SP_NAME) StringParam theName,
 			
 			@IncludeParam(allow={"Organization:partof"})
@@ -162,8 +162,8 @@ public class OrganizationResourceProvider implements IResourceProvider {
 			) {
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
-		if (thePatientId != null) {
-			paramList.addAll(myMapper.mapParameter (MyOrganization.SP_RES_ID, thePatientId, false));
+		if (theOrganizationId != null) {
+			paramList.addAll(myMapper.mapParameter (MyOrganization.SP_RES_ID, theOrganizationId, false));
 		}
 		if (theName != null) {
 			paramList.addAll(myMapper.mapParameter (MyOrganization.SP_NAME, theName, false));
@@ -171,7 +171,7 @@ public class OrganizationResourceProvider implements IResourceProvider {
 		
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, null);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
-		
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
 		return myBundleProvider;
 	}
 	

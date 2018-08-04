@@ -102,7 +102,6 @@ public class EncounterResourceProvider implements IResourceProvider {
 		}
 	}
 
-
 	@Search()
 	public IBundleProvider findEncounterByParams(
 			@OptionalParam(name=Encounter.SP_RES_ID) TokenParam theEncounterId,
@@ -115,109 +114,18 @@ public class EncounterResourceProvider implements IResourceProvider {
 			
 			@IncludeParam(reverse=true)
             final Set<Include> theReverseIncludes
-			) {
-//		final InstantType searchTime = InstantType.withCurrentTime();
-		
+			) {		
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
 		if (theEncounterId != null) {
 			paramList.addAll(myMapper.mapParameter (Encounter.SP_RES_ID, theEncounterId, false));
 		}
 
-		// Now finalize the parameter map.
-//		final Long totalSize;
-//		if (paramList.size() == 0) {
-//			totalSize = myMapper.getSize();
-//		} else {
-//			totalSize = myMapper.getSize(paramList);
-//		}
-
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
 		myBundleProvider.setPreferredPageSize(preferredPageSize);
 		
 		return myBundleProvider;
-		
-//		return new IBundleProvider() {
-
-//			@Override
-//			public IPrimitiveType<Date> getPublished() {
-//				return searchTime;
-//			}
-//
-//			@Override
-//			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-//				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-//				
-//				// _Include
-//				List<String> includes = new ArrayList<String>();
-//				
-//				if (theIncludes.contains(new Include("Encounter:appointment"))) {
-//					includes.add("Encounter:appointment");
-//				}
-//				
-//				if (theIncludes.contains(new Include("Encounter:diagnosis"))) {
-//					includes.add("Encounter:diagnosis");
-//				}
-//
-//				if (theIncludes.contains(new Include("Encounter:incomingreferral"))) {
-//					includes.add("Encounter:incomingreferral");
-//				}
-//				
-//				if (theIncludes.contains(new Include("Encounter:location"))) {
-//					includes.add("Encounter:location");
-//				}
-//
-//				if (theIncludes.contains(new Include("Encounter:part-of"))) {
-//					includes.add("Encounter:part-of");
-//				}
-//
-//				if (theIncludes.contains(new Include("Encounter:participant"))) {
-//					includes.add("Encounter:participant");
-//				}
-//
-//				if (theIncludes.contains(new Include("Encounter:service-provider"))) {
-//					includes.add("Encounter:service-provider");
-//				}
-//
-//				if (theIncludes.contains(new Include("Encounter:patient"))) {
-//					includes.add("Encounter:patient");
-//				}
-//
-//				if (theIncludes.contains(new Include("Encounter:practitioner"))) {
-//					includes.add("Encounter:practitioner");
-//				}
-//				
-//				if (theIncludes.contains(new Include("Encounter:subject"))) {
-//					includes.add("Encounter:subject");
-//				}
-//				
-//				if (finalParamMap.size() == 0) {
-//					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-//				} else {
-//					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-//				}
-//
-//				return retv;
-//			}
-//
-//			@Override
-//			public String getUuid() {
-//				// TODO Auto-generated method stub
-//				return null;
-//			}
-//
-//			@Override
-//			public Integer preferredPageSize() {
-//				return preferredPageSize;
-//			}
-//
-//			@Override
-//			public Integer size() {
-//				return totalSize.intValue();
-//			}
-		
-//		};
 	}
 	
 	/**

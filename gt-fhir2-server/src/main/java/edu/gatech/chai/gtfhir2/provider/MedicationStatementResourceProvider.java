@@ -20,6 +20,7 @@ import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
@@ -27,6 +28,7 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.param.TokenParamModifier;
 import ca.uhn.fhir.rest.server.IResourceProvider;
@@ -143,9 +145,24 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 	}
 
 	@Search()
+	public IBundleProvider findMedicationStatementsById(
+			@RequiredParam(name = MedicationStatement.SP_RES_ID) TokenParam theMedicationStatementId
+			) {
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+
+		if (theMedicationStatementId != null) {
+			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_RES_ID, theMedicationStatementId, false));
+		}
+
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		return myBundleProvider;
+	}
+	
+	@Search()
 	public IBundleProvider findMedicationStatementsByParams(
-			@OptionalParam(name = MedicationStatement.SP_RES_ID) TokenParam theMedicationStatementId,
-			@OptionalParam(name = MedicationStatement.SP_CODE) TokenParam theCode,
+			@OptionalParam(name = MedicationStatement.SP_CODE) TokenOrListParam theOrCodes,
 			@OptionalParam(name = MedicationStatement.SP_CONTEXT) ReferenceParam theContext,
 			@OptionalParam(name = MedicationStatement.SP_EFFECTIVE) DateParam theDate,
 			@OptionalParam(name = MedicationStatement.SP_PATIENT) ReferenceParam thePatient,
@@ -154,20 +171,27 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 			) {
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 		
-		if (theMedicationStatementId != null) {
-			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_RES_ID, theMedicationStatementId, false));
-		}
-		if (theCode != null) {
-			if (theCode.getModifier().compareTo(TokenParamModifier.IN) == 0) {
-				// We have modifier to search data in certain code value set.
-				// With this modifier, the code is URI for value set.
-				String valueSetValue = theCode.getValue();
-				if (valueSetValue.split("?").length > 1) {
-					errorProcessing("code:in="+valueSetValue+" is not supported. We only support simple value set URL");
-				} 
+		if (theOrCodes != null) {
+			List<TokenParam> codes = theOrCodes.getValuesAsQueryTokens();
+
+			if (codes.size() == 1) {
+				TokenParam theCode = codes.get(0);
+				if (theCode.getModifier() != null && theCode.getModifier().compareTo(TokenParamModifier.IN) == 0) {
+					// We have modifier to search data in certain code value set.
+					// With this modifier, the code is URI for value set.
+					String valueSetValue = theCode.getValue();
+					if (valueSetValue.split("?").length > 1) {
+						errorProcessing("code:in="+valueSetValue+" is not supported. We only support simple value set URL");
+					} 
+				}
+				paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_CODE, theCode, false));
+
+			} else {
+				for (TokenParam code : codes) {
+					paramList.addAll(myMapper.mapParameter(MedicationStatement.SP_CODE, code, true));
+				}
 			}
-			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_CODE, theCode, false));
-		}
+		}		
 		if (theContext != null) {
 			paramList.addAll(myMapper.mapParameter (MedicationStatement.SP_CONTEXT, theContext, false));
 		}
@@ -190,6 +214,7 @@ public class MedicationStatementResourceProvider implements IResourceProvider {
 
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
 		return myBundleProvider;
 		
 	}

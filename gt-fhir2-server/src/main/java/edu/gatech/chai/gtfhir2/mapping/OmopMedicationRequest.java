@@ -394,15 +394,16 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 
 	@Override
 	public Long getSize() {
-		List<ParameterWrapper> map = new ArrayList<ParameterWrapper> ();
-		return getMyOmopService().getSize(map);
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+		// call getSize with empty parameter list. The getSize will add filter parameter.
+		return getSize(paramList);
 	}
 
 	@Override
-	public Long getSize(List<ParameterWrapper> mapList) {
-		mapList.add(filterParam);
+	public Long getSize(List<ParameterWrapper> paramList) {
+		paramList.add(filterParam);
 
-		return getMyOmopService().getSize(mapList);
+		return getMyOmopService().getSize(paramList);
 	}
 
 	@Override
@@ -411,8 +412,8 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 
 		// This is read all. But, since we will add an exception conditions to add filter.
 		// we will call the search with params method.
-		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper> ();
-		searchWithParams (fromIndex, toIndex, mapList, listResources, includes);
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+		searchWithParams (fromIndex, toIndex, paramList, listResources, includes);
 	}
 
 	@Override

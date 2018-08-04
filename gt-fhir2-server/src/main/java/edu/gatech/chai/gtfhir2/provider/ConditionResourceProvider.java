@@ -9,7 +9,6 @@ import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
 
 import org.hl7.fhir.dstu3.model.Condition;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.ContextLoaderListener;
@@ -32,7 +31,6 @@ import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceParam;
-import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
@@ -147,8 +145,25 @@ public class ConditionResourceProvider implements IResourceProvider {
 	}
 
 	@Search()
-	public IBundleProvider findConditionByMultipleOrCodes(
-			@RequiredParam(name = Condition.SP_CODE) TokenOrListParam theOrCodes,
+	public IBundleProvider findConditionById(
+			@RequiredParam(name = Condition.SP_RES_ID) TokenParam theConditionId
+			) {
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
+
+		if (theConditionId != null) {
+			paramList.addAll(myMapper.mapParameter(Condition.SP_RES_ID, theConditionId, false));
+		}
+		
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+
+		return myBundleProvider;
+	}
+
+	@Search()
+	public IBundleProvider findConditionByParams(
+			@OptionalParam(name = Condition.SP_CODE) TokenOrListParam theOrCodes,
 			@OptionalParam(name = Condition.SP_SUBJECT) ReferenceParam theSubjectId,
 			@OptionalParam(name = Condition.SP_PATIENT) ReferenceParam thePatientId) {
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
@@ -159,10 +174,10 @@ public class ConditionResourceProvider implements IResourceProvider {
 			if (codes.size() <= 1)
 				orValue = false;
 			for (TokenParam code : codes) {
-				System.out.println("Here is the code to search:" + code.toString());
 				paramList.addAll(myMapper.mapParameter(Condition.SP_CODE, code, orValue));
 			}
 		}
+
 		if (theSubjectId != null) {
 			if (theSubjectId.getResourceType().equals(PatientResourceProvider.getType())) {
 				thePatientId = theSubjectId;
@@ -176,33 +191,9 @@ public class ConditionResourceProvider implements IResourceProvider {
 
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+
 		return myBundleProvider;
-	}
-
-	@Search()
-	public IBundleProvider findConditionByParams(@OptionalParam(name = Condition.SP_RES_ID) TokenParam theConditionId,
-			@OptionalParam(name = Condition.SP_SUBJECT) ReferenceParam theSubjectId,
-			@OptionalParam(name = Condition.SP_PATIENT) ReferenceParam thePatientId) {
-		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
-
-		if (theConditionId != null) {
-			paramList.addAll(myMapper.mapParameter(Condition.SP_RES_ID, theConditionId, false));
-		}
-		if (theSubjectId != null) {
-			if (theSubjectId.getResourceType().equals(PatientResourceProvider.getType())) {
-				thePatientId = theSubjectId;
-			} else {
-				ThrowFHIRExceptions.unprocessableEntityException("We only support Patient resource for subject");
-			}
-		}
-		if (thePatientId != null) {
-			paramList.addAll(myMapper.mapParameter(Condition.SP_PATIENT, thePatientId, false));
-		}
-
-		MyBundleProvider myBundleProvide = new MyBundleProvider(paramList);
-		myBundleProvide.setTotalSize(getTotalSize(paramList));
-		
-		return myBundleProvide;
 	}
 
 	/**

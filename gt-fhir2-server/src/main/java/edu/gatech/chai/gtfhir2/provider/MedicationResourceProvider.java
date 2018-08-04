@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Medication;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
@@ -18,8 +17,10 @@ import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
@@ -88,22 +89,42 @@ public class MedicationResourceProvider implements IResourceProvider {
 	}
 
 	@Search()
-	public IBundleProvider findMedicationByParams(
-			@OptionalParam(name = Medication.SP_RES_ID) TokenParam theMedicationId,
-			@OptionalParam(name = Medication.SP_CODE) TokenParam theCode) {
+	public IBundleProvider findMedicationById(
+			@RequiredParam(name = Medication.SP_RES_ID) TokenParam theMedicationId
+			) {
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
-
+		
 		if (theMedicationId != null) {
 			paramList.addAll(myMapper.mapParameter(Medication.SP_RES_ID, theMedicationId, false));
 		}
 
-		if (theCode != null) {
-			paramList.addAll(myMapper.mapParameter(Medication.SP_CODE, theCode, false));
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		
+		return myBundleProvider;
+	}
+	
+	@Search()
+	public IBundleProvider findMedicationByParams(
+			@OptionalParam(name = Medication.SP_CODE) TokenOrListParam theOrCodes			
+			) {
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
+
+		if (theOrCodes != null) {
+			List<TokenParam> codes = theOrCodes.getValuesAsQueryTokens();
+			boolean orValue = true;
+			if (codes.size() <= 1)
+				orValue = false;
+			for (TokenParam code : codes) {
+				paramList.addAll(myMapper.mapParameter(Medication.SP_CODE, code, orValue));
+			}
 		}
 
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
-
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		
 		return myBundleProvider;
 	}
 

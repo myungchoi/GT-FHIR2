@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -25,12 +24,14 @@ import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -117,11 +118,35 @@ public class ObservationResourceProvider implements IResourceProvider {
 	}
 
 	@Search()
+	public IBundleProvider findObservationsById(
+			@RequiredParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
+
+			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
+					"Observation:device", "Observation:encounter", "Observation:patient", 
+					"Observation:performer", "Observation:related-target", 
+					"Observation:specimen", "Observation:subject"})
+			final Set<Include> theIncludes,
+			
+			@IncludeParam(reverse=true)
+            final Set<Include> theReverseIncludes
+			) {
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+
+		if (theObservationId != null) {
+			paramList.addAll(myMapper.mapParameter (Observation.SP_RES_ID, theObservationId, false));
+		}
+
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		return myBundleProvider;
+	}
+	
+	@Search()
 	public IBundleProvider findObservationsByParams(
-			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
-			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
+			@OptionalParam(name=Observation.SP_CODE) TokenOrListParam theOrCodes,
 			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
-			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
+			@OptionalParam(name=Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
 
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
@@ -134,11 +159,14 @@ public class ObservationResourceProvider implements IResourceProvider {
 			) {		
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
-		if (theObservationId != null) {
-			paramList.addAll(myMapper.mapParameter (Observation.SP_RES_ID, theObservationId, false));
-		}
-		if (theCode != null) {
-			paramList.addAll(myMapper.mapParameter (Observation.SP_CODE, theCode, false));
+		if (theOrCodes != null) {
+			List<TokenParam> codes = theOrCodes.getValuesAsQueryTokens();
+			boolean orValue = true;
+			if (codes.size() <= 1)
+				orValue = false;
+			for (TokenParam code : codes) {
+				paramList.addAll(myMapper.mapParameter(Observation.SP_CODE, code, orValue));
+			}
 		}
 		
 		// With OMOP, we only support subject to be patient.
@@ -167,7 +195,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 		
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
-		
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
 		return myBundleProvider;
 	}
 	

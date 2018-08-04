@@ -154,15 +154,15 @@ public class OmopMedication extends BaseOmopResource<Medication, Concept, Concep
 
 	@Override
 	public Long getSize() {
-		List<ParameterWrapper> map = new ArrayList<ParameterWrapper> ();
-		return getMyOmopService().getSize(map);
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+		return getSize(paramList);
 	}
 
 	@Override
-	public Long getSize(List<ParameterWrapper> mapList) {
-		mapList.add(filterParam);
+	public Long getSize(List<ParameterWrapper> paramList) {
+		paramList.add(filterParam);
 
-		return getMyOmopService().getSize(mapList);
+		return getMyOmopService().getSize(paramList);
 	}
 
 	@Override

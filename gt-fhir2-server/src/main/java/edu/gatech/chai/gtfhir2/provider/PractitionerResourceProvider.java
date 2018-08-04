@@ -168,6 +168,7 @@ public class PractitionerResourceProvider implements IResourceProvider {
 
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
 		return myBundleProvider;
 
 	}
