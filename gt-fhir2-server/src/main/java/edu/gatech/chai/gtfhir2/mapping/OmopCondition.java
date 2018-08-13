@@ -372,7 +372,7 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
         //Condition.context
         VisitOccurrence visitOccurrence = conditionOccurrence.getVisitOccurrence();
         if( visitOccurrence != null ) {
-            Reference visitRef = new Reference(new IdType(visitOccurrence.getId()));
+            Reference visitRef = new Reference(new IdType(EncounterResourceProvider.getType(), visitOccurrence.getId()));
             condition.setContext(visitRef);
         }
     }

@@ -175,7 +175,12 @@ public class ObservationResourceProvider implements IResourceProvider {
 					theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
 				thePatient = theSubject;
 			} else {
-				errorProcessing("subject search allows Only Patient Resource.");
+				// If resource is null, we assume Patient.
+				if (theSubject.getResourceType() == null) {
+					thePatient = theSubject;
+				} else {
+					errorProcessing("subject search allows Only Patient Resource, but provided "+theSubject.getResourceType());
+				}
 			}
 		}
 		
