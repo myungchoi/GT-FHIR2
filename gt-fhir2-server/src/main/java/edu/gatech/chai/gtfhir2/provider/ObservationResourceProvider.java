@@ -170,6 +170,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 		}
 		
 		// With OMOP, we only support subject to be patient.
+		// If the subject has only ID part, we assume that is patient.
 		if (theSubject != null) {
 			if (theSubject.getResourceType() != null && 
 					theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
