@@ -55,8 +55,8 @@ public class FhirServerConfig {
 
 	private Properties jpaProperties() {
 		Properties extraProperties = new Properties();
-//		extraProperties.put("hibernate.dialect", org.hibernate.dialect.PostgreSQL94Dialect.class.getName());
-		extraProperties.put("hibernate.dialect", edu.gatech.chai.omopv5.jpa.enity.noomop.OmopPostgreSQLDialect.class.getName());
+		extraProperties.put("hibernate.dialect", org.hibernate.dialect.PostgreSQL94Dialect.class.getName());
+//		extraProperties.put("hibernate.dialect", edu.gatech.chai.omopv5.jpa.enity.noomop.OmopPostgreSQLDialect.class.getName());
 		extraProperties.put("hibernate.format_sql", "true");
 		extraProperties.put("hibernate.show_sql", "false");
 		extraProperties.put("hibernate.hbm2ddl.auto", "update");
