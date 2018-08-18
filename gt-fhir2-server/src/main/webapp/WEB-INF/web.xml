@@ -34,8 +34,6 @@
 	</context-param>
 
 	<!-- This is SMART on FHIR service -->
-	
-<!-- 	
 	<servlet>
 		<servlet-name>SmartServices</servlet-name>
 		<servlet-class>edu.gatech.chai.gtfhir2.smart.servlet.SmartServices
@@ -43,7 +41,7 @@
 		<init-param>
 			<param-name>introspectUrl</param-name>
 			<param-value>http://localhost:8060/introspect</param-value>
-			<param-value>http://smart-st.i3l.gatech.edu:9085/introspect</param-value>
+			<!-- <param-value>http://smart-st.i3l.gatech.edu:9085/introspect</param-value> -->
 		</init-param>
 		<init-param>
 			<param-name>client_id</param-name>
@@ -60,7 +58,6 @@
 		<url-pattern>/fhir/_services/smart/Launch/*</url-pattern>
 	</servlet-mapping>
 
- -->
 	<!-- This servlet is for the testing webpage, which is imported via the 
 		hapi-fhir-testpage-overlay Maven WAR overlay -->
 	<servlet>
