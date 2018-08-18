@@ -14,6 +14,7 @@ import org.hl7.fhir.dstu3.model.Bundle.BundleEntryRequestComponent;
 import org.hl7.fhir.dstu3.model.Bundle.BundleType;
 import org.hl7.fhir.dstu3.model.Bundle.HTTPVerb;
 import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
@@ -25,6 +26,7 @@ import edu.gatech.chai.gtfhir2.mapping.BaseOmopResource;
 import edu.gatech.chai.gtfhir2.mapping.OmopTransaction;
 import edu.gatech.chai.gtfhir2.model.MyBundle;
 import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
+import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class SystemTransactionProvider {
 
@@ -101,7 +103,7 @@ public class SystemTransactionProvider {
 //
 //		return myTransactionServerUrl;
 //	}
-
+	
 	/**
 	 */
 	@Transaction
@@ -109,14 +111,22 @@ public class SystemTransactionProvider {
 		validateResource(theBundle);
 
 		Bundle retVal = new Bundle();
+		List<Resource> postList = new ArrayList<Resource>();
+		List<Resource> putList = new ArrayList<Resource>();
+		List<String> deleteList = new ArrayList<String>();
+		List<ParameterWrapper> getList = new ArrayList<ParameterWrapper>();
 
-		List<Map<String, Object>> transactionEntries = new ArrayList<Map<String, Object>>();
-		// Check the type of bundle transaction and act on it.
-		try {
-
+		Map<HTTPVerb, Object> transactionEntries = new HashMap<HTTPVerb, Object>();
+		transactionEntries.put(HTTPVerb.POST, postList);
+		transactionEntries.put(HTTPVerb.PUT, putList);
+		transactionEntries.put(HTTPVerb.DELETE, deleteList);
+		transactionEntries.put(HTTPVerb.GET, getList);
+		
+		try {			
 			switch (theBundle.getType()) {
 			case DOCUMENT:
 			case TRANSACTION:
+				System.out.println("We are at the transaction");
 				// We send both Document and Transaction to OmopBundle mapping.
 				for (BundleEntryComponent nextEntry : theBundle.getEntry()) {
 					Resource resource = nextEntry.getResource();
@@ -130,58 +140,48 @@ public class SystemTransactionProvider {
 
 					if (!request.isEmpty()) {
 						// First check the Resource to see if we can support
-						// this.
-						String resourceName = null;
-						if (resource != null && !resource.isEmpty()) {
-							resourceName = resource.getResourceType().toString();
-						} else {
-							String[] urls = request.getUrl().split("/");
-							if (urls.length == 2) {
-								resourceName = urls[0];
-							}
-						}
-
-						if (resourceName == null) {
-							// We must have the name resource.
-							ThrowFHIRExceptions.unprocessableEntityException(
-									"We must have resource in either resource or url in request element");
-						}
-
-						if (!supportedProvider.containsKey(resourceName)) {
-							ThrowFHIRExceptions.unprocessableEntityException("We do not support the Resource, "
-									+ resourceName + ", in Bundle " + theBundle.getType().toCode() + " type.");
-						}
+						// this. resourceName = resource.getResourceType().toString();
 
 						// Now we have a request that we support. Add this into
-						// the
-						// entry to process.
+						// the entry to process.
 						HTTPVerb method = request.getMethod();
-						Map<String, Object> transactionEntry = new HashMap<String, Object>();
-						transactionEntry.put("method", method.toString());
-						transactionEntry.put("url", request.getUrl());
-						transactionEntry.put("resource", resource);
-						transactionEntry.put("resourceName", resourceName);
-						transactionEntry.put("mapper", supportedProvider.get(resourceName));
-
-						transactionEntries.add(transactionEntry);
+						if (method == HTTPVerb.POST) {
+							postList.add(resource);
+						} else if (method == HTTPVerb.PUT) {
+							putList.add(resource);
+						} else if (method == HTTPVerb.DELETE) {
+							deleteList.add(request.getUrl());
+						} else if (method == HTTPVerb.GET) {
+							// TODO: getList.add(new ParameterWrapper());
+							// create parameter here.
+						} else {
+							continue;
+						}						
 					}
 				}
 				
-				if (!transactionEntries.isEmpty()) {
-					List<BundleEntryComponent> responseTransaction = myMapper.executeTransaction(transactionEntries);
-					// If any one of entries caused an error, entire transaction will be cancelled (atomic commit). In
-					// this case, the responseTransaction will have a entry that caused the error and inserted to 
-					// transaction response. So, what we need to do here is just add all entries into bundle.
-					if (responseTransaction.size() > 0) {
-						retVal.setEntry(responseTransaction);
-					}
-				} else {
-					// We have nothing to do. Return success with empty response.
-					retVal.setType(BundleType.TRANSACTIONRESPONSE);			
+				List<BundleEntryComponent> responseTransaction = myMapper.executeTransaction(transactionEntries);
+				// If any one of entries caused an error, entire transaction will be cancelled (atomic commit). In
+				// this case, the responseTransaction will have a entry that caused the error and inserted to 
+				// transaction response. So, what we need to do here is just add all entries into bundle.
+				if (responseTransaction != null && responseTransaction.size() > 0) {
+					retVal.setEntry(responseTransaction);
 				}
+				retVal.setType(BundleType.TRANSACTIONRESPONSE);			
 				
 				break;
 			case MESSAGE:
+				BundleEntryComponent messageHeader = theBundle.getEntryFirstRep();
+				if (messageHeader.getResource().getResourceType() == ResourceType.MessageHeader) {
+					List<BundleEntryComponent> entries = theBundle.getEntry();
+					int sizeOfEntries = entries.size();
+					for (int i=1; i<sizeOfEntries; i++) {
+						
+					}
+				} else {
+					// First entry must be message header.
+					ThrowFHIRExceptions.unprocessableEntityException("First entry in Bundle message type should be MessageHeader");
+				}
 				break;
 			default:
 				ThrowFHIRExceptions.unprocessableEntityException("Unsupported Bundle Type, "

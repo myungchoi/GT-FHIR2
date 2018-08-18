@@ -1345,7 +1345,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		Map<String, Object> entityMap = constructOmopMeasurementObservation(omopId, fhirResource);
 		Long retId = null;
 		
-		if (entityMap != null && entityMap.get("type").toString().equalsIgnoreCase("measurement")) {
+		if (entityMap != null && ((String)entityMap.get("type")).equalsIgnoreCase("measurement")) {
 			measurements = (List<Measurement>) entityMap.get("entity");
 			
 			Long retvalSystolic = null;

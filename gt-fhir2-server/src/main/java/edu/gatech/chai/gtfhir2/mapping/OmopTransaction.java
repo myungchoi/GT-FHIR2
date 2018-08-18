@@ -1,16 +1,24 @@
 package edu.gatech.chai.gtfhir2.mapping;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.dstu3.model.Bundle.HTTPVerb;
+import org.hl7.fhir.dstu3.model.Observation;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import edu.gatech.chai.omopv5.jpa.service.TransactionService;
+import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
+import edu.gatech.chai.omopv5.jpa.entity.FPerson;
+import edu.gatech.chai.omopv5.jpa.entity.Measurement;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class OmopTransaction {
@@ -31,49 +39,55 @@ public class OmopTransaction {
 		return omopTransaction;
 	}
 
-	public List<BundleEntryComponent> executeTransaction(List<Map<String, Object>> entries) throws FHIRException {
+	private void addBaseEntity (Map<String, List<BaseEntity>> entityToCreate, String key, BaseEntity entity) {
+		List<BaseEntity> list = entityToCreate.get(key);
+		if (list == null) {
+			list = new ArrayList<BaseEntity> ();
+			entityToCreate.put(key, list);
+		}
+		list.add(entity);		
+	}
+	
+	public List<BundleEntryComponent> executeTransaction(Map<HTTPVerb, Object> entries) throws FHIRException {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
+		Map<String, List<BaseEntity>> entityToCreate = new HashMap<String, List<BaseEntity>>();
 		
-		for (Map<String, Object> entry : entries) {
-			if ((String)entry.get("method") == "POST") {
-				// This is to write to database. This means that we should have
-				// resource that we need to write.
-				Resource resource = (Resource) entry.get("resource");
-				IResourceMapping resourceMapper = (IResourceMapping) entry.get("mapper");
-				resourceMapper.toDbase(resource, null);
+		@SuppressWarnings("unchecked")
+		List<Resource> postList = (List<Resource>) entries.get(HTTPVerb.POST);
+		String key;
+		for (Resource resource: postList) {
+			switch (resource.getResourceType()) {
+			case Patient:
+				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (Patient) resource);
+				key = "Patient/"+resource.getId()+"^FPerson";
+				addBaseEntity(entityToCreate, key, fPerson);
+				System.out.println("key:"+key+", fPerson");
+				break;
+			case Observation:
+				Observation observation = (Observation) resource;
+				Map<String, Object> obsEntityMap = OmopObservation.getInstance().constructOmopMeasurementObservation(null, observation);
+				if (((String)obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
+					key = observation.getSubject().getReference()+"^Measurement";
+					List<Measurement> measurements = (List<Measurement>)obsEntityMap.get("entity");
+					for (Measurement measurement: measurements) {
+						addBaseEntity(entityToCreate, key, measurement);
+					}
+					System.out.println("key:"+key+", "+measurements.size()+" measurement(s)");
+				} else {
+					key = observation.getSubject().getReference()+"^Observation";
+					edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap.get("entity");
+					addBaseEntity(entityToCreate, key, omopObservation);
+					System.out.println("key:"+key+", observation");
+				}
+				
+				break;
+			default:
+				break;
 			}
 		}
-		// This is create
-		// In bundle write, we need to check the bundle type.
-//		switch (fhirResource.getType()) {
-//		case DOCUMENT:
-//			break;
-//		case TRANSACTION:
-//			// We need to walk through the entries and perform transaction as indicated.
-//			// This should be atomic commit. Thus, we need to keep the records that succeeded, 
-//			// which can be removed if any failed.
-//			for (BundleEntryComponent nextEntry : fhirResource.getEntry()) {
-//				// For now, we support Resource CRUD.
-//				Resource resource = nextEntry.getResource();
-//				if (resource == null) continue;
-//
-//				BundleEntryRequestComponent request = nextEntry.getRequest();
-//				if (request != null && !request.isEmpty()) {
-//					HTTPVerb method = request.getMethod();
-//					if (method.equals(HTTPVerb.POST)) {
-//						// Create the resource in server.
-//					}
-//				} else {
-//					continue;
-//				}
-//				
-//			}
-//
-//			break;
-//		default:
-//			// We only handle document and transaction.
-//			return null;
-//		}
+		
+		System.out.println("entityToCreate: "+entityToCreate.size());
+		
 		return null;
 	}
 
