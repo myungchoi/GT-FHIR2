@@ -2,7 +2,7 @@
 FROM maven:3.5.2-alpine as builder
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN mvn clean install
+RUN mvn install
 
 #Build the Tomcat container
 FROM tomcat:alpine
