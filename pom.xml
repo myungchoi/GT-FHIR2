@@ -106,7 +106,7 @@
 		<phloc_commons_version>4.4.11</phloc_commons_version>
 		<spring_version>5.0.6.RELEASE</spring_version>
 		<spring_data_version>2.0.9.RELEASE</spring_data_version>
-		<spring-boot.version>2.0.4.RELEASE</spring-boot.version>
+		<spring-boot.version>2.0.2.RELEASE</spring-boot.version>
 		<thymeleaf-version>3.0.9.RELEASE</thymeleaf-version>
 
 		<!-- We are aiming to still work on a very old version of SLF4j even though 
