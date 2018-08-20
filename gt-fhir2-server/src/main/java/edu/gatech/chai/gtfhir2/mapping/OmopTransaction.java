@@ -16,6 +16,7 @@ import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import edu.gatech.chai.omopv5.jpa.service.TransactionService;
+import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Measurement;
@@ -31,64 +32,95 @@ public class OmopTransaction {
 	}
 
 	public OmopTransaction() {
-		ContextLoaderListener.getCurrentWebApplicationContext()
-			.getBean(TransactionService.class);
+		ContextLoaderListener.getCurrentWebApplicationContext().getBean(TransactionService.class);
 	}
 
 	public static OmopTransaction getInstance() {
 		return omopTransaction;
 	}
 
-	private void addBaseEntity (Map<String, List<BaseEntity>> entityToCreate, String key, BaseEntity entity) {
+	private void addBaseEntity(Map<String, List<BaseEntity>> entityToCreate, String key, BaseEntity entity) {
+		if (key == null)
+			key = "";
+
 		List<BaseEntity> list = entityToCreate.get(key);
 		if (list == null) {
-			list = new ArrayList<BaseEntity> ();
+			list = new ArrayList<BaseEntity>();
 			entityToCreate.put(key, list);
 		}
-		list.add(entity);		
+		list.add(entity);
 	}
-	
+
 	public List<BundleEntryComponent> executeTransaction(Map<HTTPVerb, Object> entries) throws FHIRException {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
 		Map<String, List<BaseEntity>> entityToCreate = new HashMap<String, List<BaseEntity>>();
-		
+
 		@SuppressWarnings("unchecked")
 		List<Resource> postList = (List<Resource>) entries.get(HTTPVerb.POST);
-		String key;
-		for (Resource resource: postList) {
+		String keyString;
+		for (Resource resource : postList) {
 			switch (resource.getResourceType()) {
 			case Patient:
 				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (Patient) resource);
-				key = "Patient/"+resource.getId()+"^FPerson";
-				addBaseEntity(entityToCreate, key, fPerson);
-				System.out.println("key:"+key+", fPerson");
+				keyString = "Patient/" + resource.getId() + "^FPerson";
+				addBaseEntity(entityToCreate, keyString, fPerson);
+				System.out.println("key:" + keyString + ", fPerson");
 				break;
 			case Observation:
 				Observation observation = (Observation) resource;
-				Map<String, Object> obsEntityMap = OmopObservation.getInstance().constructOmopMeasurementObservation(null, observation);
-				if (((String)obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
-					key = observation.getSubject().getReference()+"^Measurement";
-					List<Measurement> measurements = (List<Measurement>)obsEntityMap.get("entity");
-					for (Measurement measurement: measurements) {
-						addBaseEntity(entityToCreate, key, measurement);
+				Map<String, Object> obsEntityMap = OmopObservation.getInstance()
+						.constructOmopMeasurementObservation(null, observation);
+				if (((String) obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
+					keyString = observation.getSubject().getReference() + "^Measurement";
+					List<Measurement> measurements = (List<Measurement>) obsEntityMap.get("entity");
+					for (Measurement measurement : measurements) {
+						addBaseEntity(entityToCreate, keyString, measurement);
 					}
-					System.out.println("key:"+key+", "+measurements.size()+" measurement(s)");
 				} else {
-					key = observation.getSubject().getReference()+"^Observation";
-					edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap.get("entity");
-					addBaseEntity(entityToCreate, key, omopObservation);
-					System.out.println("key:"+key+", observation");
+					keyString = observation.getSubject().getReference() + "^Observation";
+					edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap
+							.get("entity");
+					addBaseEntity(entityToCreate, keyString, omopObservation);
 				}
-				
+
 				break;
 			default:
 				break;
 			}
 		}
-		
-		System.out.println("entityToCreate: "+entityToCreate.size());
-		
-		return null;
+
+		List<BundleEntryComponent> retVal = new ArrayList<BundleEntryComponent>();
+		if (entityToCreate.size() > 0) {
+			int performStatus = myService.writeTransaction(entityToCreate);
+			if (performStatus < 0) {
+				// This is an error.
+				// TODO: respond accordingly
+				return retVal;
+			}
+			for (String myKeyString : entityToCreate.keySet()) {
+				List<BaseEntity> entities = entityToCreate.get(myKeyString);
+				String[] myKeyInfo = myKeyString.split("^");
+				if (myKeyInfo.length != 2) {
+					return null;
+				}
+				String entityName = myKeyInfo[1];
+				for (BaseEntity entity : entities) {
+					BundleEntryComponent bundleEntryComponent = new BundleEntryComponent();
+					Resource fhirResource;
+					if (entityName.equals("FPerson")) {
+						// This is Person table.
+						fhirResource = OmopPatient.getInstance().constructFHIR(
+								IdMapping.getFHIRfromOMOP(entity.getIdAsLong(), PatientResourceProvider.getType()),
+								(FPerson) entity);
+						bundleEntryComponent.setResource(fhirResource);
+						retVal.add(bundleEntryComponent);
+					} else if (entityName.equals("Measurement")) {
+						
+					}
+				}
+			}
+		}
+		return retVal;
 	}
 
 	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
