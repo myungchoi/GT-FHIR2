@@ -166,8 +166,10 @@ public class SystemTransactionProvider {
 				// transaction response. So, what we need to do here is just add all entries into bundle.
 				if (responseTransaction != null && responseTransaction.size() > 0) {
 					retVal.setEntry(responseTransaction);
+					retVal.setType(BundleType.TRANSACTIONRESPONSE);			
+				} else {
+					ThrowFHIRExceptions.unprocessableEntityException("Faied process the bundle, "+theBundle.getType().toString());
 				}
-				retVal.setType(BundleType.TRANSACTIONRESPONSE);			
 				
 				break;
 			case MESSAGE:

@@ -7,7 +7,9 @@ import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.dstu3.model.Bundle.BundleEntryResponseComponent;
 import org.hl7.fhir.dstu3.model.Bundle.HTTPVerb;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -28,11 +30,11 @@ public class OmopTransaction {
 	private TransactionService myService;
 
 	public OmopTransaction(WebApplicationContext context) {
-		context.getBean(TransactionService.class);
+		myService = context.getBean(TransactionService.class);
 	}
 
 	public OmopTransaction() {
-		ContextLoaderListener.getCurrentWebApplicationContext().getBean(TransactionService.class);
+		myService = ContextLoaderListener.getCurrentWebApplicationContext().getBean(TransactionService.class);
 	}
 
 	public static OmopTransaction getInstance() {
@@ -55,6 +57,9 @@ public class OmopTransaction {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
 		Map<String, List<BaseEntity>> entityToCreate = new HashMap<String, List<BaseEntity>>();
 
+		/*
+		 * POST Transaction.
+		 */
 		@SuppressWarnings("unchecked")
 		List<Resource> postList = (List<Resource>) entries.get(HTTPVerb.POST);
 		String keyString;
@@ -99,20 +104,27 @@ public class OmopTransaction {
 			}
 			for (String myKeyString : entityToCreate.keySet()) {
 				List<BaseEntity> entities = entityToCreate.get(myKeyString);
-				String[] myKeyInfo = myKeyString.split("^");
+				String[] myKeyInfo = myKeyString.split("\\^");
 				if (myKeyInfo.length != 2) {
 					return null;
 				}
+				System.out.println("About to check response from JPA transaction");
 				String entityName = myKeyInfo[1];
 				for (BaseEntity entity : entities) {
 					BundleEntryComponent bundleEntryComponent = new BundleEntryComponent();
 					Resource fhirResource;
 					if (entityName.equals("FPerson")) {
 						// This is Person table.
+						// Constructing FHIR to respond.
+						System.out.println("Created FPerson ID: "+entity.getIdAsLong());
 						fhirResource = OmopPatient.getInstance().constructFHIR(
 								IdMapping.getFHIRfromOMOP(entity.getIdAsLong(), PatientResourceProvider.getType()),
 								(FPerson) entity);
 						bundleEntryComponent.setResource(fhirResource);
+						// It was success full, so we return 201 Created. 
+						BundleEntryResponseComponent responseComponent = new BundleEntryResponseComponent(new StringType("201 Created"));
+						responseComponent.setLocation(PatientResourceProvider.getType()+"/"+fhirResource.getId());
+						bundleEntryComponent.setResponse(responseComponent);
 						retVal.add(bundleEntryComponent);
 					} else if (entityName.equals("Measurement")) {
 						

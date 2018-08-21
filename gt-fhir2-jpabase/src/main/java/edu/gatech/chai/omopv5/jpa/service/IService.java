@@ -1,7 +1,6 @@
 package edu.gatech.chai.omopv5.jpa.service;
 
 import java.util.List;
-import java.util.Map;
 
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 

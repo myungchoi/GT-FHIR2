@@ -27,21 +27,24 @@ public class TransactionServiceImp implements TransactionService {
 
 	@Transactional
 	public int writeTransaction(Map<String, List<BaseEntity>> transactionMap) {
+		System.out.println("At the writeTransaction");
 		for (String key : transactionMap.keySet()) {
-			String[] keyInfo = key.split("^");
+			String[] keyInfo = key.split("\\^");
+			System.out.println("working on key="+key+" with keyInfo length="+keyInfo.length);
 			if (keyInfo.length != 2) {
 				// something is wrong.
 				return -1;
 			}
 
 			// 2n part of keyInfo should be the entity table name.
-			String entitiyName = keyInfo[1];
-
+			String entityName = keyInfo[1];
+			System.out.println("About to process "+entityName+" from Service");
 			// list of the entity classes
 			try {
 			List<BaseEntity> entityClasses = transactionMap.get(key);
 			for (BaseEntity entityClass : entityClasses) {
-				if (entitiyName.equals("FPerson")) {
+				if (entityName.equals("FPerson")) {
+					System.out.println("Adding fPerson to OMOP");
 					fPersonDao.add((FPerson) entityClass);
 				}
 			}

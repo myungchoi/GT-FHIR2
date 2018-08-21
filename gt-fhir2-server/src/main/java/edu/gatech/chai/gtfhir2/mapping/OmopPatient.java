@@ -44,6 +44,7 @@ import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
 import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
+import edu.gatech.chai.omopv5.jpa.service.ConceptService;
 import edu.gatech.chai.omopv5.jpa.service.FPersonService;
 import edu.gatech.chai.omopv5.jpa.service.LocationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
@@ -57,6 +58,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 	private LocationService locationService;
 	private ProviderService providerService;
 	private VisitOccurrenceService visitOccurrenceService;
+	private ConceptService conceptService;
 
 	public OmopPatient(WebApplicationContext context) {
 		super(context, FPerson.class, FPersonService.class, PatientResourceProvider.getType());
@@ -73,6 +75,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		locationService = context.getBean(LocationService.class);
 		providerService = context.getBean(ProviderService.class);
 		visitOccurrenceService = context.getBean(VisitOccurrenceService.class);
+		conceptService = context.getBean(ConceptService.class);
 	}
 
 	public static OmopPatient getInstance() {
@@ -180,13 +183,21 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 
 		if (fPerson.getGenderConcept() != null) {
-			String gName = fPerson.getGenderConcept().getName().toLowerCase();
-			AdministrativeGender gender;
-			try {
-				gender = AdministrativeGender.fromCode(gName);
-				patient.setGender(gender);
-			} catch (FHIRException e) {
-				e.printStackTrace();
+			String gName = fPerson.getGenderConcept().getName();
+			if (gName == null || gName.isEmpty()) {
+				Concept genderConcept = conceptService.findById(fPerson.getGenderConcept().getId());
+				if (genderConcept != null) gName = genderConcept.getName();
+				else gName = null;
+			}
+			if (gName != null) {
+				gName = gName.toLowerCase();
+				AdministrativeGender gender;
+				try {
+					gender = AdministrativeGender.fromCode(gName);
+					patient.setGender(gender);
+				} catch (FHIRException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
