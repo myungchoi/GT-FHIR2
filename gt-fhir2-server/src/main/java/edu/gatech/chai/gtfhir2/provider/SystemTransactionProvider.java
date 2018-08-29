@@ -13,6 +13,9 @@ import org.hl7.fhir.dstu3.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.dstu3.model.Bundle.BundleEntryRequestComponent;
 import org.hl7.fhir.dstu3.model.Bundle.BundleType;
 import org.hl7.fhir.dstu3.model.Bundle.HTTPVerb;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Enumerations.MessageEvent;
+import org.hl7.fhir.dstu3.model.MessageHeader;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -61,23 +64,24 @@ public class SystemTransactionProvider {
 			}
 		}
 
-//		String url = myAppCtx.getServletContext().getInitParameter("transactionServer");
-//		if (url != null && url.isEmpty() == false) {
-//			setMyTransactionServerUrl(url);
-//			if (url.equals("${requestUrl}")) {
-//				getTransactionServerUrlFromRequest = true;
-//			} else {
-//				getTransactionServerUrlFromRequest = false;
-//			}
-//		} else {
-//			getTransactionServerUrlFromRequest = true;
-//		}
+		// String url =
+		// myAppCtx.getServletContext().getInitParameter("transactionServer");
+		// if (url != null && url.isEmpty() == false) {
+		// setMyTransactionServerUrl(url);
+		// if (url.equals("${requestUrl}")) {
+		// getTransactionServerUrlFromRequest = true;
+		// } else {
+		// getTransactionServerUrlFromRequest = false;
+		// }
+		// } else {
+		// getTransactionServerUrlFromRequest = true;
+		// }
 
 	}
 
-//	public void setMyTransactionServerUrl(String myTransactionServerUrl) {
-//		this.myTransactionServerUrl = myTransactionServerUrl;
-//	}
+	// public void setMyTransactionServerUrl(String myTransactionServerUrl) {
+	// this.myTransactionServerUrl = myTransactionServerUrl;
+	// }
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public <v extends BaseOmopResource> void undoCreate(List<Object> resourcesAdded) {
@@ -91,19 +95,20 @@ public class SystemTransactionProvider {
 		}
 	}
 
-//	private String getServerBaseUrl(HttpServletRequest theRequest) {
-//		if (getTransactionServerUrlFromRequest) {
-//			StringBuffer requestUrl = theRequest.getRequestURL();
-//			myTransactionServerUrl = requestUrl.toString();
-//		}
-//
-//		if (myTransactionServerUrl.endsWith("/")) {
-//			myTransactionServerUrl = myTransactionServerUrl.substring(0, myTransactionServerUrl.length() - 1);
-//		}
-//
-//		return myTransactionServerUrl;
-//	}
-	
+	// private String getServerBaseUrl(HttpServletRequest theRequest) {
+	// if (getTransactionServerUrlFromRequest) {
+	// StringBuffer requestUrl = theRequest.getRequestURL();
+	// myTransactionServerUrl = requestUrl.toString();
+	// }
+	//
+	// if (myTransactionServerUrl.endsWith("/")) {
+	// myTransactionServerUrl = myTransactionServerUrl.substring(0,
+	// myTransactionServerUrl.length() - 1);
+	// }
+	//
+	// return myTransactionServerUrl;
+	// }
+
 	/**
 	 */
 	@Transaction
@@ -121,8 +126,8 @@ public class SystemTransactionProvider {
 		transactionEntries.put(HTTPVerb.PUT, putList);
 		transactionEntries.put(HTTPVerb.DELETE, deleteList);
 		transactionEntries.put(HTTPVerb.GET, getList);
-		
-		try {			
+
+		try {
 			switch (theBundle.getType()) {
 			case DOCUMENT:
 			case TRANSACTION:
@@ -140,7 +145,8 @@ public class SystemTransactionProvider {
 
 					if (!request.isEmpty()) {
 						// First check the Resource to see if we can support
-						// this. resourceName = resource.getResourceType().toString();
+						// this. resourceName =
+						// resource.getResourceType().toString();
 
 						// Now we have a request that we support. Add this into
 						// the entry to process.
@@ -156,38 +162,60 @@ public class SystemTransactionProvider {
 							// create parameter here.
 						} else {
 							continue;
-						}						
+						}
 					}
 				}
-				
-				List<BundleEntryComponent> responseTransaction = myMapper.executeTransaction(transactionEntries);
-				// If any one of entries caused an error, entire transaction will be cancelled (atomic commit). In
-				// this case, the responseTransaction will have a entry that caused the error and inserted to 
-				// transaction response. So, what we need to do here is just add all entries into bundle.
-				if (responseTransaction != null && responseTransaction.size() > 0) {
-					retVal.setEntry(responseTransaction);
-					retVal.setType(BundleType.TRANSACTIONRESPONSE);			
-				} else {
-					ThrowFHIRExceptions.unprocessableEntityException("Faied process the bundle, "+theBundle.getType().toString());
-				}
-				
+
 				break;
 			case MESSAGE:
-				BundleEntryComponent messageHeader = theBundle.getEntryFirstRep();
-				if (messageHeader.getResource().getResourceType() == ResourceType.MessageHeader) {
-					List<BundleEntryComponent> entries = theBundle.getEntry();
-					int sizeOfEntries = entries.size();
-					for (int i=1; i<sizeOfEntries; i++) {
-						
+				BundleEntryComponent entry = theBundle.getEntryFirstRep();
+				Resource resource = entry.getResource();
+				if (resource.getResourceType() == ResourceType.MessageHeader) {
+					MessageHeader messageHeader = (MessageHeader) resource;
+					// We handle observation-type.
+					// TODO: Add other types later.
+					Coding event = messageHeader.getEvent();
+					if ("R01".equals(event.getCode())) {
+						List<BundleEntryComponent> entries = theBundle.getEntry();
+						int sizeOfEntries = entries.size();
+						for (int i = 1; i < sizeOfEntries; i++) {
+							entry = entries.get(i);
+							if (entry.getRequest() != null && !entry.getRequest().isEmpty()) {
+								if (entry.getRequest().getMethod() == HTTPVerb.POST) {
+									postList.add(entry.getResource());
+								} else if (entry.getRequest().getMethod() == HTTPVerb.PUT) {
+									// This is to update. Get URL
+									String putId = entry.getRequest().getUrlElement().getId();
+									entry.getResource().setId(putId);
+									putList.add(entry.getResource());
+								} else {
+									ThrowFHIRExceptions.unprocessableEntityException(
+											"We support POST and PUT for Messages");
+								}
+							}
+						}
+					} else {
+						ThrowFHIRExceptions.unprocessableEntityException(
+								"We currently support only HL7 v2 R01 Message");
 					}
 				} else {
 					// First entry must be message header.
-					ThrowFHIRExceptions.unprocessableEntityException("First entry in Bundle message type should be MessageHeader");
+					ThrowFHIRExceptions
+							.unprocessableEntityException("First entry in Bundle message type should be MessageHeader");
 				}
 				break;
 			default:
 				ThrowFHIRExceptions.unprocessableEntityException("Unsupported Bundle Type, "
 						+ theBundle.getType().toString() + ". We support DOCUMENT, TRANSACTION, and MESSAGE");
+			}
+
+			List<BundleEntryComponent> responseTransaction = myMapper.executeMessage(transactionEntries);
+			if (responseTransaction != null && responseTransaction.size() > 0) {
+				retVal.setEntry(responseTransaction);
+				retVal.setType(BundleType.TRANSACTIONRESPONSE);
+			} else {
+				ThrowFHIRExceptions
+						.unprocessableEntityException("Faied process the bundle, " + theBundle.getType().toString());
 			}
 
 		} catch (FHIRException e) {

@@ -16,6 +16,7 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 	
 	private p myOmopService;
 	private Class<t> myEntityClass;
+	private Class<p> myServiceClass;
 	private String myFhirResourceType;
 	
 	public static String MAP_EXCEPTION_FILTER = "FILTER";
@@ -33,6 +34,10 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 	
 	public p getMyOmopService() {
 		return this.myOmopService;
+	}
+	
+	public void setMyOmopService(WebApplicationContext context) {
+		this.myOmopService = context.getBean(myServiceClass);
 	}
 	
 	public Class<t> getMyEntityClass() {

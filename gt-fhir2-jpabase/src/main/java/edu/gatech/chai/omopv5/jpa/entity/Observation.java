@@ -34,11 +34,11 @@ public class Observation extends BaseEntity {
 	@Access(AccessType.PROPERTY)
 	private Long id;
 
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name = "person_id", nullable = false)
 	private FPerson fPerson;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "observation_concept_id", nullable = false)
 	private Concept observationConcept;
 
@@ -56,37 +56,37 @@ public class Observation extends BaseEntity {
 	@Column(name = "value_as_number")
 	private Double valueAsNumber;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "value_as_concept_id")
 	private Concept valueAsConcept;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "observation_type_concept_id", nullable = false)
 	private Concept typeConcept;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "provider_id")
 	private Provider provider;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "visit_occurrence_id")
 	private VisitOccurrence visitOccurrence;
 
 	@Column(name = "observation_source_value")
 	private String sourceValue;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "observation_source_concept_id")
 	private Concept sourceConcept;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "qualifier_concept_id")
 	private Concept qualifierConcept;
 
 	@Column(name = "qualifier_source_value")
 	private String qualifierSourceValue;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "unit_concept_id")
 	private Concept unitConcept;
 

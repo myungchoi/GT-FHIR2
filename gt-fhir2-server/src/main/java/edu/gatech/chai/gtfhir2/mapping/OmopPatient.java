@@ -341,7 +341,11 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 
 					// See if we have existing patient
 					// with this identifier.
-					person = getMyOmopService().searchByColumnString("personSourceValue", personSourceValue).get(0);
+					List<FPerson> listPatient = getMyOmopService().searchByColumnString("personSourceValue", personSourceValue);
+					if (listPatient != null && listPatient.size() > 0) {
+						person = listPatient.get(0);
+						System.out.println("Strange0::::::::::::::: for "+personSourceValue.toLowerCase()+" "+person.getId());
+					}
 					if (person != null) {
 						omopId = person.getId();
 						break;
@@ -350,9 +354,11 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 			}
 		}
 
+		System.out.println("Strange1::::::::::::::: "+omopId);
 		FPerson fperson = constructOmop(omopId, patient);
 
 		Long omopRecordId = null;
+		System.out.println("Strange2::::::::::::::: "+fperson.getId());
 		if (fperson.getId() != null) {
 			omopRecordId = getMyOmopService().update(fperson).getId();
 		} else {
@@ -688,21 +694,6 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		FPerson fperson = null;
 		String personSourceValue = null;
 
-		if (omopId != null) {
-			// update
-			fperson = getMyOmopService().findById(omopId);
-			if (fperson == null) {
-				try {
-					throw new FHIRException(patient.getId() + " does not exist");
-				} catch (FHIRException e) {
-					e.printStackTrace();
-				}
-			}
-		} else {
-			fperson = new FPerson();
-
-		}
-
 		List<Identifier> identifiers = patient.getIdentifier();
 		String MRN = null;
 		String SSN = null;
@@ -731,6 +722,29 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 
 			}
 		}
+		
+		if (omopId != null) {
+			// update
+			fperson = getMyOmopService().findById(omopId);
+			if (fperson == null) {
+				try {
+					throw new FHIRException(patient.getId() + " does not exist");
+				} catch (FHIRException e) {
+					e.printStackTrace();
+				}
+			}
+		} else {
+			if (personSourceValue != null) {
+				List<FPerson> fPersons = getMyOmopService().searchByColumnString("personSourceValue", personSourceValue);
+				if (fPersons.size() > 0) {
+					fperson = fPersons.get(0);
+				}
+			} 
+			
+			if (fperson == null)
+				fperson = new FPerson();				
+		}
+
 		if (personSourceValue != null) {
 			fperson.setPersonSourceValue(personSourceValue);
 			if (SSN != null) {
@@ -822,8 +836,8 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 			}
 		}
 
-		if (personSourceValue != null)
-			fperson.setPersonSourceValue(personSourceValue);
+//		if (personSourceValue != null)
+//			fperson.setPersonSourceValue(personSourceValue);
 
 		if (patient.getActive())
 			fperson.setActive((short) 1);
@@ -831,9 +845,9 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 			fperson.setActive((short) 0);
 
 		CodeableConcept maritalStat = patient.getMaritalStatus();
-		if (maritalStat != null) {
+		if (maritalStat != null && !maritalStat.isEmpty()) {
 			Coding coding = maritalStat.getCodingFirstRep();
-			if (coding != null) {
+			if (coding != null && !coding.isEmpty()) {
 				System.out.println("MARITAL STATUS:" + coding.getCode());
 				fperson.setMaritalStatus(coding.getCode());
 			}

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
@@ -11,32 +12,52 @@ import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.dstu3.model.Bundle.BundleEntryResponseComponent;
 import org.hl7.fhir.dstu3.model.Bundle.HTTPVerb;
+import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.instance.model.api.IIdType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import edu.gatech.chai.omopv5.jpa.service.TransactionService;
+import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Measurement;
+import edu.gatech.chai.omopv5.jpa.service.FPersonService;
+import edu.gatech.chai.omopv5.jpa.service.MeasurementService;
+import edu.gatech.chai.omopv5.jpa.service.ObservationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class OmopTransaction {
 
 	private static OmopTransaction omopTransaction = new OmopTransaction();
 	private TransactionService myService;
+	private FPersonService fPersonService;
+	private ObservationService observationService;
+	private MeasurementService measurementService;
+	private WebApplicationContext myContext;
 
 	public OmopTransaction(WebApplicationContext context) {
-		myService = context.getBean(TransactionService.class);
+		this.myContext = context;
+		initialize(context);
 	}
 
 	public OmopTransaction() {
-		myService = ContextLoaderListener.getCurrentWebApplicationContext().getBean(TransactionService.class);
+		this.myContext = ContextLoaderListener.getCurrentWebApplicationContext();
+		initialize(this.myContext);
 	}
 
+	private void initialize(WebApplicationContext context) {
+		myService = context.getBean(TransactionService.class);
+		fPersonService = context.getBean(FPersonService.class);
+		observationService = context.getBean(ObservationService.class);
+		measurementService = context.getBean(MeasurementService.class);
+	}
+	
 	public static OmopTransaction getInstance() {
 		return omopTransaction;
 	}
@@ -53,6 +74,158 @@ public class OmopTransaction {
 		list.add(entity);
 	}
 
+	private IdType linkToPatient(Reference subject, Map<String, Long> patientMap) {
+		if (subject == null || subject.isEmpty()) {
+			// We must have subject information to link this to patient.
+			// This is OMOP requirement. We skip this for Transaction Messages.
+			return null;
+		}
+		
+		Long fhirId = patientMap.get(subject.getReference());
+		if (fhirId == null || fhirId == 0L) {
+			// See if we have this patient in OMOP DB.
+			IIdType referenceIdType = subject.getReferenceElement();
+			if (referenceIdType == null || referenceIdType.isEmpty()) {
+				// Giving up... 
+				return null;
+			}
+			try {
+				fhirId = referenceIdType.getIdPartAsLong();
+			} catch (Exception e) {
+				// Giving up...
+				return null;
+			}
+			if (fhirId == null || fhirId == 0L) {
+				// giving up again...
+				return null;
+			}
+			Long omopId = IdMapping.getOMOPfromFHIR(fhirId, referenceIdType.getResourceType());
+			if (omopId == null || omopId == 0L) {
+				// giving up... :(
+				return null;
+			}
+			FPerson refFPerson = fPersonService.findById(omopId);
+			if (refFPerson == null) {
+				// giving up...
+				return null;
+			}
+			return new IdType("Patient", refFPerson.getId());
+		} else {
+			return new IdType("Patient", fhirId);
+		}
+	}
+	
+	public void addResponseEntry(List<BundleEntryComponent> responseEntries, String status, String location) {
+		BundleEntryComponent entryBundle = new BundleEntryComponent();
+		UUID uuid = UUID.randomUUID();
+		entryBundle.setFullUrl("urn:uuid:"+uuid.toString());
+		BundleEntryResponseComponent responseBundle = new BundleEntryResponseComponent();
+		responseBundle.setStatus(status);
+		if (location != null)
+			responseBundle.setLocation(location);
+		entryBundle.setResponse(responseBundle);
+		responseEntries.add(entryBundle);
+	}
+	
+	public List<BundleEntryComponent> executeMessage(Map<HTTPVerb, Object> entries) throws FHIRException {
+		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
+
+		List<Resource> postList = (List<Resource>) entries.get(HTTPVerb.POST);
+		List<Resource> putList = (List<Resource>) entries.get(HTTPVerb.PUT);
+		
+		Map<String, Long> patientMap = new HashMap<String, Long> ();
+		
+		// do patient first. 
+		for (Resource resource : postList) {
+			if (resource.getResourceType() == ResourceType.Patient) {
+				String originalId = resource.getId();
+				Long fhirId = OmopPatient.getInstance().toDbase((Patient) resource, null);
+//				OmopPatient patientMappingInstance = new OmopPatient(myContext);
+//				FPerson fPerson = patientMappingInstance.constructOmop(null, (Patient) resource);
+//				FPerson retFPerson = fPersonService.create(fPerson);
+//				Long fhirId = IdMapping.getFHIRfromOMOP(retFPerson.getIdAsLong(), PatientResourceProvider.getType());
+				patientMap.put(originalId, fhirId);
+				System.out.println("Adding patient info to patientMap "+originalId+"->"+fhirId);
+				addResponseEntry(responseEntries, "201 Created", "Patient/"+fhirId);
+			}
+		}
+		
+		// Now process the rest.
+		for (Resource resource : postList) {
+			if (resource.getResourceType() == ResourceType.Patient) {
+				// already done.
+				continue;
+			}
+			
+			if (resource.getResourceType() == ResourceType.Observation) {
+				Observation observation = (Observation) resource;
+				Reference subject = observation.getSubject();
+				IdType refIdType = linkToPatient (subject, patientMap);
+				if (refIdType == null) continue;
+				observation.setSubject(new Reference(refIdType));
+				
+				Long fhirId = OmopObservation.getInstance().toDbase(observation, null);
+				if (fhirId == null)
+					addResponseEntry(responseEntries, "400 Bad Request", null);
+				else
+					addResponseEntry(responseEntries, "201 Created", "Observation/"+fhirId);
+				
+//				Map<String, Object> obsEntityMap = OmopObservation.getInstance()
+//						.constructOmopMeasurementObservation(null, observation);
+//				if (obsEntityMap != null && !obsEntityMap.isEmpty()) {
+//					if (((String) obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
+//						List<Measurement> measurements = (List<Measurement>) obsEntityMap.get("entity");
+//						for (Measurement measurement : measurements) {
+//							Measurement retMeasurement = measurementService.create(measurement);
+//							addResponseEntry(responseEntries, "201 Created", "Observation/"+IdMapping.getFHIRfromOMOP(retMeasurement.getIdAsLong(), ObservationResourceProvider.getType()));
+//						}
+//					} else {
+//						edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap
+//								.get("entity");
+//						edu.gatech.chai.omopv5.jpa.entity.Observation retObservation = observationService.create(omopObservation);
+//						addResponseEntry(responseEntries, "201 Created", "Observation/-"+IdMapping.getFHIRfromOMOP(retObservation.getIdAsLong(), ObservationResourceProvider.getType()));
+//					}
+//				}
+			}
+		}
+
+		for (Resource resource : putList) {
+			if (resource.getResourceType() == ResourceType.Patient) {
+				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (Patient) resource);
+				FPerson retFPerson = fPersonService.update(fPerson);
+				Long fhirId = IdMapping.getFHIRfromOMOP(retFPerson.getIdAsLong(), PatientResourceProvider.getType());
+				patientMap.put(resource.getId(), fhirId);
+
+				addResponseEntry(responseEntries, "201 Created", "Patient/"+IdMapping.getFHIRfromOMOP(retFPerson.getIdAsLong(), ObservationResourceProvider.getType()));
+			} else if (resource.getResourceType() == ResourceType.Observation) {
+				Observation observation = (Observation) resource;
+				Reference subject = observation.getSubject();
+				IdType refIdType = linkToPatient (subject, patientMap);
+				if (refIdType == null) continue;
+				observation.setSubject(new Reference(refIdType));
+				
+				Map<String, Object> obsEntityMap = OmopObservation.getInstance()
+						.constructOmopMeasurementObservation(null, observation);
+				if (obsEntityMap != null && !obsEntityMap.isEmpty()) {
+					if (((String) obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
+						List<Measurement> measurements = (List<Measurement>) obsEntityMap.get("entity");
+						for (Measurement measurement : measurements) {
+							Measurement retMeasurement = measurementService.update(measurement);
+							addResponseEntry(responseEntries, "200 OK", "Observation/"+IdMapping.getFHIRfromOMOP(retMeasurement.getIdAsLong(), ObservationResourceProvider.getType()));
+						}
+					} else {
+						edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap
+								.get("entity");
+						edu.gatech.chai.omopv5.jpa.entity.Observation retObservation = observationService.update(omopObservation);
+						addResponseEntry(responseEntries, "200 OK", "Observation/"+IdMapping.getFHIRfromOMOP(retObservation.getIdAsLong(), ObservationResourceProvider.getType()));
+					}
+				}
+			}
+		}
+
+		return responseEntries;	
+	}
+	
 	public List<BundleEntryComponent> executeTransaction(Map<HTTPVerb, Object> entries) throws FHIRException {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
 		Map<String, List<BaseEntity>> entityToCreate = new HashMap<String, List<BaseEntity>>();
@@ -67,7 +240,7 @@ public class OmopTransaction {
 			switch (resource.getResourceType()) {
 			case Patient:
 				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (Patient) resource);
-				keyString = "Patient/" + resource.getId() + "^FPerson";
+				keyString = resource.getId() + "^FPerson";
 				addBaseEntity(entityToCreate, keyString, fPerson);
 				System.out.println("key:" + keyString + ", fPerson");
 				break;
@@ -75,17 +248,21 @@ public class OmopTransaction {
 				Observation observation = (Observation) resource;
 				Map<String, Object> obsEntityMap = OmopObservation.getInstance()
 						.constructOmopMeasurementObservation(null, observation);
-				if (((String) obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
-					keyString = observation.getSubject().getReference() + "^Measurement";
-					List<Measurement> measurements = (List<Measurement>) obsEntityMap.get("entity");
-					for (Measurement measurement : measurements) {
-						addBaseEntity(entityToCreate, keyString, measurement);
+				if (obsEntityMap != null && !obsEntityMap.isEmpty()) {
+					if (((String) obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
+						keyString = observation.getSubject().getReference() + "^Measurement";
+						List<Measurement> measurements = (List<Measurement>) obsEntityMap.get("entity");
+						for (Measurement measurement : measurements) {
+							addBaseEntity(entityToCreate, keyString, measurement);
+						}
+					} else {
+						keyString = observation.getSubject().getReference() + "^Observation";
+						edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap
+								.get("entity");
+						addBaseEntity(entityToCreate, keyString, omopObservation);
 					}
 				} else {
-					keyString = observation.getSubject().getReference() + "^Observation";
-					edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap
-							.get("entity");
-					addBaseEntity(entityToCreate, keyString, omopObservation);
+					return null;
 				}
 
 				break;
@@ -116,18 +293,19 @@ public class OmopTransaction {
 					if (entityName.equals("FPerson")) {
 						// This is Person table.
 						// Constructing FHIR to respond.
-						System.out.println("Created FPerson ID: "+entity.getIdAsLong());
+						System.out.println("Created FPerson ID: " + entity.getIdAsLong());
 						fhirResource = OmopPatient.getInstance().constructFHIR(
 								IdMapping.getFHIRfromOMOP(entity.getIdAsLong(), PatientResourceProvider.getType()),
 								(FPerson) entity);
 						bundleEntryComponent.setResource(fhirResource);
-						// It was success full, so we return 201 Created. 
-						BundleEntryResponseComponent responseComponent = new BundleEntryResponseComponent(new StringType("201 Created"));
-						responseComponent.setLocation(PatientResourceProvider.getType()+"/"+fhirResource.getId());
+						// It was success full, so we return 201 Created.
+						BundleEntryResponseComponent responseComponent = new BundleEntryResponseComponent(
+								new StringType("201 Created"));
+						responseComponent.setLocation(PatientResourceProvider.getType() + "/" + fhirResource.getId());
 						bundleEntryComponent.setResponse(responseComponent);
 						retVal.add(bundleEntryComponent);
 					} else if (entityName.equals("Measurement")) {
-						
+
 					}
 				}
 			}

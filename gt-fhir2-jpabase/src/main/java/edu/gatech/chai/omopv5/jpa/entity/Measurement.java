@@ -35,36 +35,36 @@ public class Measurement extends BaseEntity {
 	@Access(AccessType.PROPERTY)
 	private Long id;
 
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="person_id", nullable=false)
 	private FPerson fPerson;
 
 	@Column(name="measurement_source_value")
 	private String sourceValue; 
 
-	@ManyToOne(cascade = { CascadeType.MERGE }, fetch = FetchType.LAZY)
+	@ManyToOne
 	@JoinColumn(name="measurement_source_concept_id")
 	private Concept sourceValueConcept; 
 
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="measurement_concept_id", nullable=false)
 	private Concept measurementConcept;
 
 	@Column(name = "value_as_number")
 	private Double valueAsNumber;
 
-	@ManyToOne(cascade = { CascadeType.MERGE }, fetch = FetchType.LAZY)
+	@ManyToOne
 	@JoinColumn(name = "value_as_concept_id")
 	private Concept valueAsConcept;
 
 	@Column(name="value_source_value")
 	private String valueSourceValue;
 	
-	@ManyToOne(cascade = { CascadeType.MERGE }, fetch = FetchType.LAZY)
+	@ManyToOne
 	@JoinColumn(name = "operator_concept_id")
 	private Concept operatorConcept;
 
-	@ManyToOne(cascade = { CascadeType.MERGE }, fetch = FetchType.LAZY)
+	@ManyToOne
 	@JoinColumn(name = "unit_concept_id")
 	private Concept unitConcept;
 	
@@ -77,7 +77,7 @@ public class Measurement extends BaseEntity {
 	@Column(name = "range_high")
 	private Double rangeHigh;
 
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="provider_id")
 	private Provider provider;
 
@@ -89,11 +89,11 @@ public class Measurement extends BaseEntity {
 	// @Temporal(TemporalType.TIME)
 	private String time;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne
 	@JoinColumn(name = "visit_occurrence_id")
 	private VisitOccurrence visitOccurrence;
 
-	@ManyToOne(cascade = { CascadeType.MERGE }, fetch = FetchType.LAZY)
+	@ManyToOne
 	@JoinColumn(name = "measurement_type_concept_id")
 	private Concept type;
 

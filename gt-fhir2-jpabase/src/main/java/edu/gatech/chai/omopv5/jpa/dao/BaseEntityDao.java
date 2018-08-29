@@ -28,6 +28,10 @@ public abstract class BaseEntityDao<T extends BaseEntity> implements IDao<T> {
 		em.merge(baseEntity);
 	}
 
+	public void rollback() {
+		em.getTransaction().rollback();
+	}
+
 	@Override
 	public Long delete(Class<T> entityClass, Long id) {
 		T entity = findById(entityClass, id);
@@ -38,5 +42,5 @@ public abstract class BaseEntityDao<T extends BaseEntity> implements IDao<T> {
 			return 0L;
 		}
 	}
-
+	
 }
