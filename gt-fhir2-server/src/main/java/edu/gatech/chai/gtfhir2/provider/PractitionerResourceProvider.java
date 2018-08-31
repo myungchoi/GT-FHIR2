@@ -2,10 +2,7 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.IdType;
@@ -13,13 +10,13 @@ import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -71,6 +68,22 @@ public class PractitionerResourceProvider implements IResourceProvider {
 		return "Practitioner";
 	}
 	
+	public OmopPractitioner getMyMapper() {
+		return myMapper;
+	}
+	
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
+	}
+
+
 	/**
 	 * The "@Create" annotation indicates that this method implements
 	 * "create=type", which adds a new instance of a resource to the server.
@@ -88,6 +101,13 @@ public class PractitionerResourceProvider implements IResourceProvider {
 		}
 		
 		return new MethodOutcome(new IdDt(id));
+	}
+	
+	@Delete()
+	public void deletePractitioner(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
 	}
 
 	/**
@@ -115,7 +135,6 @@ public class PractitionerResourceProvider implements IResourceProvider {
 			@OptionalParam(name = Practitioner.SP_GENDER) StringParam theGender,
 			@IncludeParam(allow = {}) final Set<Include> theIncludes,
 			@IncludeParam(reverse = true) final Set<Include> theReverseIncludes) {
-		final InstantType searchTime = InstantType.withCurrentTime();
 
 		/*
 		 * Create parameter map, which will be used later to construct
@@ -125,83 +144,33 @@ public class PractitionerResourceProvider implements IResourceProvider {
 		 * should return null, which will be skipped when predicate is
 		 * constructed.
 		 */
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>>();
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
 
 		if (thePractitionerId != null) {
-			mapParameter(paramMap, Practitioner.SP_RES_ID, thePractitionerId);
+			paramList.addAll(myMapper.mapParameter(Practitioner.SP_RES_ID, thePractitionerId, false));
 		}
 
 		if (theActive != null) {
-			mapParameter(paramMap, Practitioner.SP_ACTIVE, theActive);
+			paramList.addAll(myMapper.mapParameter(Practitioner.SP_ACTIVE, theActive, false));
 		}
 
 		if (theFamilyName != null) {
-			mapParameter(paramMap, Practitioner.SP_FAMILY, theFamilyName);
+			paramList.addAll(myMapper.mapParameter(Practitioner.SP_FAMILY, theFamilyName, false));
 		}
 
 		if (theGivenName != null) {
-			mapParameter(paramMap, Practitioner.SP_GIVEN, theGivenName);
+			paramList.addAll(myMapper.mapParameter(Practitioner.SP_GIVEN, theGivenName, false));
 		}
 
 		if (theGender != null) {
-			mapParameter(paramMap, Practitioner.SP_GENDER, theGender);
+			paramList.addAll(myMapper.mapParameter(Practitioner.SP_GENDER, theGender, false));
 		}
 
-		// Now finalize the parameter map.
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize;
-		if (paramMap.size() == 0) {
-			totalSize = myMapper.getSize();
-		} else {
-			totalSize = myMapper.getSize(finalParamMap);
-		}
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		return myBundleProvider;
 
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				List<String> includes = new ArrayList<String>();
-
-				if (finalParamMap.size() == 0) {
-					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-				} else {
-					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-				}
-
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-
-		};
-
-	}
-
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
 	}
 
 	/**
@@ -282,4 +251,29 @@ public class PractitionerResourceProvider implements IResourceProvider {
 		}
 	}
 
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+		Set<Include> theIncludes;
+		Set<Include> theReverseIncludes;
+
+		public MyBundleProvider(List<ParameterWrapper> paramList, Set<Include> theIncludes, Set<Include>theReverseIncludes) {
+			super(paramList);
+			setPreferredPageSize (preferredPageSize);
+			this.theIncludes = theIncludes;
+			this.theReverseIncludes = theReverseIncludes;
+		}
+
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
+			List<String> includes = new ArrayList<String>();
+
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
+
+			return retv;
+		}
+	}
 }

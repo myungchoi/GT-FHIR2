@@ -66,6 +66,11 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		vDao.add(entity);
 		return entity;
 	}
+	
+	@Transactional
+	public Long removeById(Long id) {
+		return vDao.delete(entityClass, id);
+	}
 
 	@Transactional
 	public T update(T entity) {
@@ -96,14 +101,14 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 
 	@Transactional(readOnly = true)
-	public Long getSize(Map<String, List<ParameterWrapper>> paramMap) {
+	public Long getSize(List<ParameterWrapper> paramList) {
 		// Construct predicate from this map.
 		EntityManager em = vDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
 		CriteriaQuery<Long> query = builder.createQuery(Long.class);
 		Root<T> root = query.from(entityClass);
 
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramList, root);		
 		if (predicates == null || predicates.isEmpty()) return 0L;
 
 		query.select(builder.count(root));
@@ -138,7 +143,7 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 
 	@Transactional(readOnly = true)
-	public List<T> searchWithParams(int fromIndex, int toIndex, Map<String, List<ParameterWrapper>> paramMap) {
+	public List<T> searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> paramList) {
 		int length = toIndex - fromIndex;
 		EntityManager em = vDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
@@ -147,7 +152,7 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		
 		List<T> retvals = new ArrayList<T>();
 		
-		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramMap, root);		
+		List<Predicate> predicates = ParameterWrapper.constructPredicate(builder, paramList, root);		
 		if (predicates == null || predicates.isEmpty()) return retvals; // Nothing. return empty list
 	
 		query.select(root);

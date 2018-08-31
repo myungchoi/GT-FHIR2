@@ -36,7 +36,17 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 	}
 
 	@Override
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
+		ParameterWrapper paramWrapper = new ParameterWrapper();
+		
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
+		return null;
+	}
+
+	@Override
+	public DeviceExposure constructOmop(Long omopId, Device fhirResource) {
 		// TODO Auto-generated method stub
 		return null;
 	}

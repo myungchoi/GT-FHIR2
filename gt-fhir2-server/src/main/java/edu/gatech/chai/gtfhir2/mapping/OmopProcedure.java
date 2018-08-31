@@ -76,143 +76,13 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 	@Override
 	public Long toDbase(Procedure fhirResource, IdType fhirId) throws FHIRException {
 		Long omopId = null;
-		ProcedureOccurrence procedureOccurrence = null;
-		if (fhirId == null) {
-			// Create
-			procedureOccurrence = new ProcedureOccurrence();
-		} else {
+		if (fhirId != null) {
 			// Update
 			omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), ProcedureResourceProvider.getType());
-			procedureOccurrence = getMyOmopService().findById(omopId);
-			
-			if (procedureOccurrence == null) {
-				return null;
-			}
 		}
+		
+		ProcedureOccurrence procedureOccurrence = constructOmop(omopId, fhirResource);
 
-		// Procedure type concept mapping.
-//		CodeableConcept categoryCodeableConcept = fhirResource.getCategory();
-//		Concept procedureTypeConcept = null;
-//		if (!categoryCodeableConcept.isEmpty()) {
-//			List<Coding> codings = categoryCodeableConcept.getCoding();
-//			for (Coding coding: codings) {
-//				procedureTypeConcept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, coding);
-//				if (procedureTypeConcept != null) break;
-//			}
-//		}		
-//		
-//		if (procedureTypeConcept != null) {
-//			procedureOccurrence.setProcedureTypeConcept(procedureTypeConcept);
-//		}
-		// Procedure type concept is not mappable. But, this is required.
-		// Hardcode to 44786630L (Primary Procedure)
-		procedureOccurrence.setProcedureTypeConcept(new Concept(OMOP_PROCEDURE_TYPE_DEFAULT));
-		
-		// Procedure concept mapping
-		CodeableConcept codeCodeableConcept = fhirResource.getCode();
-		Concept procedureConcept = null;
-		if (!codeCodeableConcept.isEmpty()) {
-			List<Coding> codings = codeCodeableConcept.getCoding();
-			for (Coding coding: codings) {
-				procedureConcept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, coding);
-				if (procedureConcept != null) break;
-			}
-		}
-		
-		if (procedureConcept != null) {
-			procedureOccurrence.setProcedureConcept(procedureConcept);
-		}
-		
-		// Person mapping
-		Reference patientReference = fhirResource.getSubject();
-		if (patientReference.getReferenceElement().getResourceType().equals(PatientResourceProvider.getType())) {
-			Long patientFhirId = patientReference.getReferenceElement().getIdPartAsLong();
-			Long omopFPersonId = IdMapping.getOMOPfromFHIR(patientFhirId, PatientResourceProvider.getType());
-			if (omopFPersonId == null) {
-				throw new FHIRException("Unable to get OMOP person ID from FHIR patient ID");
-			} 
-			
-			FPerson fPerson = fPersonService.findById(omopFPersonId);
-			if (fPerson != null) {
-				procedureOccurrence.setFPerson(fPerson);
-			} else {
-				throw new FHIRException("Unable to find the person from OMOP database");
-			}
-		} else {
-			throw new FHIRException("Subject must be Patient");
-		}
-
-		// Visit Occurrence mapping
-		Reference encounterReference = fhirResource.getContext();
-		if (encounterReference.getReferenceElement().getResourceType().equals(EncounterResourceProvider.getType())) {
-			Long encounterFhirId = encounterReference.getReferenceElement().getIdPartAsLong();
-			Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(encounterFhirId, EncounterResourceProvider.getType());
-			if (omopVisitOccurrenceId == null) {
-				throw new FHIRException("Unable to get OMOP Visit Occurrence ID from FHIR encounter ID");
-			}
-			
-			VisitOccurrence visitOccurrence = visitOccurrenceService.findById(omopVisitOccurrenceId);
-			if (visitOccurrence != null) {
-				procedureOccurrence.setVisitOccurrence(visitOccurrence);
-			} else {
-				throw new FHIRException("Unable to find the visit occurrence from OMOP database");
-			}
-		} else {
-			throw new FHIRException("Context must be Encounter");
-		}
-
-		// Provider mapping
-		List<ProcedurePerformerComponent> performers = fhirResource.getPerformer();
-		for (ProcedurePerformerComponent performer: performers) {
-			if (performer.getActor().getReferenceElement().getResourceType().equals(PractitionerResourceProvider.getType())) {
-				Long performerFhirId = performer.getActor().getReferenceElement().getIdPartAsLong();
-				Long omopProviderId = IdMapping.getOMOPfromFHIR(performerFhirId, PractitionerResourceProvider.getType());
-				if (omopProviderId == null) continue;
-				Provider provider = providerService.findById(omopProviderId);
-				if (provider == null || provider.getId() == 0L) continue;
-				
-				// specialty mapping
-				CodeableConcept roleCodeableConcept = performer.getRole();
-				Concept specialtyConcept = null;
-				if (!roleCodeableConcept.isEmpty()) {
-					List<Coding> codings = roleCodeableConcept.getCoding();
-					for (Coding coding: codings) {
-						if (!coding.isEmpty()) {
-							specialtyConcept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, coding);
-							if (specialtyConcept != null) {
-								if (provider.getSpecialtyConcept() == null || provider.getSpecialtyConcept().getId() == 0L) {
-									// We have specialty information but provider table does not have this.
-									// We can populate.
-									provider.setSpecialtyConcept(specialtyConcept);
-									providerService.update(provider);
-									break;
-								}
-							}
-						}
-					}
-				}
-				
-				procedureOccurrence.setProvider(provider);
-				break;
-			}
-		}
-		
-		// Procedure Date mapping. Use start date for Period.
-		Type performedType = fhirResource.getPerformed();
-		if (!performedType.isEmpty()) {
-			Date performedDate = null;
-			if (performedType instanceof DateTimeType) {
-				// PerformedDateTime
-				performedDate = performedType.castToDateTime(performedType).getValue();
-			} else {
-				// PerformedPeriod
-				performedDate = performedType.castToPeriod(performedType).getStart();
-			}
-			
-			if (performedDate != null)
-				procedureOccurrence.setProcedureDate(performedDate);
-		}
-		
 		Long OmopRecordId = null;
 		if (omopId == null) {
 			OmopRecordId = getMyOmopService().create(procedureOccurrence).getId();
@@ -347,9 +217,12 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 	}
 
 	@Override
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case Procedure.SP_RES_ID:
 			String procedureId = ((TokenParam) value).getValue();
@@ -471,6 +344,167 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 		}
 		
 		return mapList;
+	}
+
+	@Override
+	public ProcedureOccurrence constructOmop(Long omopId, Procedure fhirResource) {
+		ProcedureOccurrence procedureOccurrence = null;
+		if (omopId == null) {
+			// Create
+			procedureOccurrence = new ProcedureOccurrence();
+		} else {
+			procedureOccurrence = getMyOmopService().findById(omopId);
+			
+			if (procedureOccurrence == null) {
+				try {
+					throw new FHIRException(fhirResource.getId() + " does not exist");
+				} catch (FHIRException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		// Procedure type concept mapping.
+//		CodeableConcept categoryCodeableConcept = fhirResource.getCategory();
+//		Concept procedureTypeConcept = null;
+//		if (!categoryCodeableConcept.isEmpty()) {
+//			List<Coding> codings = categoryCodeableConcept.getCoding();
+//			for (Coding coding: codings) {
+//				procedureTypeConcept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, coding);
+//				if (procedureTypeConcept != null) break;
+//			}
+//		}		
+//		
+//		if (procedureTypeConcept != null) {
+//			procedureOccurrence.setProcedureTypeConcept(procedureTypeConcept);
+//		}
+		// Procedure type concept is not mappable. But, this is required.
+		// Hardcode to 44786630L (Primary Procedure)
+		procedureOccurrence.setProcedureTypeConcept(new Concept(OMOP_PROCEDURE_TYPE_DEFAULT));
+		
+		// Procedure concept mapping
+		CodeableConcept codeCodeableConcept = fhirResource.getCode();
+		Concept procedureConcept = null;
+		if (!codeCodeableConcept.isEmpty()) {
+			List<Coding> codings = codeCodeableConcept.getCoding();
+			for (Coding coding: codings) {
+				try {
+					procedureConcept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, coding);
+					if (procedureConcept != null) break;
+				} catch (FHIRException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		if (procedureConcept != null) {
+			procedureOccurrence.setProcedureConcept(procedureConcept);
+		}
+		
+		// Person mapping
+		try {
+		Reference patientReference = fhirResource.getSubject();
+		if (patientReference.getReferenceElement().getResourceType().equals(PatientResourceProvider.getType())) {
+			Long patientFhirId = patientReference.getReferenceElement().getIdPartAsLong();
+			Long omopFPersonId = IdMapping.getOMOPfromFHIR(patientFhirId, PatientResourceProvider.getType());
+			if (omopFPersonId == null) {
+				throw new FHIRException("Unable to get OMOP person ID from FHIR patient ID");
+			} 
+			
+			FPerson fPerson = fPersonService.findById(omopFPersonId);
+			if (fPerson != null) {
+				procedureOccurrence.setFPerson(fPerson);
+			} else {
+				throw new FHIRException("Unable to find the person from OMOP database");
+			}
+		} else {
+			throw new FHIRException("Subject must be Patient");
+		}
+
+		// Visit Occurrence mapping
+		Reference encounterReference = fhirResource.getContext();
+		if (encounterReference.getReferenceElement().getResourceType().equals(EncounterResourceProvider.getType())) {
+			Long encounterFhirId = encounterReference.getReferenceElement().getIdPartAsLong();
+			Long omopVisitOccurrenceId = IdMapping.getOMOPfromFHIR(encounterFhirId, EncounterResourceProvider.getType());
+			if (omopVisitOccurrenceId == null) {
+				throw new FHIRException("Unable to get OMOP Visit Occurrence ID from FHIR encounter ID");
+			}
+			
+			VisitOccurrence visitOccurrence = visitOccurrenceService.findById(omopVisitOccurrenceId);
+			if (visitOccurrence != null) {
+				procedureOccurrence.setVisitOccurrence(visitOccurrence);
+			} else {
+				throw new FHIRException("Unable to find the visit occurrence from OMOP database");
+			}
+		} else {
+			throw new FHIRException("Context must be Encounter");
+		}
+
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
+
+		// Provider mapping
+		List<ProcedurePerformerComponent> performers = fhirResource.getPerformer();
+		for (ProcedurePerformerComponent performer: performers) {
+			if (performer.getActor().getReferenceElement().getResourceType().equals(PractitionerResourceProvider.getType())) {
+				Long performerFhirId = performer.getActor().getReferenceElement().getIdPartAsLong();
+				Long omopProviderId = IdMapping.getOMOPfromFHIR(performerFhirId, PractitionerResourceProvider.getType());
+				if (omopProviderId == null) continue;
+				Provider provider = providerService.findById(omopProviderId);
+				if (provider == null || provider.getId() == 0L) continue;
+				
+				// specialty mapping
+				CodeableConcept roleCodeableConcept = performer.getRole();
+				Concept specialtyConcept = null;
+				if (!roleCodeableConcept.isEmpty()) {
+					List<Coding> codings = roleCodeableConcept.getCoding();
+					for (Coding coding: codings) {
+						if (!coding.isEmpty()) {
+							try {
+								specialtyConcept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, coding);
+							} catch (FHIRException e) {
+								e.printStackTrace();
+							}
+							if (specialtyConcept != null) {
+								if (provider.getSpecialtyConcept() == null || provider.getSpecialtyConcept().getId() == 0L) {
+									// We have specialty information but provider table does not have this.
+									// We can populate.
+									provider.setSpecialtyConcept(specialtyConcept);
+									providerService.update(provider);
+									break;
+								}
+							}
+						}
+					}
+				}
+				
+				procedureOccurrence.setProvider(provider);
+				break;
+			}
+		}
+		
+		// Procedure Date mapping. Use start date for Period.
+		try {
+		Type performedType = fhirResource.getPerformed();
+		if (!performedType.isEmpty()) {
+			Date performedDate = null;
+			if (performedType instanceof DateTimeType) {
+				// PerformedDateTime
+				performedDate = performedType.castToDateTime(performedType).getValue();
+			} else {
+				// PerformedPeriod
+				performedDate = performedType.castToPeriod(performedType).getStart();
+			}
+			
+			if (performedDate != null)
+				procedureOccurrence.setProcedureDate(performedDate);
+		}
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
+		
+		return procedureOccurrence;
 	}
 
 }

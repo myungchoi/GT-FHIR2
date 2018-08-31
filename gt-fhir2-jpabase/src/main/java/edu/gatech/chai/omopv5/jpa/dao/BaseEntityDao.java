@@ -28,10 +28,19 @@ public abstract class BaseEntityDao<T extends BaseEntity> implements IDao<T> {
 		em.merge(baseEntity);
 	}
 
-	@Override
-	public void delete(Class<T> entityClass, Long id) {
-		T entity = findById(entityClass, id);
-		em.remove(entity);
+	public void rollback() {
+		em.getTransaction().rollback();
 	}
 
+	@Override
+	public Long delete(Class<T> entityClass, Long id) {
+		T entity = findById(entityClass, id);
+		if (entity != null) {
+			em.remove(entity);
+			return id;
+		} else {
+			return 0L;
+		}
+	}
+	
 }

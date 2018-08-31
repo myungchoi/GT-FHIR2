@@ -2,6 +2,7 @@ package edu.gatech.chai.gtfhir2.mapping;
 
 import org.hl7.fhir.dstu3.model.codesystems.AdministrativeGender;
 import org.hl7.fhir.dstu3.model.codesystems.OrganizationType;
+import org.hl7.fhir.dstu3.model.codesystems.V3ActCode;
 import org.hl7.fhir.dstu3.model.codesystems.ObservationCategory;
 import org.hl7.fhir.exceptions.FHIRException;
 
@@ -41,7 +42,13 @@ public enum OmopConceptMapping {
 	SURVEY(ObservationCategory.SURVEY.toCode(), 45905771L),
 	EXAM(ObservationCategory.EXAM.toCode(), 44803645L),
 	THERAPY(ObservationCategory.THERAPY.toCode(), 44807025L),
-	OBS_NULL(ObservationCategory.NULL.toCode(), 0L);
+	OBS_NULL(ObservationCategory.NULL.toCode(), 0L),
+	/*
+	 * Encounter Class Mapping
+	 */
+	INPATIENT(V3ActCode.IMP.toCode(), 9201L),
+	OUTPATIENT(V3ActCode.AMB.toCode(), 9202L),
+	EMERGENCY(V3ActCode.EMER.toCode(), 9203L);
 	
 	public static Long omopForAdministrativeGenderCode(String administrativeGenderCode) throws FHIRException {
 		if (administrativeGenderCode == null || administrativeGenderCode.isEmpty()) {
@@ -137,6 +144,24 @@ public enum OmopConceptMapping {
 		} else {
 			return 0L;
 		}
+	}
+	
+	public static Long omopForEncounterClassCode(String encounterClassCode) throws FHIRException {
+		if (encounterClassCode == null || encounterClassCode.isEmpty()) {
+			throw new FHIRException("Unknow Observation Category code: '"+encounterClassCode+"'");
+		}
+
+		if ("IMP".equals(encounterClassCode)) {
+			return 9201L;
+		}
+		if ("AMB".equals(encounterClassCode)) {
+			return 9202L;
+		}
+		if ("EMER".equals(encounterClassCode)) {
+			return 9203L;
+		}
+		
+		return 0L;
 	}
 	
 	String fhirCode;

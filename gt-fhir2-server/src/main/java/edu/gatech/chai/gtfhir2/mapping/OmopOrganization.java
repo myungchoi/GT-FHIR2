@@ -103,83 +103,31 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 		// If fhirId is null, then it's CREATE.
 		// If fhirId is not null, then it's UPDATE.
 
-		CareSite careSite;
-		Long omopId;
-		String careSiteSourceValue = null;
-		MyOrganization myOrganization = (MyOrganization) organization;
-		Location location = null;
-		
+		Long omopId = null;
 		if (fhirId != null) {
 			omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), OrganizationResourceProvider.getType());
-			if (omopId == null) {
-				// This is a problem. We should have the valid omopID that matches to
-				// FHIR ID. return null.
-				return null;
-			} else {
-				careSite = getMyOmopService().findById(omopId);
-			}
-			
-			location = careSite.getLocation();
 		} else {
 			// See if we have this already. If so, we throw error.
 			// Get the identifier to store the source information.
 			// If we found a matching one, replace this with the careSite.
-			List<Identifier> identifiers = myOrganization.getIdentifier();
+			List<Identifier> identifiers = organization.getIdentifier();
 			CareSite existingCareSite = null;
+			String careSiteSourceValue = null;
 			for (Identifier identifier: identifiers) {
 				if (identifier.getValue().isEmpty() == false) {
 					careSiteSourceValue = identifier.getValue();
 					
 					existingCareSite = getMyOmopService().searchByColumnString("careSiteSourceValue", careSiteSourceValue).get(0);
 					if (existingCareSite != null) {
+						omopId = existingCareSite.getId();
 						break;
 					}
 				}
 			}
-			if (existingCareSite != null) {
-				careSite = existingCareSite;
-			} else {
-				careSite = new CareSite();
-			}
 		}
+
+		CareSite careSite = constructOmop(omopId, organization);
 		
-		Location existingLocation = AddressUtil.searchAndUpdate(locationService, organization.getAddressFirstRep(), location);
-		if (existingLocation != null) {
-			careSite.setLocation(existingLocation);
-		}
-
-		// Organization.name to CareSiteName
-		careSite.setCareSiteName(myOrganization.getName());
-
-		// Organzation.type to Place of Service Concept
-		List<CodeableConcept> orgTypes = myOrganization.getType();
-		for (CodeableConcept orgType: orgTypes) {
-			List<Coding> typeCodings = orgType.getCoding();
-			if (typeCodings.size() > 0) {
-				String typeCode = typeCodings.get(0).getCode();
-				Long placeOfServiceId;
-				try {
-					placeOfServiceId = OmopConceptMapping.omopForOrganizationTypeCode(typeCode);
-					Concept placeOfServiceConcept = new Concept();
-					placeOfServiceConcept.setId(placeOfServiceId);
-					careSite.setPlaceOfServiceConcept(placeOfServiceConcept);
-				} catch (FHIRException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		// Address to Location ID
-		List<Address> addresses = myOrganization.getAddress();
-		for (Address address: addresses) {
-			// We can only store one address.
-			Location retLocation = AddressUtil.searchAndUpdate(locationService, address, careSite.getLocation());
-			if (retLocation != null) {
-				careSite.setLocation(retLocation);
-				break;
-			}
-		}
-
 		Long omopRecordId = null;
 		if (careSite.getId() != null) {
 			omopRecordId = getMyOmopService().update(careSite).getId();	
@@ -223,9 +171,12 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 		return myOrganization;
 	}
 
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case MyOrganization.SP_RES_ID:
 			String orgnizationId = ((TokenParam) value).getValue();
@@ -251,5 +202,73 @@ public class OmopOrganization extends BaseOmopResource<Organization, CareSite, C
 		}
 
 		return mapList;
+	}
+
+	@Override
+	public CareSite constructOmop(Long omopId, Organization fhirResource) {
+		String careSiteSourceValue = null;
+		MyOrganization myOrganization = (MyOrganization) fhirResource;
+		Location location = null;
+		
+		CareSite careSite = null;
+		if (omopId != null) {
+			careSite  = getMyOmopService().findById(omopId);
+			if (careSite == null) {
+				try {
+					throw new FHIRException(myOrganization.getId() + " does not exist");
+				} catch (FHIRException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			location = careSite.getLocation();
+		} else {
+			careSite = new CareSite();
+		}
+		
+		Identifier identifier = myOrganization.getIdentifierFirstRep();
+		if (!identifier.getValue().isEmpty()) {
+			careSiteSourceValue = identifier.getValue();
+			careSite.setCareSiteSourceValue(careSiteSourceValue);
+		}
+		
+		Location existingLocation = AddressUtil.searchAndUpdate(locationService, myOrganization.getAddressFirstRep(), location);
+		if (existingLocation != null) {
+			careSite.setLocation(existingLocation);
+		}
+
+		// Organization.name to CareSiteName
+		careSite.setCareSiteName(myOrganization.getName());
+
+		// Organzation.type to Place of Service Concept
+		List<CodeableConcept> orgTypes = myOrganization.getType();
+		for (CodeableConcept orgType: orgTypes) {
+			List<Coding> typeCodings = orgType.getCoding();
+			if (typeCodings.size() > 0) {
+				String typeCode = typeCodings.get(0).getCode();
+				Long placeOfServiceId;
+				try {
+					placeOfServiceId = OmopConceptMapping.omopForOrganizationTypeCode(typeCode);
+					Concept placeOfServiceConcept = new Concept();
+					placeOfServiceConcept.setId(placeOfServiceId);
+					careSite.setPlaceOfServiceConcept(placeOfServiceConcept);
+				} catch (FHIRException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		// Address to Location ID
+		List<Address> addresses = myOrganization.getAddress();
+		for (Address address: addresses) {
+			// We can only store one address.
+			Location retLocation = AddressUtil.searchAndUpdate(locationService, address, careSite.getLocation());
+			if (retLocation != null) {
+				careSite.setLocation(retLocation);
+				break;
+			}
+		}
+
+		return careSite;
 	}
 }

@@ -6,5 +6,6 @@ public interface IDao<T extends BaseEntity> {
 	public void add(T baseEntity);
 	public void merge(T baseEntity);
 	public T findById(Class<T> entityClass, Long id);
-	public void delete(Class<T> entityClass, Long id);
+	public Long delete(Class<T> entityClass, Long id);
+	public void rollback();
 }

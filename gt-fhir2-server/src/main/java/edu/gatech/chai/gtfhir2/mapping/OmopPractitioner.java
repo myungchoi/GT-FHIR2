@@ -119,77 +119,34 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 	}
 
 	@Override
-	public Long toDbase(Practitioner Fhir, IdType fhirId) throws FHIRException {
-		Provider omopProvider = new Provider();
-		String providerSourceValue = null;
-		CareSite omopCareSite = new CareSite();
-		//Set name
-		Iterator<HumanName> practitionerIterator = Fhir.getName().iterator();
-		if(practitionerIterator.hasNext()) {
-			HumanName next = practitionerIterator.next();
-			omopProvider.setProviderName(next.getText());
-		}
-		//Set address
-		List<Address> addresses = Fhir.getAddress();
-		Location retLocation = null;
-		if (addresses != null && addresses.size() > 0) {
-			Address address = addresses.get(0);
-			retLocation = AddressUtil.searchAndUpdate(locationService, address, null);
-			if (retLocation != null) {
-				omopCareSite.setLocation(retLocation);
-			}
-		}
-		//Set gender concept
-		omopProvider.setGenderConcept(new Concept());
-		String genderCode = Fhir.getGender().toCode();
-		omopProvider.getGenderConcept().setId(OmopConceptMapping.omopForAdministrativeGenderCode(genderCode));
+	public Long toDbase(Practitioner practitioner, IdType fhirId) throws FHIRException {
 		
-		//Create a new caresite if does not exist
-		// TODO: Should we?
-		if(!Fhir.getAddress().isEmpty()) {
-			CareSite careSite = searchAndUpdateCareSite(Fhir.getAddress().get(0));
-			if (careSite.getId() != null) {
-				careSiteService.update(careSite);
-			} else {
-				careSiteService.create(careSite);
-			}
+		// If we have match in identifier, then we can update or create since
+		// we have the patient. If we have no match, but fhirId is not null,
+		// then this is update with fhirId. We need to do another search.
+		Long omopId = null;
+		if (fhirId != null) {
+			// Search for this ID.
+			omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), PractitionerResourceProvider.getType());
 		}
-		
-		List<Identifier> identifiers = Fhir.getIdentifier();
+
+		List<Identifier> identifiers = practitioner.getIdentifier();
 		Provider allreadyIdentifiedProvider = null;
 		for (Identifier identifier : identifiers) {
 			if (identifier.getValue().isEmpty() == false) {
-				providerSourceValue = identifier.getValue();
+				String providerSourceValue = identifier.getValue();
 
 				// See if we have existing patient
 				// with this identifier.
 				allreadyIdentifiedProvider = getMyOmopService().searchByColumnString("providerSourceValue", providerSourceValue).get(0);
 				if (allreadyIdentifiedProvider != null) {
-					omopProvider.setId(allreadyIdentifiedProvider.getId());
+					omopId = allreadyIdentifiedProvider.getId();
 					break;
 				}
 			}
 		}
-		// If we have match in identifier, then we can update or create since
-		// we have the patient. If we have no match, but fhirId is not null,
-		// then this is update with fhirId. We need to do another search.
-		if (allreadyIdentifiedProvider == null && fhirId != null) {
-			// Search for this ID.
-			Long omopId = IdMapping.getOMOPfromFHIR(fhirId.getIdPartAsLong(), PractitionerResourceProvider.getType());
-			if (omopId == null) {
-				// This is update. We don't have this provider. Return null.
-				return null;
-			}
-			
-			// See if we have this in our database.
-			allreadyIdentifiedProvider = getMyOmopService().findById(omopId);
-			if (allreadyIdentifiedProvider == null) {
-				// We don't have this patient
-				return null;
-			} else {
-				omopProvider.setId(allreadyIdentifiedProvider.getId());
-			}
-		}
+		
+		Provider omopProvider = constructOmop(omopId, practitioner);
 		
 		Long omopRecordId = null;
 		if (omopProvider.getId() != null) {
@@ -268,9 +225,12 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 	 * @return returns ParameterWrapper class, which contains OMOP attribute name
 	 *         and value with operator.
 	 */
-	public List<ParameterWrapper> mapParameter(String parameter, Object value) {
+	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or) {
 		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
 		ParameterWrapper paramWrapper = new ParameterWrapper();
+        if (or) paramWrapper.setUpperRelationship("or");
+        else paramWrapper.setUpperRelationship("and");
+
 		switch (parameter) {
 		case Practitioner.SP_RES_ID:
 			String practitionerId = ((TokenParam) value).getValue();
@@ -329,5 +289,72 @@ public class OmopPractitioner extends BaseOmopResource<Practitioner, Provider, P
 			mapList = null;
 		}
 		return mapList;
+	}
+
+	@Override
+	public Provider constructOmop(Long omopId, Practitioner practitioner) {
+		Provider omopProvider = null;
+
+		if (omopId != null) {
+			omopProvider = getMyOmopService().findById(omopId);
+			if (omopProvider == null) {
+				try {
+					throw new FHIRException(practitioner.getId() + " does not exist");
+				} catch (FHIRException e) {
+					e.printStackTrace();
+				}
+			}
+		} else {
+			omopProvider = new Provider();
+		}
+		
+		String providerSourceValue = null;
+		CareSite omopCareSite = new CareSite();
+		
+		//Set name
+		Iterator<HumanName> practitionerIterator = practitioner.getName().iterator();
+		if(practitionerIterator.hasNext()) {
+			HumanName next = practitionerIterator.next();
+			omopProvider.setProviderName(next.getText());
+		}
+		
+		//Set address
+		List<Address> addresses = practitioner.getAddress();
+		Location retLocation = null;
+		if (addresses != null && addresses.size() > 0) {
+			Address address = addresses.get(0);
+			retLocation = AddressUtil.searchAndUpdate(locationService, address, null);
+			if (retLocation != null) {
+				omopCareSite.setLocation(retLocation);
+			}
+		}
+		
+		//Set gender concept
+		omopProvider.setGenderConcept(new Concept());
+		String genderCode = practitioner.getGender().toCode();
+		try {
+			omopProvider.getGenderConcept().setId(OmopConceptMapping.omopForAdministrativeGenderCode(genderCode));
+		} catch (FHIRException e) {
+			e.printStackTrace();
+		}
+		
+		//Create a new caresite if does not exist
+		// TODO: Should we?
+		if(!practitioner.getAddress().isEmpty()) {
+			CareSite careSite = searchAndUpdateCareSite(practitioner.getAddress().get(0));
+			if (careSite.getId() != null) {
+				careSiteService.update(careSite);
+			} else {
+				careSiteService.create(careSite);
+			}
+		}
+		
+		Identifier identifier = practitioner.getIdentifierFirstRep();
+		if (identifier.getValue().isEmpty() == false) {
+			providerSourceValue = identifier.getValue();
+			omopProvider.setProviderSourceValue(providerSourceValue);
+		}
+
+		return omopProvider;
 	}
 }

@@ -1,29 +1,26 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.MedicationRequest;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
@@ -31,11 +28,13 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopMedicationRequest;
+import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class MedicationRequestResourceProvider implements IResourceProvider {
@@ -65,6 +64,21 @@ public class MedicationRequestResourceProvider implements IResourceProvider {
 	
 	public static String getType() {
 		return "MedicationRequest";
+	}
+
+    public OmopMedicationRequest getMyMapper() {
+    	return myMapper;
+    }
+
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
 	}
 
 	@Override
@@ -98,6 +112,13 @@ public class MedicationRequestResourceProvider implements IResourceProvider {
 		return new MethodOutcome(new IdDt(id));
 	}
 
+	@Delete()
+	public void deleteMedicationRequest(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
+
 	@Update()
 	public MethodOutcome updateMedicationRequest(@IdParam IdType theId, @ResourceParam MedicationRequest theMedicationRequest) {
 		validateResource(theMedicationRequest);
@@ -125,103 +146,102 @@ public class MedicationRequestResourceProvider implements IResourceProvider {
 			
 		return retval;
 	}
+	
+	@Search()
+	public IBundleProvider findMedicationRequetsById(
+			@RequiredParam(name = MedicationRequest.SP_RES_ID) TokenParam theMedicationRequestId
+			) {
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+
+		if (theMedicationRequestId != null) {
+			paramList.addAll(myMapper.mapParameter (MedicationRequest.SP_RES_ID, theMedicationRequestId, false));
+		}
+				
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+
+		return myBundleProvider;
+	}
 
 	@Search()
 	public IBundleProvider findMedicationRequestsByParams(
-			@OptionalParam(name = MedicationRequest.SP_RES_ID) TokenParam theMedicationRequestId,
-			@OptionalParam(name = MedicationRequest.SP_CODE) TokenParam theCode,
+			@OptionalParam(name = MedicationRequest.SP_CODE) TokenOrListParam theOrCodes,
 			@OptionalParam(name = MedicationRequest.SP_CONTEXT) ReferenceParam theContext,
 			@OptionalParam(name = MedicationRequest.SP_AUTHOREDON) DateParam theDate,
 			@OptionalParam(name = MedicationRequest.SP_PATIENT) ReferenceParam thePatient,
 			@OptionalParam(name = MedicationRequest.SP_SUBJECT) ReferenceParam theSubject
 			) {
-		final InstantType searchTime = InstantType.withCurrentTime();
-
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 		
-		if (theMedicationRequestId != null) {
-			mapParameter (paramMap, MedicationRequest.SP_RES_ID, theMedicationRequestId);
-		}
-		
-		if (theCode != null) {
-			mapParameter (paramMap, MedicationRequest.SP_CODE, theCode);
+		if (theOrCodes != null) {
+			List<TokenParam> codes = theOrCodes.getValuesAsQueryTokens();
+			boolean orValue = true;
+			if (codes.size() <= 1)
+				orValue = false;
+			for (TokenParam code : codes) {
+				paramList.addAll(myMapper.mapParameter(MedicationRequest.SP_CODE, code, orValue));
+			}
 		}
 
 		if (theContext != null) {
-			mapParameter (paramMap, MedicationRequest.SP_CONTEXT, theContext);
+			paramList.addAll(myMapper.mapParameter (MedicationRequest.SP_CONTEXT, theContext, false));
 		}
 
 		if (theDate != null) {
-			mapParameter (paramMap, MedicationRequest.SP_AUTHOREDON, theDate);
+			paramList.addAll(myMapper.mapParameter (MedicationRequest.SP_AUTHOREDON, theDate, false));
 		}
 
-		if (thePatient != null || theSubject != null) {
-			// We only support Patient for subject so we handle it here.
-			if (thePatient != null)
-				mapParameter (paramMap, MedicationRequest.SP_PATIENT, thePatient);
-			else
-				mapParameter (paramMap, MedicationRequest.SP_SUBJECT, theSubject);
+
+		if (theSubject != null) {
+			if (theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
+				thePatient = theSubject;
+			} else {
+				ThrowFHIRExceptions.unprocessableEntityException("We only support Patient resource for subject");
+			}
+		}
+		if (thePatient != null) {
+			paramList.addAll(myMapper.mapParameter(MedicationRequest.SP_PATIENT, thePatient, false));
 		}
 
-		// Now finalize the parameter map.
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize;
-		if (paramMap.size() == 0) {
-			totalSize = myMapper.getSize();
-		} else {
-			totalSize = myMapper.getSize(finalParamMap);
-		}
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-
-				// _Include
-				List<String> includes = new ArrayList<String>();
-
-				if (finalParamMap.size() == 0) {
-					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-				} else {
-					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-				}
-
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-			
-		};
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		
+		return myBundleProvider;
 	}
 	
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
-	}
+//	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value, boolean or) {
+//		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value, or);
+//		if (paramList != null) {
+//			paramMap.put(FHIRparam, paramList);
+//		}
+//	}
 
 	private void validateResource(MedicationRequest theMedication) {
 		// TODO: implement validation method
+	}
+	
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+		public MyBundleProvider(List<ParameterWrapper> paramList) {
+			super(paramList);
+			setPreferredPageSize (preferredPageSize);
+		}
+
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
+
+			// _Include
+			List<String> includes = new ArrayList<String>();
+
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
+
+			return retv;
+		}		
 	}
 }

@@ -1,46 +1,41 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 //import org.hl7.fhir.dstu3.model.ContactPoint.ContactPointUse;
 import edu.gatech.chai.gtfhir2.mapping.OmopCondition;
+import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
+
 import org.hl7.fhir.dstu3.model.Condition;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
-import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
-import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 //import ca.uhn.fhir.model.dstu2.composite.ContactPointDt;
 //import ca.uhn.fhir.model.dstu2.valueset.ContactPointUseEnum;
 //import ca.uhn.fhir.model.primitive.CodeDt;
 //import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.IdParam;
-import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 
-import edu.gatech.chai.gtfhir2.model.MyOrganization;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 /**
@@ -52,270 +47,233 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
  * works.
  */
 public class ConditionResourceProvider implements IResourceProvider {
-    // private CareSiteService careSiteService;
-    private WebApplicationContext myAppCtx;
-    private String myDbType;
-    private OmopCondition myMapper;
-    private int preferredPageSize = 30;
+	// private CareSiteService careSiteService;
+	private WebApplicationContext myAppCtx;
+	private String myDbType;
+	private OmopCondition myMapper;
+	private int preferredPageSize = 30;
 
-    public ConditionResourceProvider() {
-        myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
-        myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
-        if (myDbType.equalsIgnoreCase("omopv5") == true) {
-            myMapper = new OmopCondition(myAppCtx);
-        } else {
-            myMapper = new OmopCondition(myAppCtx);
-        }
+	public ConditionResourceProvider() {
+		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
+		myDbType = myAppCtx.getServletContext().getInitParameter("backendDbType");
+		if (myDbType.equalsIgnoreCase("omopv5") == true) {
+			myMapper = new OmopCondition(myAppCtx);
+		} else {
+			myMapper = new OmopCondition(myAppCtx);
+		}
 
-        String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
-        if (pageSizeStr != null && pageSizeStr.isEmpty() == false) {
-            int pageSize = Integer.parseInt(pageSizeStr);
-            if (pageSize > 0) {
-                preferredPageSize = pageSize;
-            }
-        }
-    }
+		String pageSizeStr = myAppCtx.getServletContext().getInitParameter("preferredPageSize");
+		if (pageSizeStr != null && pageSizeStr.isEmpty() == false) {
+			int pageSize = Integer.parseInt(pageSizeStr);
+			if (pageSize > 0) {
+				preferredPageSize = pageSize;
+			}
+		}
+	}
 
-    public static String getType() {
-        return "Condition";
-    }
+	public static String getType() {
+		return "Condition";
+	}
 
-    /**
-     * The "@Create" annotation indicates that this method implements
-     * "create=type", which adds a new instance of a resource to the server.
-     */
-    @Create()
-    public MethodOutcome createCondition(@ResourceParam Condition condition) {
+	public OmopCondition getMyMapper() {
+		return myMapper;
+	}
 
-        Long id=null;
-        try {
-            id = myMapper.toDbase(condition, null);
-        } catch (FHIRException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return new MethodOutcome(new IdDt(id));
-    }
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
+	}
+	
+	/**
+	 * The "@Create" annotation indicates that this method implements
+	 * "create=type", which adds a new instance of a resource to the server.
+	 */
+	@Create()
+	public MethodOutcome createCondition(@ResourceParam Condition condition) {
 
-    /**
-     * The getResourceType method comes from IResourceProvider, and must be
-     * overridden to indicate what type of resource this provider supplies.
-     */
-    @Override
-    public Class<Condition> getResourceType() {
-        return Condition.class;
-    }
+		Long id = null;
+		try {
+			id = myMapper.toDbase(condition, null);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return new MethodOutcome(new IdDt(id));
+	}
 
-    /**
-     * The "@Read" annotation indicates that this method supports the read
-     * operation. It takes one argument, the Resource type being returned.
-     *
-     * @param theId
-     *            The read operation takes one parameter, which must be of type
-     *            IdDt and must be annotated with the "@Read.IdParam"
-     *            annotation.
-     * @return Returns a resource matching this identifier, or null if none
-     *         exists.
-     */
-    @Read()
-    public Condition getResourceById(@IdParam IdType theId) {
-        Condition retVal = (Condition) myMapper.toFHIR(theId);
-        if (retVal == null) {
-            throw new ResourceNotFoundException(theId);
-        }
+	/**
+	 * The getResourceType method comes from IResourceProvider, and must be
+	 * overridden to indicate what type of resource this provider supplies.
+	 */
+	@Override
+	public Class<Condition> getResourceType() {
+		return Condition.class;
+	}
 
-        return retVal;
-    }
+	@Delete()
+	public void deleteCondition(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
 
-    @Search()
-    public IBundleProvider findConditionByParams(
-            @OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId
-    ) {
-        final InstantType searchTime = InstantType.withCurrentTime();
-        Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+	/**
+	 * The "@Read" annotation indicates that this method supports the read
+	 * operation. It takes one argument, the Resource type being returned.
+	 *
+	 * @param theId
+	 *            The read operation takes one parameter, which must be of type
+	 *            IdDt and must be annotated with the "@Read.IdParam"
+	 *            annotation.
+	 * @return Returns a resource matching this identifier, or null if none
+	 *         exists.
+	 */
+	@Read()
+	public Condition getResourceById(@IdParam IdType theId) {
+		Condition retVal = (Condition) myMapper.toFHIR(theId);
+		if (retVal == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
-        if (thePatientId != null) {
-            mapParameter (paramMap, MyOrganization.SP_RES_ID, thePatientId);
-        }
+		return retVal;
+	}
 
-        // Now finalize the parameter map.
-        final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-        final Long totalSize;
-        if (paramMap.size() == 0) {
-            totalSize = myMapper.getSize();
-        } else {
-            totalSize = myMapper.getSize(finalParamMap);
-        }
+	@Search()
+	public IBundleProvider findConditionById(
+			@RequiredParam(name = Condition.SP_RES_ID) TokenParam theConditionId
+			) {
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
 
-        return new IBundleProvider() {
+		if (theConditionId != null) {
+			paramList.addAll(myMapper.mapParameter(Condition.SP_RES_ID, theConditionId, false));
+		}
+		
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
 
-            @Override
-            public IPrimitiveType<Date> getPublished() {
-                return searchTime;
-            }
+		return myBundleProvider;
+	}
 
-            @Override
-            public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-                List<IBaseResource> retv = new ArrayList<IBaseResource>();
+	@Search()
+	public IBundleProvider findConditionByParams(
+			@OptionalParam(name = Condition.SP_CODE) TokenOrListParam theOrCodes,
+			@OptionalParam(name = Condition.SP_SUBJECT) ReferenceParam theSubjectId,
+			@OptionalParam(name = Condition.SP_PATIENT) ReferenceParam thePatientId) {
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
 
-                // _Include
-                List<String> includes = new ArrayList<String>();
+		if (theOrCodes != null) {
+			List<TokenParam> codes = theOrCodes.getValuesAsQueryTokens();
+			boolean orValue = true;
+			if (codes.size() <= 1)
+				orValue = false;
+			for (TokenParam code : codes) {
+				paramList.addAll(myMapper.mapParameter(Condition.SP_CODE, code, orValue));
+			}
+		}
 
-                if (finalParamMap.size() == 0) {
-                    myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-                } else {
-                    myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-                }
+		if (theSubjectId != null) {
+			if (theSubjectId.getResourceType().equals(PatientResourceProvider.getType())) {
+				thePatientId = theSubjectId;
+			} else {
+				ThrowFHIRExceptions.unprocessableEntityException("We only support Patient resource for subject");
+			}
+		}
+		if (thePatientId != null) {
+			paramList.addAll(myMapper.mapParameter(Condition.SP_PATIENT, thePatientId, false));
+		}
 
-                return retv;
-            }
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
 
-            @Override
-            public String getUuid() {
-                // TODO Auto-generated method stub
-                return null;
-            }
+		return myBundleProvider;
+	}
 
-            @Override
-            public Integer preferredPageSize() {
-                return preferredPageSize;
-            }
+	/**
+	 * This is the "read" operation. The "@Read" annotation indicates that this
+	 * method supports the read and/or vread operation.
+	 * <p>
+	 * Read operations take a single parameter annotated with the
+	 * {@link IdParam} paramater, and should return a single resource instance.
+	 * </p>
+	 *
+	 * @param theId
+	 *            The read operation takes one parameter, which must be of type
+	 *            IdDt and must be annotated with the "@Read.IdParam"
+	 *            annotation.
+	 * @return Returns a resource matching this identifier, or null if none
+	 *         exists.
+	 */
+	@Read()
+	public Condition readCondition(@IdParam IdType theId) {
+		Condition retval = (Condition) myMapper.toFHIR(theId);
+		if (retval == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
-            @Override
-            public Integer size() {
-                return totalSize.intValue();
-            }};
-    }
+		return retval;
+	}
 
+	/**
+	 * The "@Update" annotation indicates that this method supports replacing an
+	 * existing resource (by ID) with a new instance of that resource.
+	 *
+	 * @param theId
+	 *            This is the ID of the patient to update
+	 * @param theCondition
+	 *            This is the actual resource to save
+	 * @return This method returns a "MethodOutcome"
+	 */
+	@Update()
+	public MethodOutcome updateCondition(@IdParam IdType theId, @ResourceParam Condition theCondition) {
+		validateResource(theCondition);
 
-//    @Search()
-//    public IBundleProvider findConditionByParams(
-//            @OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
-//            @OptionalParam(name = MyOrganization.SP_NAME) StringParam theName,
-//
-//            @IncludeParam(allow={"Organization:partof"})
-//            final Set<Include> theIncludes
-//    ) {
-//        final InstantType searchTime = InstantType.withCurrentTime();
-//        Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
-//
-//        if (thePatientId != null) {
-//            mapParameter (paramMap, MyOrganization.SP_RES_ID, thePatientId);
-//        }
-//        if (theName != null) {
-//            mapParameter (paramMap, MyOrganization.SP_NAME, theName);
-//        }
-//
-//        // Now finalize the parameter map.
-//        final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-//        final Long totalSize;
-//        if (paramMap.size() == 0) {
-//            totalSize = myMapper.getSize();
-//        } else {
-//            totalSize = myMapper.getSize(finalParamMap);
-//        }
-//
-//        return new IBundleProvider() {
-//
-//            @Override
-//            public IPrimitiveType<Date> getPublished() {
-//                return searchTime;
-//            }
-//
-//            @Override
-//            public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-//                List<IBaseResource> retv = new ArrayList<IBaseResource>();
-//
-//                // _Include
-//                List<String> includes = new ArrayList<String>();
-//                if (theIncludes.contains(new Include("Organization:partof"))) {
-//                    includes.add("Organization:partof");
-//                }
-//
-//                if (finalParamMap.size() == 0) {
-//                    myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-//                } else {
-//                    myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-//                }
-//
-//                return retv;
-//            }
-//
-//            @Override
-//            public String getUuid() {
-//                // TODO Auto-generated method stub
-//                return null;
-//            }
-//
-//            @Override
-//            public Integer preferredPageSize() {
-//                return preferredPageSize;
-//            }
-//
-//            @Override
-//            public Integer size() {
-//                return totalSize.intValue();
-//            }};
-//    }
+		Long fhirId = null;
+		try {
+			fhirId = myMapper.toDbase(theCondition, theId);
+		} catch (FHIRException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (fhirId == null) {
+			throw new ResourceNotFoundException(theId);
+		}
 
-    private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-        List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-        if (paramList != null) {
-            paramMap.put(FHIRparam, paramList);
-        }
-    }
+		return new MethodOutcome();
+	}
 
-    /**
-     * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
-     * <p>
-     * Read operations take a single parameter annotated with the {@link IdParam} paramater, and should return a single resource instance.
-     * </p>
-     *
-     * @param theId
-     *            The read operation takes one parameter, which must be of type IdDt and must be annotated with the "@Read.IdParam" annotation.
-     * @return Returns a resource matching this identifier, or null if none exists.
-     */
-    @Read()
-    public Condition readCondition(@IdParam IdType theId) {
-        Condition retval = (Condition) myMapper.toFHIR(theId);
-        if (retval == null) {
-            throw new ResourceNotFoundException(theId);
-        }
+	// TODO: Add more validation code here.
+	private void validateResource(Condition theCondition) {
+	}
 
-        return retval;
-    }
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+		public MyBundleProvider(List<ParameterWrapper> paramList) {
+			super(paramList);
+			setPreferredPageSize (preferredPageSize);
+		}
 
-    /**
-     * The "@Update" annotation indicates that this method supports replacing an existing
-     * resource (by ID) with a new instance of that resource.
-     *
-     * @param theId
-     *            This is the ID of the patient to update
-     * @param theCondition
-     *            This is the actual resource to save
-     * @return This method returns a "MethodOutcome"
-     */
-    @Update()
-    public MethodOutcome updateCondition(@IdParam IdType theId, @ResourceParam Condition theCondition) {
-        validateResource(theCondition);
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
 
-        Long fhirId=null;
-        try {
-            fhirId = myMapper.toDbase(theCondition, theId);
-        } catch (FHIRException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        if (fhirId == null) {
-            throw new ResourceNotFoundException(theId);
-        }
+			// _Include
+			List<String> includes = new ArrayList<String>();
 
-        return new MethodOutcome();
-    }
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
 
-    // TODO: Add more validation code here.
-    private void validateResource(Condition theCondition) {
-    }
+			return retv;
+		}
 
-
+	}
 }

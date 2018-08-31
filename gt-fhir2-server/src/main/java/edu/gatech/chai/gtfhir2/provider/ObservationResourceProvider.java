@@ -1,22 +1,17 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -24,16 +19,19 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -70,6 +68,22 @@ public class ObservationResourceProvider implements IResourceProvider {
 		return "Observation";
 	}
 
+	public OmopObservation getMyMapper() {
+		return myMapper;
+	}
+	
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
+	}
+
+
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
@@ -96,12 +110,16 @@ public class ObservationResourceProvider implements IResourceProvider {
 		return new MethodOutcome(new IdDt(id));
 	}
 
+	@Delete()
+	public void deleteObservation(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
+
 	@Search()
-	public IBundleProvider findObservationsByParams(
-			@OptionalParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
-			@OptionalParam(name=Observation.SP_CODE) TokenParam theCode,
-			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
-			@OptionalParam(name = Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
+	public IBundleProvider findObservationsById(
+			@RequiredParam(name=Observation.SP_RES_ID) TokenParam theObservationId,
 
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
@@ -112,24 +130,58 @@ public class ObservationResourceProvider implements IResourceProvider {
 			@IncludeParam(reverse=true)
             final Set<Include> theReverseIncludes
 			) {
-		final InstantType searchTime = InstantType.withCurrentTime();
-		
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
 		if (theObservationId != null) {
-			mapParameter (paramMap, Observation.SP_RES_ID, theObservationId);
+			paramList.addAll(myMapper.mapParameter (Observation.SP_RES_ID, theObservationId, false));
 		}
-		if (theCode != null) {
-			mapParameter (paramMap, Observation.SP_CODE, theCode);
+
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		return myBundleProvider;
+	}
+	
+	@Search()
+	public IBundleProvider findObservationsByParams(
+			@OptionalParam(name=Observation.SP_CODE) TokenOrListParam theOrCodes,
+			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+			@OptionalParam(name=Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
+
+			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
+					"Observation:device", "Observation:encounter", "Observation:patient", 
+					"Observation:performer", "Observation:related-target", 
+					"Observation:specimen", "Observation:subject"})
+			final Set<Include> theIncludes,
+			
+			@IncludeParam(reverse=true)
+            final Set<Include> theReverseIncludes
+			) {		
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+
+		if (theOrCodes != null) {
+			List<TokenParam> codes = theOrCodes.getValuesAsQueryTokens();
+			boolean orValue = true;
+			if (codes.size() <= 1)
+				orValue = false;
+			for (TokenParam code : codes) {
+				paramList.addAll(myMapper.mapParameter(Observation.SP_CODE, code, orValue));
+			}
 		}
 		
 		// With OMOP, we only support subject to be patient.
+		// If the subject has only ID part, we assume that is patient.
 		if (theSubject != null) {
 			if (theSubject.getResourceType() != null && 
 					theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
 				thePatient = theSubject;
 			} else {
-				errorProcessing("subject search allows Only Patient Resource.");
+				// If resource is null, we assume Patient.
+				if (theSubject.getResourceType() == null) {
+					thePatient = theSubject;
+				} else {
+					errorProcessing("subject search allows Only Patient Resource, but provided "+theSubject.getResourceType());
+				}
 			}
 		}
 		
@@ -138,99 +190,19 @@ public class ObservationResourceProvider implements IResourceProvider {
 			if (patientChain != null) {
 				if (Patient.SP_NAME.equals(patientChain)) {
 					String thePatientName = thePatient.getValue();
-					mapParameter (paramMap, "Patient:"+Patient.SP_NAME, thePatientName);
+					paramList.addAll(myMapper.mapParameter ("Patient:"+Patient.SP_NAME, thePatientName, false));
 				} else if ("".equals(patientChain)) {
-					mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getValue());
+					paramList.addAll(myMapper.mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getValue(), false));
 				}
 			} else {
-				mapParameter (paramMap, "Patient:"+Patient.SP_RES_ID, thePatient.getIdPart());
+				paramList.addAll(myMapper.mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getIdPart(), false));
 			}
 		}
 		
-		// Now finalize the parameter map.
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize;
-		if (paramMap.size() == 0) {
-			totalSize = myMapper.getSize();
-		} else {
-			totalSize = myMapper.getSize(finalParamMap);
-		}
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				
-				// _Include
-				List<String> includes = new ArrayList<String>();
-				
-				if (theIncludes.contains(new Include("Observation:based-on"))) {
-					includes.add("Observation:based-on");
-				}
-				
-				if (theIncludes.contains(new Include("Observation:context"))) {
-					includes.add("Observation:context");
-				}
-
-				if (theIncludes.contains(new Include("Observation:device"))) {
-					includes.add("Observation:device");
-				}
-				
-				if (theIncludes.contains(new Include("Observation:encounter"))) {
-					includes.add("Observation:encounter");
-				}
-
-				if (theIncludes.contains(new Include("Observation:patient"))) {
-					includes.add("Observation:patient");
-				}
-
-				if (theIncludes.contains(new Include("Observation:performer"))) {
-					includes.add("Observation:performer");
-				}
-
-				if (theIncludes.contains(new Include("Observation:related-target"))) {
-					includes.add("Observation:related-target");
-				}
-
-				if (theIncludes.contains(new Include("Observation:specimen"))) {
-					includes.add("Observation:specimen");
-				}
-
-				if (theIncludes.contains(new Include("Observation:subject"))) {
-					includes.add("Observation:subject");
-				}
-
-				if (finalParamMap.size() == 0) {
-					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-				} else {
-					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-				}
-
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-		};
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		return myBundleProvider;
 	}
 	
 	/**
@@ -280,13 +252,6 @@ public class ObservationResourceProvider implements IResourceProvider {
 
 		return new MethodOutcome();
 	}
-
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
-	}
 	
 	private void errorProcessing(String msg) {
 		OperationOutcome outcome = new OperationOutcome();
@@ -312,4 +277,67 @@ public class ObservationResourceProvider implements IResourceProvider {
 		return Observation.class;
 	}
 
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+		Set<Include> theIncludes;
+		Set<Include> theReverseIncludes;
+
+		public MyBundleProvider(List<ParameterWrapper> paramList, Set<Include> theIncludes, Set<Include>theReverseIncludes) {
+			super(paramList);
+			setPreferredPageSize (preferredPageSize);
+			this.theIncludes = theIncludes;
+			this.theReverseIncludes = theReverseIncludes;
+		}
+
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
+			
+			// _Include
+			List<String> includes = new ArrayList<String>();
+			
+			if (theIncludes.contains(new Include("Observation:based-on"))) {
+				includes.add("Observation:based-on");
+			}
+			
+			if (theIncludes.contains(new Include("Observation:context"))) {
+				includes.add("Observation:context");
+			}
+
+			if (theIncludes.contains(new Include("Observation:device"))) {
+				includes.add("Observation:device");
+			}
+			
+			if (theIncludes.contains(new Include("Observation:encounter"))) {
+				includes.add("Observation:encounter");
+			}
+
+			if (theIncludes.contains(new Include("Observation:patient"))) {
+				includes.add("Observation:patient");
+			}
+
+			if (theIncludes.contains(new Include("Observation:performer"))) {
+				includes.add("Observation:performer");
+			}
+
+			if (theIncludes.contains(new Include("Observation:related-target"))) {
+				includes.add("Observation:related-target");
+			}
+
+			if (theIncludes.contains(new Include("Observation:specimen"))) {
+				includes.add("Observation:specimen");
+			}
+
+			if (theIncludes.contains(new Include("Observation:subject"))) {
+				includes.add("Observation:subject");
+			}
+
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
+
+			return retv;
+		}
+	}
 }

@@ -2,9 +2,7 @@ package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.Encounter;
@@ -19,6 +17,7 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -63,6 +62,21 @@ public class EncounterResourceProvider implements IResourceProvider {
 		return "Encounter";
 	}
 
+    public OmopEncounter getMyMapper() {
+    	return myMapper;
+    }
+
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
+	}
+
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
@@ -81,6 +95,13 @@ public class EncounterResourceProvider implements IResourceProvider {
 		return new MethodOutcome(new IdDt(id));
 	}
 
+	@Delete()
+	public void deleteEncounter(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
+
 	@Search()
 	public IBundleProvider findEncounterByParams(
 			@OptionalParam(name=Encounter.SP_RES_ID) TokenParam theEncounterId,
@@ -93,111 +114,18 @@ public class EncounterResourceProvider implements IResourceProvider {
 			
 			@IncludeParam(reverse=true)
             final Set<Include> theReverseIncludes
-			) {
-		final InstantType searchTime = InstantType.withCurrentTime();
-		
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+			) {		
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
 		if (theEncounterId != null) {
-			mapParameter (paramMap, Encounter.SP_RES_ID, theEncounterId);
+			paramList.addAll(myMapper.mapParameter (Encounter.SP_RES_ID, theEncounterId, false));
 		}
 
-		// Now finalize the parameter map.
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize;
-		if (paramMap.size() == 0) {
-			totalSize = myMapper.getSize();
-		} else {
-			totalSize = myMapper.getSize(finalParamMap);
-		}
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-				
-				// _Include
-				List<String> includes = new ArrayList<String>();
-				
-				if (theIncludes.contains(new Include("Encounter:appointment"))) {
-					includes.add("Encounter:appointment");
-				}
-				
-				if (theIncludes.contains(new Include("Encounter:diagnosis"))) {
-					includes.add("Encounter:diagnosis");
-				}
-
-				if (theIncludes.contains(new Include("Encounter:incomingreferral"))) {
-					includes.add("Encounter:incomingreferral");
-				}
-				
-				if (theIncludes.contains(new Include("Encounter:location"))) {
-					includes.add("Encounter:location");
-				}
-
-				if (theIncludes.contains(new Include("Encounter:part-of"))) {
-					includes.add("Encounter:part-of");
-				}
-
-				if (theIncludes.contains(new Include("Encounter:participant"))) {
-					includes.add("Encounter:participant");
-				}
-
-				if (theIncludes.contains(new Include("Encounter:service-provider"))) {
-					includes.add("Encounter:service-provider");
-				}
-
-				if (theIncludes.contains(new Include("Encounter:patient"))) {
-					includes.add("Encounter:patient");
-				}
-
-				if (theIncludes.contains(new Include("Encounter:practitioner"))) {
-					includes.add("Encounter:practitioner");
-				}
-				
-				if (theIncludes.contains(new Include("Encounter:subject"))) {
-					includes.add("Encounter:subject");
-				}
-				
-				if (finalParamMap.size() == 0) {
-					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-				} else {
-					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-				}
-
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
 		
-		};
-	}
-	
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
+		return myBundleProvider;
 	}
 	
 	/**
@@ -258,4 +186,71 @@ public class EncounterResourceProvider implements IResourceProvider {
 		return Encounter.class;
 	}
 
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+		Set<Include> theIncludes;
+		Set<Include> theReverseIncludes;
+
+		public MyBundleProvider(List<ParameterWrapper> paramList, Set<Include> theIncludes, Set<Include>theReverseIncludes) {
+			super(paramList);
+			setPreferredPageSize (preferredPageSize);
+			this.theIncludes = theIncludes;
+			this.theReverseIncludes = theReverseIncludes;
+		}
+
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
+			
+			// _Include
+			List<String> includes = new ArrayList<String>();
+			
+			if (theIncludes.contains(new Include("Encounter:appointment"))) {
+				includes.add("Encounter:appointment");
+			}
+			
+			if (theIncludes.contains(new Include("Encounter:diagnosis"))) {
+				includes.add("Encounter:diagnosis");
+			}
+
+			if (theIncludes.contains(new Include("Encounter:incomingreferral"))) {
+				includes.add("Encounter:incomingreferral");
+			}
+			
+			if (theIncludes.contains(new Include("Encounter:location"))) {
+				includes.add("Encounter:location");
+			}
+
+			if (theIncludes.contains(new Include("Encounter:part-of"))) {
+				includes.add("Encounter:part-of");
+			}
+
+			if (theIncludes.contains(new Include("Encounter:participant"))) {
+				includes.add("Encounter:participant");
+			}
+
+			if (theIncludes.contains(new Include("Encounter:service-provider"))) {
+				includes.add("Encounter:service-provider");
+			}
+
+			if (theIncludes.contains(new Include("Encounter:patient"))) {
+				includes.add("Encounter:patient");
+			}
+
+			if (theIncludes.contains(new Include("Encounter:practitioner"))) {
+				includes.add("Encounter:practitioner");
+			}
+			
+			if (theIncludes.contains(new Include("Encounter:subject"))) {
+				includes.add("Encounter:subject");
+			}
+			
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
+
+			return retv;
+		}		
+	}
 }

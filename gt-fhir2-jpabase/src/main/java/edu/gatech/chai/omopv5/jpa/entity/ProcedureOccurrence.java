@@ -43,7 +43,8 @@ public class ProcedureOccurrence extends BaseEntity {
 	private Concept procedureConcept;
 
 	@Column(name = "procedure_date", nullable = false)
-	@Temporal(TemporalType.DATE)
+//	@Temporal(TemporalType.DATE)
+	@Temporal(TemporalType.TIMESTAMP)
 	private Date procedureDate;
 
 	@ManyToOne

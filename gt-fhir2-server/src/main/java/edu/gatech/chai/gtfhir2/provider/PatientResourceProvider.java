@@ -1,10 +1,7 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -18,12 +15,12 @@ import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -86,6 +83,21 @@ private int preferredPageSize = 30;
 		return "Patient";
 	}
 	
+	public OmopPatient getMyMapper() {
+		return myMapper;
+	}
+	
+	private Integer getTotalSize(List<ParameterWrapper> paramList) {
+		final Long totalSize;
+		if (paramList.size() == 0) {
+			totalSize = getMyMapper().getSize();
+		} else {
+			totalSize = getMyMapper().getSize(paramList);
+		}
+		
+		return totalSize.intValue();
+	}
+
 	/**
 	 * The "@Create" annotation indicates that this method implements "create=type", which adds a 
 	 * new instance of a resource to the server.
@@ -104,6 +116,13 @@ private int preferredPageSize = 30;
 		return new MethodOutcome(new IdDt(id));
 	}
 
+	@Delete()
+	public void deletePatient(@IdParam IdType theId) {
+		if (myMapper.removeByFhirId(theId) <= 0) {
+			throw new ResourceNotFoundException(theId);
+		}
+	}
+	
 	/**
 	 * The "@Search" annotation indicates that this method supports the search operation. You may have many different method annotated with this annotation, to support many different search criteria.
 	 * This example searches by family name.
@@ -116,6 +135,7 @@ private int preferredPageSize = 30;
 	@Search()
 	public IBundleProvider findPatientsByParams(
 			@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
+			@OptionalParam(name = Patient.SP_IDENTIFIER) TokenParam thePatientIdentifier,
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
 			@OptionalParam(name = Patient.SP_GIVEN) StringParam theGivenName,
@@ -137,7 +157,6 @@ private int preferredPageSize = 30;
 			@IncludeParam(allow={"Encounter:subject", "Observation:subject"}, reverse=true)
             final Set<Include> theReverseIncludes
 			) {
-		final InstantType searchTime = InstantType.withCurrentTime();
 		
 		/*
 		 * Create parameter map, which will be used later to construct
@@ -146,46 +165,49 @@ private int preferredPageSize = 30;
 		 * parameter(s). If the FHIR parameter is not mappable, the mapper should
 		 * return null, which will be skipped when predicate is constructed.
 		 */
-		Map<String, List<ParameterWrapper>> paramMap = new HashMap<String, List<ParameterWrapper>> ();
+		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 		
 		if (thePatientId != null) {
-			mapParameter (paramMap, Patient.SP_RES_ID, thePatientId);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_RES_ID, thePatientId, false));
+		}
+		if (thePatientIdentifier != null) {
+			paramList.addAll(myMapper.mapParameter (Patient.SP_IDENTIFIER, thePatientIdentifier, false));
 		}
 		if (theActive != null) {
-			mapParameter (paramMap, Patient.SP_ACTIVE, theActive);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_ACTIVE, theActive, false));
 		}
 		if (theEmail != null) {
-			mapParameter (paramMap, Patient.SP_EMAIL, theEmail);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_EMAIL, theEmail, false));
 		}
 		if (thePhone != null) {
-			mapParameter (paramMap, Patient.SP_PHONE, thePhone);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_PHONE, thePhone, false));
 		}
 		if (theTelecom != null) {
-			mapParameter (paramMap, Patient.SP_TELECOM, theTelecom);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_TELECOM, theTelecom, false));
 		}
 		if (theFamilyName != null) {
-			mapParameter (paramMap, Patient.SP_FAMILY, theFamilyName);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_FAMILY, theFamilyName, false));
 		}
 		if (theName != null) {
-			mapParameter (paramMap, Patient.SP_NAME, theName);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_NAME, theName, false));
 		}
 		if (theGivenName != null) {
-			mapParameter (paramMap, Patient.SP_GIVEN, theGivenName);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_GIVEN, theGivenName, false));
 		}
 		if (theBirthDate != null) {
-			mapParameter (paramMap, Patient.SP_BIRTHDATE, theBirthDate);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_BIRTHDATE, theBirthDate, false));
 		}
 		if (theAddress != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS, theAddress);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS, theAddress, false));
 		}
 		if (theAddressCity != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS_CITY, theAddressCity);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS_CITY, theAddressCity, false));
 		}
 		if (theAddressState != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS_STATE, theAddressState);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS_STATE, theAddressState, false));
 		}
 		if (theAddressZip != null) {
-			mapParameter (paramMap, Patient.SP_ADDRESS_POSTALCODE, theAddressZip);
+			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS_POSTALCODE, theAddressZip, false));
 		}
 		
 		// Chain Search.
@@ -197,126 +219,21 @@ private int preferredPageSize = 30;
 			if (orgChain != null) {
 				if (Organization.SP_NAME.equals(orgChain)) {
 					String theOrgName = theOrganization.getValue();
-					mapParameter (paramMap, "Organization:"+Organization.SP_NAME, theOrgName);
+					paramList.addAll(myMapper.mapParameter ("Organization:"+Organization.SP_NAME, theOrgName, false));
 				} else if ("".equals(orgChain)) {
-					mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getValue());
+					paramList.addAll(myMapper.mapParameter ("Organization:"+Organization.SP_RES_ID, theOrganization.getValue(), false));
 				}
 			} else {
-				mapParameter (paramMap, "Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart());
+				paramList.addAll(myMapper.mapParameter ("Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart(), false));
 			}
 		}
 		
-		// Now finalize the parameter map.
-		final Map<String, List<ParameterWrapper>> finalParamMap = paramMap;
-		final Long totalSize;
-		if (paramMap.size() == 0) {
-			totalSize = myMapper.getSize();
-		} else {
-			totalSize = myMapper.getSize(finalParamMap);
-		}
-
-		return new IBundleProvider() {
-
-			@Override
-			public IPrimitiveType<Date> getPublished() {
-				return searchTime;
-			}
-
-			@Override
-			public List<IBaseResource> getResources(int fromIndex, int toIndex) {
-				List<IBaseResource> retv = new ArrayList<IBaseResource>();
-
-				// _Include
-				List<String> includes = new ArrayList<String>();
-				if (theIncludes.contains(new Include("Patient:general-practitioner"))) {
-					includes.add("Patient:general-practitioner");
-				}
-				
-				if (theIncludes.contains(new Include("Patient:organization"))) {
-					includes.add("Patient:organization");
-				}
-				
-				if (theIncludes.contains(new Include("Patient:link"))) {
-					includes.add("Patient:link");
-				}
-
-				if (theReverseIncludes.contains(new Include("*"))) {
-					// This is to include all the reverse includes...
-					includes.add("Encounter:subject");
-					includes.add("Observation:subject");
-					includes.add("Device:patient");
-					includes.add("Condition:subject");
-					includes.add("Procedure:subject");
-					includes.add("MedicationRequest:subject");
-					includes.add("MedicationAdministration:subject");
-					includes.add("MedicationDispense:subject");
-					includes.add("MedicationStatement:subject");
-				} else {
-					if (theReverseIncludes.contains(new Include("Encounter:subject"))) {
-						includes.add("Encounter:subject");						
-					}
-					if (theReverseIncludes.contains(new Include("Observation:subject"))) {
-						includes.add("Observation:subject");
-					}
-					if (theReverseIncludes.contains(new Include("Device:patient"))) {
-						includes.add("Device:patient");
-					}
-					if (theReverseIncludes.contains(new Include("Condition:subject"))) {
-						includes.add("Condition:subject");
-					}
-					if (theReverseIncludes.contains(new Include("Procedure:subject"))) {
-						includes.add("Procedure:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationRequest:subject"))) {
-						includes.add("MedicationRequest:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationAdministration:subject"))) {
-						includes.add("MedicationAdministration:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationDispense:subject"))) {
-						includes.add("MedicationDispense:subject");
-					}
-					if (theReverseIncludes.contains(new Include("MedicationStatement:subject"))) {
-						includes.add("MedicationStatement:subject");
-					}
-				}
-				
-				if (finalParamMap.size() == 0) {
-					myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
-				} else {
-					myMapper.searchWithParams(fromIndex, toIndex, finalParamMap, retv, includes);
-				}
-				
-				return retv;
-			}
-
-			@Override
-			public String getUuid() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public Integer preferredPageSize() {
-				return preferredPageSize;
-			}
-
-			@Override
-			public Integer size() {
-				return totalSize.intValue();
-			}
-			
-		};
+		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
+		myBundleProvider.setTotalSize(getTotalSize(paramList));
+		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		return myBundleProvider; 
 		
 	}
-
-	private void mapParameter(Map<String, List<ParameterWrapper>> paramMap, String FHIRparam, Object value) {
-		List<ParameterWrapper> paramList = myMapper.mapParameter(FHIRparam, value);
-		if (paramList != null) {
-			paramMap.put(FHIRparam, paramList);
-		}
-	}
-
 	
 	/**
 	 * This is the "read" operation. The "@Read" annotation indicates that this method supports the read and/or vread operation.
@@ -382,6 +299,87 @@ private int preferredPageSize = 30;
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
 			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
 		}
+	}
+	
+	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
+		Set<Include> theIncludes;
+		Set<Include> theReverseIncludes;
+
+		public MyBundleProvider(List<ParameterWrapper> paramList, Set<Include> theIncludes, Set<Include>theReverseIncludes) {
+			super(paramList);
+			setPreferredPageSize (preferredPageSize);
+			this.theIncludes = theIncludes;
+			this.theReverseIncludes = theReverseIncludes;
+		}
+
+		@Override
+		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
+			List<IBaseResource> retv = new ArrayList<IBaseResource>();
+
+			// _Include
+			List<String> includes = new ArrayList<String>();
+			if (theIncludes.contains(new Include("Patient:general-practitioner"))) {
+				includes.add("Patient:general-practitioner");
+			}
+			
+			if (theIncludes.contains(new Include("Patient:organization"))) {
+				includes.add("Patient:organization");
+			}
+			
+			if (theIncludes.contains(new Include("Patient:link"))) {
+				includes.add("Patient:link");
+			}
+
+			if (theReverseIncludes.contains(new Include("*"))) {
+				// This is to include all the reverse includes...
+				includes.add("Encounter:subject");
+				includes.add("Observation:subject");
+				includes.add("Device:patient");
+				includes.add("Condition:subject");
+				includes.add("Procedure:subject");
+				includes.add("MedicationRequest:subject");
+				includes.add("MedicationAdministration:subject");
+				includes.add("MedicationDispense:subject");
+				includes.add("MedicationStatement:subject");
+			} else {
+				if (theReverseIncludes.contains(new Include("Encounter:subject"))) {
+					includes.add("Encounter:subject");						
+				}
+				if (theReverseIncludes.contains(new Include("Observation:subject"))) {
+					includes.add("Observation:subject");
+				}
+				if (theReverseIncludes.contains(new Include("Device:patient"))) {
+					includes.add("Device:patient");
+				}
+				if (theReverseIncludes.contains(new Include("Condition:subject"))) {
+					includes.add("Condition:subject");
+				}
+				if (theReverseIncludes.contains(new Include("Procedure:subject"))) {
+					includes.add("Procedure:subject");
+				}
+				if (theReverseIncludes.contains(new Include("MedicationRequest:subject"))) {
+					includes.add("MedicationRequest:subject");
+				}
+				if (theReverseIncludes.contains(new Include("MedicationAdministration:subject"))) {
+					includes.add("MedicationAdministration:subject");
+				}
+				if (theReverseIncludes.contains(new Include("MedicationDispense:subject"))) {
+					includes.add("MedicationDispense:subject");
+				}
+				if (theReverseIncludes.contains(new Include("MedicationStatement:subject"))) {
+					includes.add("MedicationStatement:subject");
+				}
+			}
+			
+			if (paramList.size() == 0) {
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+			} else {
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+			}
+			
+			return retv;
+		}
+
 	}
 
 }

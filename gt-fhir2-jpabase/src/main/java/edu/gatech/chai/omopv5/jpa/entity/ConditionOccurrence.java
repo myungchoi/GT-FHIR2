@@ -26,11 +26,11 @@ public class ConditionOccurrence extends BaseEntity{
 	@Access(AccessType.PROPERTY)
 	private Long id;
 	
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name="person_id", nullable= false)
 	private FPerson fPerson;
 
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name = "condition_concept_id", nullable = false)
 	private Concept conceptId;
 	
@@ -40,25 +40,25 @@ public class ConditionOccurrence extends BaseEntity{
 	@Column(name="condition_end_date")
 	private Date endDate;
 
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name = "condition_type_concept_id", nullable = false)
 	private Concept typeConceptId;
 
 	@Column(name="stop_reason")
 	private String stopReason;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "provider_id")
 	private Provider provider;
 
-	@ManyToOne(cascade = { CascadeType.MERGE })
+	@ManyToOne
 	@JoinColumn(name = "visit_occurrence_id")
 	private VisitOccurrence visitOccurrence;
 
 	@Column(name="condition_source_value")
 	private String conditionSourceValue;
 
-	@ManyToOne(cascade={CascadeType.MERGE})
+	@ManyToOne
 	@JoinColumn(name = "condition_source_concept_id")
 	private Concept sourceConceptId;
 
@@ -71,11 +71,11 @@ public class ConditionOccurrence extends BaseEntity{
 		this.id = id;
 	}
 
-	public FPerson getfPerson() {
+	public FPerson getFPerson() {
 		return fPerson;
 	}
 
-	public void setfPerson(FPerson fPerson) {
+	public void setFPerson(FPerson fPerson) {
 		this.fPerson = fPerson;
 	}
 
