@@ -95,5 +95,35 @@ public class CodeableConceptUtil {
 		codeableConcept.addCoding(conceptCoding);
 		return codeableConcept;
 	}
+	
+	/**
+	 * 
+	 * @param coding1
+	 * @param coding2
+	 * @return 
+	 *   1 if only code matches,
+	 *   0 if both system and code match,
+	 *   -1 if none matches.
+	 */
+	public static int compareCodings(Coding coding1, Coding coding2) {
+		boolean isSystemMatch = false;
+		boolean isCodeMatch = false;
+		
+		if (coding1.hasSystem() && coding1.hasSystem()) {
+			if (coding1.getSystem().equals(coding2.getSystem())) {
+				isSystemMatch = true;
+			}
+		}
+		
+		if (coding1.hasCode() && coding2.hasCode()) {
+			if (coding1.getCode().equals(coding2.getCode())) {
+				isCodeMatch = true;
+			}
+		}
+		
+		if (isSystemMatch && isCodeMatch) return 0;
+		if (isCodeMatch) return 1;
+		return -1;
+	}
 
 }

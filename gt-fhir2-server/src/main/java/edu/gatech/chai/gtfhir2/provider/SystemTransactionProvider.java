@@ -14,7 +14,9 @@ import org.hl7.fhir.dstu3.model.Bundle.BundleEntryRequestComponent;
 import org.hl7.fhir.dstu3.model.Bundle.BundleType;
 import org.hl7.fhir.dstu3.model.Bundle.HTTPVerb;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Composition;
 import org.hl7.fhir.dstu3.model.Enumerations.MessageEvent;
+import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.MessageHeader;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
@@ -95,20 +97,38 @@ public class SystemTransactionProvider {
 		}
 	}
 
-	// private String getServerBaseUrl(HttpServletRequest theRequest) {
-	// if (getTransactionServerUrlFromRequest) {
-	// StringBuffer requestUrl = theRequest.getRequestURL();
-	// myTransactionServerUrl = requestUrl.toString();
-	// }
-	//
-	// if (myTransactionServerUrl.endsWith("/")) {
-	// myTransactionServerUrl = myTransactionServerUrl.substring(0,
-	// myTransactionServerUrl.length() - 1);
-	// }
-	//
-	// return myTransactionServerUrl;
-	// }
+	@SuppressWarnings("unchecked")
+	private void addToList(Map<HTTPVerb, Object> transactionEntries, MyBundle theBundle, HTTPVerb verb) {
+		List<Resource> postList = (List<Resource>) transactionEntries.get(HTTPVerb.POST);
+		List<Resource> putList = (List<Resource>) transactionEntries.get(HTTPVerb.PUT);
+		List<String> deleteList = (List<String>) transactionEntries.get(HTTPVerb.DELETE);
+		List<ParameterWrapper> getList = (List<ParameterWrapper>) transactionEntries.get(HTTPVerb.GET);
 
+		List<BundleEntryComponent> entries = theBundle.getEntry();
+
+		BundleEntryComponent entry = null;
+
+		int sizeOfEntries = entries.size();
+		for (int i = 1; i < sizeOfEntries; i++) {
+			entry = entries.get(i);
+			if (verb != null || (entry.getRequest() != null && !entry.getRequest().isEmpty())) {
+				if (verb == HTTPVerb.POST || entry.getRequest().getMethod() == HTTPVerb.POST) {
+					postList.add(entry.getResource());
+				} else if (verb == HTTPVerb.PUT || entry.getRequest().getMethod() == HTTPVerb.PUT) {
+					// This is to update. Get URL
+					String urlString = entry.getRequest().getUrl();
+					IdType idType = new IdType(urlString);
+					// We must be able to get Id as Long as OMOP only handles Long Id.
+					entry.getResource().setId(idType);
+					putList.add(entry.getResource());
+				} else {
+					ThrowFHIRExceptions.unprocessableEntityException(
+							"We support POST and PUT for Messages");
+				}
+			} 
+		}
+	}
+	
 	/**
 	 */
 	@Transaction
@@ -127,14 +147,39 @@ public class SystemTransactionProvider {
 		transactionEntries.put(HTTPVerb.DELETE, deleteList);
 		transactionEntries.put(HTTPVerb.GET, getList);
 
+		Resource resource = null;
+		BundleEntryComponent entry = null;
+		
 		try {
 			switch (theBundle.getType()) {
 			case DOCUMENT:
+				entry = theBundle.getEntryFirstRep();
+				resource = entry.getResource();
+				if (resource.getResourceType() == ResourceType.Composition) {
+					Composition composition = (Composition) resource;
+					// Find out from composition if we can proceed.
+					// For now, we do not care what type of this document is.
+					// We just parse all the entries and do what we need to do.
+					
+					addToList(transactionEntries, theBundle, HTTPVerb.POST);
+					
+					List<BundleEntryComponent> responseTransaction = myMapper.executeRequests(transactionEntries);
+					if (responseTransaction != null && responseTransaction.size() > 0) {
+						retVal.setEntry(responseTransaction);
+						retVal.setType(BundleType.TRANSACTIONRESPONSE);
+					} else {
+						ThrowFHIRExceptions
+								.unprocessableEntityException("Faied process the bundle, " + theBundle.getType().toString());
+					}
+				} else {
+					// First entry must be Composition resource.
+					ThrowFHIRExceptions
+							.unprocessableEntityException("First entry in Bundle document type should be Composition");	
+				}
 			case TRANSACTION:
 				System.out.println("We are at the transaction");
-				// We send both Document and Transaction to OmopBundle mapping.
 				for (BundleEntryComponent nextEntry : theBundle.getEntry()) {
-					Resource resource = nextEntry.getResource();
+					resource = nextEntry.getResource();
 					BundleEntryRequestComponent request = nextEntry.getRequest();
 
 					// We require a transaction to have a request so that we can
@@ -168,32 +213,16 @@ public class SystemTransactionProvider {
 
 				break;
 			case MESSAGE:
-				BundleEntryComponent entry = theBundle.getEntryFirstRep();
-				Resource resource = entry.getResource();
+				entry = theBundle.getEntryFirstRep();
+				resource = entry.getResource();
 				if (resource.getResourceType() == ResourceType.MessageHeader) {
 					MessageHeader messageHeader = (MessageHeader) resource;
 					// We handle observation-type.
 					// TODO: Add other types later.
 					Coding event = messageHeader.getEvent();
 					if ("R01".equals(event.getCode())) {
-						List<BundleEntryComponent> entries = theBundle.getEntry();
-						int sizeOfEntries = entries.size();
-						for (int i = 1; i < sizeOfEntries; i++) {
-							entry = entries.get(i);
-							if (entry.getRequest() != null && !entry.getRequest().isEmpty()) {
-								if (entry.getRequest().getMethod() == HTTPVerb.POST) {
-									postList.add(entry.getResource());
-								} else if (entry.getRequest().getMethod() == HTTPVerb.PUT) {
-									// This is to update. Get URL
-									String putId = entry.getRequest().getUrlElement().getId();
-									entry.getResource().setId(putId);
-									putList.add(entry.getResource());
-								} else {
-									ThrowFHIRExceptions.unprocessableEntityException(
-											"We support POST and PUT for Messages");
-								}
-							}
-						}
+						// This is lab report. they are all to be added to the server.
+						addToList(transactionEntries, theBundle, HTTPVerb.POST);
 					} else {
 						ThrowFHIRExceptions.unprocessableEntityException(
 								"We currently support only HL7 v2 R01 Message");
@@ -209,7 +238,7 @@ public class SystemTransactionProvider {
 						+ theBundle.getType().toString() + ". We support DOCUMENT, TRANSACTION, and MESSAGE");
 			}
 
-			List<BundleEntryComponent> responseTransaction = myMapper.executeMessage(transactionEntries);
+			List<BundleEntryComponent> responseTransaction = myMapper.executeRequests(transactionEntries);
 			if (responseTransaction != null && responseTransaction.size() > 0) {
 				retVal.setEntry(responseTransaction);
 				retVal.setType(BundleType.TRANSACTIONRESPONSE);
