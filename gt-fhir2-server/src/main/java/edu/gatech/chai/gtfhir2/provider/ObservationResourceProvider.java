@@ -9,6 +9,7 @@ import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.OperationOutcome;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -17,6 +18,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
+import ca.uhn.fhir.model.primitive.DateTimeDt;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.Delete;
@@ -30,6 +32,8 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.DateParam;
+import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
@@ -145,6 +149,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 	@Search()
 	public IBundleProvider findObservationsByParams(
 			@OptionalParam(name=Observation.SP_CODE) TokenOrListParam theOrCodes,
+			@OptionalParam(name=Observation.SP_DATE) DateParam theDate,
 			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
 			@OptionalParam(name=Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
 
@@ -167,6 +172,10 @@ public class ObservationResourceProvider implements IResourceProvider {
 			for (TokenParam code : codes) {
 				paramList.addAll(myMapper.mapParameter(Observation.SP_CODE, code, orValue));
 			}
+		}
+		
+		if (theDate != null) {
+			paramList.addAll(myMapper.mapParameter(Observation.SP_DATE, theDate, false));
 		}
 		
 		// With OMOP, we only support subject to be patient.
@@ -263,13 +272,27 @@ public class ObservationResourceProvider implements IResourceProvider {
 
 	// TODO: Add more validation code here.
 	private void validateResource(Observation theObservation) {
+		OperationOutcome outcome = new OperationOutcome();
+		CodeableConcept detailCode = new CodeableConcept();
 		if (theObservation.getCode().isEmpty()) {
-			OperationOutcome outcome = new OperationOutcome();
-			CodeableConcept detailCode = new CodeableConcept();
 			detailCode.setText("No code is provided.");
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
 			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
-		}		
+		}
+		
+		Reference subjectReference = theObservation.getSubject();
+		if (subjectReference == null || subjectReference.isEmpty()) {
+			detailCode.setText("Subject cannot be empty for OmopOnFHIR");
+			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
+		}
+		
+		String subjectId = subjectReference.getId();
+		if (!subjectId.contentEquals("Patient")) {
+			detailCode.setText("Subject must be Patient resource for OmopOnFHIR");
+			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
+		}
 	}
 
 	@Override
