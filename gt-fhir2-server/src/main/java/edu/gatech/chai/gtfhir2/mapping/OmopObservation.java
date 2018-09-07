@@ -31,6 +31,10 @@ import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.model.dstu2.resource.Patient;
+import ca.uhn.fhir.model.primitive.DateTimeDt;
+import ca.uhn.fhir.rest.param.DateParam;
+import ca.uhn.fhir.rest.param.ParamPrefixEnum;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
@@ -84,6 +88,10 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		observationService = context.getBean(ObservationService.class);
 		visitOccurrenceService = context.getBean(VisitOccurrenceService.class);
 
+	}
+	
+	public Long getDiastolicConcept() {
+		return this.DIASTOLIC_CONCEPT_ID;
 	}
 
 	public static OmopObservation getInstance() {
@@ -1406,6 +1414,83 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		if (fhirId != null) {
 			fhirIdLong = fhirId.getIdPartAsLong();
 			omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, ObservationResourceProvider.getType());
+			if (omopId < 0) {
+				// This is observation table data in OMOP.
+				omopId = -omopId; // convert to positive number;
+			}
+		} else {
+			// check if we already have this entry by comparing 
+			// code, date, time and patient			
+			Long patientFhirId = fhirResource.getSubject().getReferenceElement().getIdPartAsLong();
+			
+			// get date and time
+			Date date = null;
+			if (fhirResource.getEffective() instanceof DateTimeType) {
+				date = ((DateTimeType) fhirResource.getEffective()).getValue();
+			} else if (fhirResource.getEffective() instanceof Period) {
+				date = ((Period) fhirResource.getEffective()).getStart();
+			}
+			
+			// get code
+			Concept concept = null;
+			List<Coding> codings = fhirResource.getCode().getCoding();
+			String fhirSystem = null;
+			String code = null;
+			String display = null;
+			for (Coding coding: codings) {
+				fhirSystem = coding.getSystem();
+				code = coding.getCode();
+				display = coding.getDisplay();
+				String omopSystem = null;
+				if (fhirSystem != null) {
+					omopSystem = OmopCodeableConceptMapping.omopVocabularyforFhirUri(fhirSystem);
+					if (omopSystem != null)
+						concept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, omopSystem, code);
+				}
+				if (concept != null) break;
+			}
+			
+			
+			if (patientFhirId!= null && date != null) {
+				List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
+				paramList.addAll(mapParameter("Patient:"+Patient.SP_RES_ID, String.valueOf(patientFhirId), false));
+				
+				DateParam dateParam = new DateParam();
+				dateParam.setPrefix(ParamPrefixEnum.EQUAL);
+				dateParam.setValue(date);
+				paramList.addAll(mapParameter(Observation.SP_DATE, dateParam, false));
+
+				if (concept == null) {
+					ParameterWrapper pw = new ParameterWrapper();
+					String sourceValueString = fhirSystem+" "+code+" "+display;
+					pw.setParameterType("String");
+					pw.setParameters(Arrays.asList("sourceValue"));
+					pw.setOperators(Arrays.asList("="));
+					pw.setValues(Arrays.asList(sourceValueString));
+					pw.setRelationship("and");
+					paramList.add(pw);
+				} else {
+					TokenParam tokenParam = new TokenParam();
+					tokenParam.setSystem(fhirSystem);
+					tokenParam.setValue(code);
+					paramList.addAll(mapParameter(Observation.SP_CODE, tokenParam, false));
+				}
+				
+				List<IBaseResource> resources = new ArrayList<IBaseResource>();
+				List<String> includes = new ArrayList<String>();
+
+				searchWithParams(0, 0, paramList, resources, includes);
+				if (resources.size() > 0) {
+					IBaseResource res = resources.get(0);
+					fhirIdLong = res.getIdElement().getIdPartAsLong();
+					omopId = IdMapping.getOMOPfromFHIR(fhirIdLong, ObservationResourceProvider.getType());
+					if (omopId < 0) {
+						// This is observation table data in OMOP.
+						omopId = -omopId; // convert to positive number;
+					}
+				}
+			}
+
 		}
 
 		validation(fhirResource, fhirId);
@@ -1466,10 +1551,10 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	// is selected. Since we are selecting this already, we need to skip
 	// diastolic.
 	final ParameterWrapper exceptionParam = new ParameterWrapper("Long", Arrays.asList("measurementConcept.id"),
-			Arrays.asList("!="), Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)), "or");
+			Arrays.asList("!="), Arrays.asList(String.valueOf(3012888L)), "or");
 
 	final ParameterWrapper exceptionParam4Search = new ParameterWrapper("Long", Arrays.asList("observationConcept.id"),
-			Arrays.asList("!="), Arrays.asList(String.valueOf(DIASTOLIC_CONCEPT_ID)), "or");
+			Arrays.asList("!="), Arrays.asList(String.valueOf(3012888L)), "or");
 
 	@Override
 	public Long getSize() {
@@ -1587,6 +1672,50 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			paramWrapper.setValues(Arrays.asList(organizationId));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
+			break;
+		case Observation.SP_DATE:
+			Date date = ((DateParam) value).getValue();
+			ParamPrefixEnum prefix = ((DateParam) value).getPrefix();
+			String inequality = "=";
+			if (prefix.equals(ParamPrefixEnum.EQUAL)) inequality = "=";
+			else if (prefix.equals(ParamPrefixEnum.LESSTHAN)) inequality = "<";
+			else if (prefix.equals(ParamPrefixEnum.LESSTHAN_OR_EQUALS)) inequality = "<=";
+			else if (prefix.equals(ParamPrefixEnum.GREATERTHAN)) inequality = ">";
+			else if (prefix.equals(ParamPrefixEnum.GREATERTHAN_OR_EQUALS)) inequality = ">=";
+			else if (prefix.equals(ParamPrefixEnum.NOT_EQUAL)) inequality = "!=";
+
+			// get Date.
+			SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
+			String time = timeFormat.format(date);
+
+			// get only date part.
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			Date dateWithoutTime = null;
+			try {
+				dateWithoutTime = sdf.parse(sdf.format(date));
+			} catch (ParseException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				break;
+			}
+
+			System.out.println("TIME VALUE:"+String.valueOf(dateWithoutTime.getTime()));
+			paramWrapper.setParameterType("Date");
+			paramWrapper.setParameters(Arrays.asList("date"));
+			paramWrapper.setOperators(Arrays.asList(inequality));
+			paramWrapper.setValues(Arrays.asList(String.valueOf(dateWithoutTime.getTime())));
+			paramWrapper.setRelationship("and");
+			mapList.add(paramWrapper);
+			
+			// Time
+			ParameterWrapper paramWrapper_time = new ParameterWrapper();
+			paramWrapper_time.setParameterType("String");
+			paramWrapper_time.setParameters(Arrays.asList("time"));
+			paramWrapper_time.setOperators(Arrays.asList(inequality));
+			paramWrapper_time.setValues(Arrays.asList(time));
+			paramWrapper_time.setRelationship("and");
+			mapList.add(paramWrapper_time);
+			
 			break;
 		case Observation.SP_CODE:
 			String system = ((TokenParam) value).getSystem();

@@ -127,11 +127,12 @@ public class OmopTransaction {
 		responseEntries.add(entryBundle);
 	}
 	
-	public List<BundleEntryComponent> executeMessage(Map<HTTPVerb, Object> entries) throws FHIRException {
+	public List<BundleEntryComponent> executeRequests(Map<HTTPVerb, Object> entries) throws FHIRException {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
 
 		List<Resource> postList = (List<Resource>) entries.get(HTTPVerb.POST);
 		List<Resource> putList = (List<Resource>) entries.get(HTTPVerb.PUT);
+		List<Resource> getList = (List<Resource>) entries.get(HTTPVerb.GET);
 		
 		Map<String, Long> patientMap = new HashMap<String, Long> ();
 		
@@ -170,33 +171,18 @@ public class OmopTransaction {
 				else
 					addResponseEntry(responseEntries, "201 Created", "Observation/"+fhirId);
 				
-//				Map<String, Object> obsEntityMap = OmopObservation.getInstance()
-//						.constructOmopMeasurementObservation(null, observation);
-//				if (obsEntityMap != null && !obsEntityMap.isEmpty()) {
-//					if (((String) obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
-//						List<Measurement> measurements = (List<Measurement>) obsEntityMap.get("entity");
-//						for (Measurement measurement : measurements) {
-//							Measurement retMeasurement = measurementService.create(measurement);
-//							addResponseEntry(responseEntries, "201 Created", "Observation/"+IdMapping.getFHIRfromOMOP(retMeasurement.getIdAsLong(), ObservationResourceProvider.getType()));
-//						}
-//					} else {
-//						edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap
-//								.get("entity");
-//						edu.gatech.chai.omopv5.jpa.entity.Observation retObservation = observationService.create(omopObservation);
-//						addResponseEntry(responseEntries, "201 Created", "Observation/-"+IdMapping.getFHIRfromOMOP(retObservation.getIdAsLong(), ObservationResourceProvider.getType()));
-//					}
-//				}
 			}
 		}
 
 		for (Resource resource : putList) {
 			if (resource.getResourceType() == ResourceType.Patient) {
-				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (Patient) resource);
-				FPerson retFPerson = fPersonService.update(fPerson);
-				Long fhirId = IdMapping.getFHIRfromOMOP(retFPerson.getIdAsLong(), PatientResourceProvider.getType());
+				// This is PUT. We must have fhirId that we want to update.
+				Patient patient = (Patient) resource;
+				IdType fhirIdType = patient.getIdElement();
+				Long fhirId = OmopPatient.getInstance().toDbase(patient, fhirIdType);
 				patientMap.put(resource.getId(), fhirId);
 
-				addResponseEntry(responseEntries, "201 Created", "Patient/"+IdMapping.getFHIRfromOMOP(retFPerson.getIdAsLong(), ObservationResourceProvider.getType()));
+				addResponseEntry(responseEntries, "201 Created", "Patient/"+fhirId);
 			} else if (resource.getResourceType() == ResourceType.Observation) {
 				Observation observation = (Observation) resource;
 				Reference subject = observation.getSubject();
@@ -204,28 +190,28 @@ public class OmopTransaction {
 				if (refIdType == null) continue;
 				observation.setSubject(new Reference(refIdType));
 				
-				Map<String, Object> obsEntityMap = OmopObservation.getInstance()
-						.constructOmopMeasurementObservation(null, observation);
-				if (obsEntityMap != null && !obsEntityMap.isEmpty()) {
-					if (((String) obsEntityMap.get("type")).equalsIgnoreCase("Measurement")) {
-						List<Measurement> measurements = (List<Measurement>) obsEntityMap.get("entity");
-						for (Measurement measurement : measurements) {
-							Measurement retMeasurement = measurementService.update(measurement);
-							addResponseEntry(responseEntries, "200 OK", "Observation/"+IdMapping.getFHIRfromOMOP(retMeasurement.getIdAsLong(), ObservationResourceProvider.getType()));
-						}
-					} else {
-						edu.gatech.chai.omopv5.jpa.entity.Observation omopObservation = (edu.gatech.chai.omopv5.jpa.entity.Observation) obsEntityMap
-								.get("entity");
-						edu.gatech.chai.omopv5.jpa.entity.Observation retObservation = observationService.update(omopObservation);
-						addResponseEntry(responseEntries, "200 OK", "Observation/"+IdMapping.getFHIRfromOMOP(retObservation.getIdAsLong(), ObservationResourceProvider.getType()));
-					}
-				}
+				IdType fhirIdType = observation.getIdElement();
+				Long fhirId = OmopObservation.getInstance().toDbase(observation, fhirIdType);
+
+				addResponseEntry(responseEntries, "201 Created", "Observation/"+fhirId);
 			}
 		}
 
+		// TODO: HTTPVerb.GET must be implemented here.
+		
 		return responseEntries;	
 	}
 	
+	/**
+	 * 
+	 * @param entries
+	 * @return
+	 * @throws FHIRException
+	 * 
+	 * Transaction type of Transaction operation is atomic. If one fails, all should be dropped.
+	 * Thus, we can't process one entry at a time. We should do this in one JPA transaction so that
+	 * if one failed, all can be rolled back.
+	 */
 	public List<BundleEntryComponent> executeTransaction(Map<HTTPVerb, Object> entries) throws FHIRException {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
 		Map<String, List<BaseEntity>> entityToCreate = new HashMap<String, List<BaseEntity>>();
