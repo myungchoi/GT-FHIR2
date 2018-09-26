@@ -65,7 +65,6 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 	@Override
 	public MyDeviceUseStatement constructResource(Long fhirId, DeviceExposure entity, List<String> includes) {
 		MyDeviceUseStatement deviceUseStatement = constructFHIR(fhirId, entity);
-		Long omopId = entity.getId();
 		
 		if (!includes.isEmpty()) {
 			if (includes.contains("DeviceUseStatement:device")) {
@@ -310,7 +309,6 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 					}
 				} catch (FHIRException e) {
 					e.printStackTrace();
-					
 				}
 			}
 			

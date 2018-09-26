@@ -22,7 +22,6 @@ import edu.gatech.chai.gtfhir2.provider.DeviceResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.DeviceExposure;
-import edu.gatech.chai.omopv5.jpa.service.ConceptService;
 import edu.gatech.chai.omopv5.jpa.service.DeviceExposureService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -32,7 +31,7 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 	private static final Logger logger = LoggerFactory.getLogger(OmopDevice.class);
 	private static OmopDevice omopDevice = new OmopDevice();
 	
-	private ConceptService conceptService;
+//	private ConceptService conceptService;
 
 	public OmopDevice(WebApplicationContext context) {
 		super(context, DeviceExposure.class, DeviceExposureService.class, DeviceResourceProvider.getType());
@@ -45,7 +44,7 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 	}
 	
 	private void initialize(WebApplicationContext context) {
-		conceptService = context.getBean(ConceptService.class);
+//		conceptService = context.getBean(ConceptService.class);
 	}
 
 	public static OmopDevice getInstance() {

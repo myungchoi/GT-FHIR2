@@ -12,7 +12,6 @@ import java.util.Map;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DateTimeType;
-import org.hl7.fhir.dstu3.model.DateType;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Observation;
@@ -31,10 +30,8 @@ import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import ca.uhn.fhir.model.dstu2.resource.Patient;
-import ca.uhn.fhir.model.primitive.DateTimeDt;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ParamPrefixEnum;
-import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.ObservationResourceProvider;
@@ -1323,8 +1320,8 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				String domain = conceptForCode.getDomain();
 				String systemName = conceptForCode.getVocabulary().getId();
 				try {
-					List<Identifier> identifiers = fhirResource.getIdentifier();
-					String identifier_value = null;
+//					List<Identifier> identifiers = fhirResource.getIdentifier();
+//					String identifier_value = null;
 
 					if ((domain.equalsIgnoreCase("measurement")
 							&& systemName.equalsIgnoreCase(OmopCodeableConceptMapping.omopVocabularyforFhirUri(system)))
