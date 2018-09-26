@@ -81,6 +81,45 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 		CodeableConcept typeCodeableConcept = new CodeableConcept();
 		typeCodeableConcept.addCoding(typeCoding);
 		
+		// if deviceSourceValue is not empty, then add it here. 
+		String deviceSourceValue = entity.getDeviceSourceValue();
+		if (deviceSourceValue != null) {
+			String[] sources = deviceSourceValue.split(":");
+			Coding extraCoding = new Coding();
+			if (sources.length != 2) {
+				// just put this in the text field
+				extraCoding.setDisplay(deviceSourceValue);
+			} else {
+				// First one is system name. See if this is FHIR URI
+				if (sources[0].startsWith("http://") || sources[0].startsWith("urn:oid")) {
+					extraCoding.setSystem(sources[0]);
+					extraCoding.setCode(sources[1]);
+				} else {
+					// See if we can map from our static list.
+					String fhirCodingSystem = "None";
+					try {
+						fhirCodingSystem = OmopCodeableConceptMapping.fhirUriforOmopVocabulary(sources[0]);
+					} catch (FHIRException e) {
+						e.printStackTrace();
+						fhirCodingSystem = "None";
+					}
+					if ("None".equals(fhirCodingSystem)) {
+						extraCoding.setSystem(sources[0]);
+						extraCoding.setCode(sources[1]);
+						extraCoding.setUserSelected(true);
+					} else {
+						extraCoding.setSystem(fhirCodingSystem);
+						extraCoding.setCode(sources[1]);
+					}
+				}
+			}
+			
+			if (!extraCoding.isEmpty()) {
+				typeCodeableConcept.addCoding(extraCoding);
+			}
+		}
+		
+		// set device type concept
 		device.setType(typeCodeableConcept);
 		
 		// set udi.deviceidentifier if udi is available.

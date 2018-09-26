@@ -19,6 +19,7 @@ public enum OmopCodeableConceptMapping {
 	ICD9PROC("http://hl7.org/fhir/sid/icd-9-proc", "ICD9Proc"),
 	ICD10("http://hl7.org/fhir/sid/icd-10", "ICD10"),
 	ICD10CM("http://hl7.org/fhir/sid/icd-10-cm", "ICD10CM"),
+	ISBT("urn:oid:2.16.840.1.113883.6.18", "ISBT"),
 	LOINC("http://loinc.org", "LOINC"),
 	NDC("http://hl7.org/fhir/sid/ndc", "NDC"),
 	NDFRT("http://hl7.org/fhir/ndfrt", "NDFRT"),
@@ -46,6 +47,8 @@ public enum OmopCodeableConceptMapping {
 			return ICD10.getOmopVocabulary();
 		if (ICD10CM.getFhirUri().equals(fhirUri))
 			return ICD10CM.getOmopVocabulary();
+		if (ISBT.getFhirUri().equals(fhirUri))
+			return ISBT.getOmopVocabulary();
 		if (LOINC.getFhirUri().equals(fhirUri))
 			return LOINC.getOmopVocabulary();
 		if (NDC.getFhirUri().equals(fhirUri))
@@ -84,6 +87,8 @@ public enum OmopCodeableConceptMapping {
 			return ICD10CM.getFhirUri();
 		if (LOINC.getOmopVocabulary().equals(omopVocabulary))
 			return LOINC.getFhirUri();
+		if (ISBT.getOmopVocabulary().equals(omopVocabulary))
+			return ISBT.getFhirUri();
 		if (NDC.getOmopVocabulary().equals(omopVocabulary))
 			return NDC.getFhirUri();
 		if (NDFRT.getOmopVocabulary().equals(omopVocabulary))
