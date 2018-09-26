@@ -98,7 +98,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 		
 		Long id = null;
 		try {
-			id = myMapper.toDbase(theObservation, null);
+			id = getMyMapper().toDbase(theObservation, null);
 		} catch (FHIRException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -116,7 +116,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 
 	@Delete()
 	public void deleteObservation(@IdParam IdType theId) {
-		if (myMapper.removeByFhirId(theId) <= 0) {
+		if (getMyMapper().removeByFhirId(theId) <= 0) {
 			throw new ResourceNotFoundException(theId);
 		}
 	}
@@ -137,7 +137,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
 		if (theObservationId != null) {
-			paramList.addAll(myMapper.mapParameter (Observation.SP_RES_ID, theObservationId, false));
+			paramList.addAll(getMyMapper().mapParameter (Observation.SP_RES_ID, theObservationId, false));
 		}
 
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
@@ -170,12 +170,12 @@ public class ObservationResourceProvider implements IResourceProvider {
 			if (codes.size() <= 1)
 				orValue = false;
 			for (TokenParam code : codes) {
-				paramList.addAll(myMapper.mapParameter(Observation.SP_CODE, code, orValue));
+				paramList.addAll(getMyMapper().mapParameter(Observation.SP_CODE, code, orValue));
 			}
 		}
 		
 		if (theDate != null) {
-			paramList.addAll(myMapper.mapParameter(Observation.SP_DATE, theDate, false));
+			paramList.addAll(getMyMapper().mapParameter(Observation.SP_DATE, theDate, false));
 		}
 		
 		// With OMOP, we only support subject to be patient.
@@ -199,12 +199,12 @@ public class ObservationResourceProvider implements IResourceProvider {
 			if (patientChain != null) {
 				if (Patient.SP_NAME.equals(patientChain)) {
 					String thePatientName = thePatient.getValue();
-					paramList.addAll(myMapper.mapParameter ("Patient:"+Patient.SP_NAME, thePatientName, false));
+					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_NAME, thePatientName, false));
 				} else if ("".equals(patientChain)) {
-					paramList.addAll(myMapper.mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getValue(), false));
+					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getValue(), false));
 				}
 			} else {
-				paramList.addAll(myMapper.mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getIdPart(), false));
+				paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getIdPart(), false));
 			}
 		}
 		
@@ -226,7 +226,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 	 */
 	@Read()
 	public Observation readObservation(@IdParam IdType theId) {
-		Observation retval = (Observation) myMapper.toFHIR(theId);
+		Observation retval = (Observation) getMyMapper().toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);
 		}
@@ -250,7 +250,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 		
 		Long fhirId=null;
 		try {
-			fhirId = myMapper.toDbase(theObservation, theId);
+			fhirId = getMyMapper().toDbase(theObservation, theId);
 		} catch (FHIRException e) {
 			e.printStackTrace();
 		}
@@ -355,9 +355,9 @@ public class ObservationResourceProvider implements IResourceProvider {
 			}
 
 			if (paramList.size() == 0) {
-				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+				getMyMapper().searchWithoutParams(fromIndex, toIndex, retv, includes);
 			} else {
-				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+				getMyMapper().searchWithParams(fromIndex, toIndex, paramList, retv, includes);
 			}
 
 			return retv;

@@ -55,45 +55,53 @@ public class RestfulServlet extends RestfulServer {
 		List<IResourceProvider> providers = new ArrayList<IResourceProvider>();
 
 		ConditionResourceProvider conditionResourceProvider = new ConditionResourceProvider();
-		systemTransactionProvider.addSupportedProvider(ConditionResourceProvider.getType(), conditionResourceProvider.getMyMapper());
 		providers.add(conditionResourceProvider);
 		
 		EncounterResourceProvider encounterResourceProvider = new EncounterResourceProvider(); 
-		systemTransactionProvider.addSupportedProvider(EncounterResourceProvider.getType(), encounterResourceProvider.getMyMapper());
 		providers.add(encounterResourceProvider);
 		
 		MedicationResourceProvider medicationResourceProvider = new MedicationResourceProvider(); 
-		systemTransactionProvider.addSupportedProvider(MedicationResourceProvider.getType(), medicationResourceProvider.getMyMapper());
 		providers.add(medicationResourceProvider);
 		
 		MedicationStatementResourceProvider medicationStatementResourceProvider = new MedicationStatementResourceProvider();
-		systemTransactionProvider.addSupportedProvider(MedicationStatementResourceProvider.getType(), medicationStatementResourceProvider.getMyMapper());
 		providers.add(medicationStatementResourceProvider);
 		
 		MedicationRequestResourceProvider medicationRequestResourceProvider = new MedicationRequestResourceProvider();
-		systemTransactionProvider.addSupportedProvider(MedicationRequestResourceProvider.getType(), medicationRequestResourceProvider.getMyMapper());
 		providers.add(medicationRequestResourceProvider);
 		
 		ObservationResourceProvider observationResourceProvider = new ObservationResourceProvider();
-		systemTransactionProvider.addSupportedProvider(ObservationResourceProvider.getType(), observationResourceProvider.getMyMapper());
 		providers.add(observationResourceProvider);
 		
 		OrganizationResourceProvider organizationResourceProvider = new OrganizationResourceProvider();
-		systemTransactionProvider.addSupportedProvider(OrganizationResourceProvider.getType(), organizationResourceProvider.getMyMapper());
 		providers.add(organizationResourceProvider);
 		
 		PractitionerResourceProvider practitionerResourceProvider = new PractitionerResourceProvider();
-		systemTransactionProvider.addSupportedProvider(PractitionerResourceProvider.getType(), practitionerResourceProvider.getMyMapper());
 		providers.add(practitionerResourceProvider);
 		
 		PatientResourceProvider patientResourceProvider = new PatientResourceProvider();
-		systemTransactionProvider.addSupportedProvider(PatientResourceProvider.getType(), patientResourceProvider.getMyMapper());
 		providers.add(patientResourceProvider);
 		
 		ProcedureResourceProvider procedureResourceProvider = new ProcedureResourceProvider();
-		systemTransactionProvider.addSupportedProvider(ProcedureResourceProvider.getType(), procedureResourceProvider.getMyMapper());
 		providers.add(procedureResourceProvider);
+		
+		DeviceResourceProvider deviceResourceProvider = new DeviceResourceProvider();
+		providers.add(deviceResourceProvider);
 
+		DeviceUseStatementResourceProvider deviceUseStatementResourceProvider = new DeviceUseStatementResourceProvider();
+		providers.add(deviceUseStatementResourceProvider);
+		
+//		systemTransactionProvider.addSupportedProvider(ConditionResourceProvider.getType(), conditionResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(EncounterResourceProvider.getType(), encounterResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(MedicationResourceProvider.getType(), medicationResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(MedicationStatementResourceProvider.getType(), medicationStatementResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(MedicationRequestResourceProvider.getType(), medicationRequestResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(ObservationResourceProvider.getType(), observationResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(OrganizationResourceProvider.getType(), organizationResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(PractitionerResourceProvider.getType(), practitionerResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(PatientResourceProvider.getType(), patientResourceProvider.getMyMapper());
+//		systemTransactionProvider.addSupportedProvider(ProcedureResourceProvider.getType(), procedureResourceProvider.getMyMapper());
+		
+		
 		setResourceProviders(providers);
 
 		/*

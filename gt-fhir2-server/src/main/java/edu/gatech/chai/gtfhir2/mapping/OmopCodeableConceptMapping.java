@@ -14,7 +14,7 @@ import org.hl7.fhir.exceptions.FHIRException;
 public enum OmopCodeableConceptMapping {
 	ATC("http://www.whocc.no/atc", "ATC"),
 	CPT("http://www.ama-assn.org/go/cpt", "CPT4"),
-	HCPCS("2.16.840.1.113883.6.14", "HCPCS"),
+	HCPCS("urn:oid:2.16.840.1.113883.6.14", "HCPCS"),
 	ICD9CM("http://hl7.org/fhir/sid/icd-9-cm", "ICD9CM"),
 	ICD9PROC("http://hl7.org/fhir/sid/icd-9-proc", "ICD9Proc"),
 	ICD10("http://hl7.org/fhir/sid/icd-10", "ICD10"),
@@ -32,32 +32,32 @@ public enum OmopCodeableConceptMapping {
 			throw new FHIRException("FHIR URI cannot be null or empty: '"+fhirUri+"'");
 		}
 
-		if ("http://www.whocc.no/atc".equals(fhirUri)) 
-			return "ATC";
-		if ("http://www.ama-assn.org/go/cpt".equals(fhirUri))
-			return "CPT4";
-		if ("2.16.840.1.113883.6.14".equals(fhirUri))
-			return "HCPCS";
-		if ("http://hl7.org/fhir/sid/icd-9-cm".equals(fhirUri))
-			return "ICD9CM";
-		if ("http://hl7.org/fhir/sid/icd-9-proc".equals(fhirUri))
-			return "ICD9Proc";
-		if ("http://hl7.org/fhir/sid/icd-10".equals(fhirUri))
-			return "ICD10";
-		if ("http://hl7.org/fhir/sid/icd-10-cm".equals(fhirUri))
-			return "ICD10CM";
-		if ("http://loinc.org".equals(fhirUri))
-			return "LOINC";
-		if ("http://hl7.org/fhir/sid/ndc".equals(fhirUri))
-			return "NDC";
-		if ("http://hl7.org/fhir/ndfrt".equals(fhirUri))
-			return "NDFRT";
-		if ("http://www.nlm.nih.gov/research/umls/rxnorm".equals(fhirUri))
-			return "RxNorm";
-		if ("http://snomed.info/sct".equals(fhirUri))
-			return "SNOMED";
-		if ("http://unitsofmeasure.org".equals(fhirUri))
-			return "UCUM";
+		if (ATC.getFhirUri().equals(fhirUri)) 
+			return ATC.getOmopVocabulary();
+		if (CPT.getFhirUri().equals(fhirUri))
+			return CPT.getOmopVocabulary();
+		if (HCPCS.getFhirUri().equals(fhirUri))
+			return HCPCS.getOmopVocabulary();
+		if (ICD9CM.getFhirUri().equals(fhirUri))
+			return ICD9CM.getOmopVocabulary();
+		if (ICD9PROC.getFhirUri().equals(fhirUri))
+			return ICD9PROC.getOmopVocabulary();
+		if (ICD10.getFhirUri().equals(fhirUri))
+			return ICD10.getOmopVocabulary();
+		if (ICD10CM.getFhirUri().equals(fhirUri))
+			return ICD10CM.getOmopVocabulary();
+		if (LOINC.getFhirUri().equals(fhirUri))
+			return LOINC.getOmopVocabulary();
+		if (NDC.getFhirUri().equals(fhirUri))
+			return NDC.getOmopVocabulary();
+		if (NDFRT.getFhirUri().equals(fhirUri))
+			return NDFRT.getOmopVocabulary();
+		if (RXNORM.getFhirUri().equals(fhirUri))
+			return RXNORM.getOmopVocabulary();
+		if (SCT.getFhirUri().equals(fhirUri))
+			return SCT.getOmopVocabulary();
+		if (UCUM.getFhirUri().equals(fhirUri))
+			return UCUM.getOmopVocabulary();
 		
 		return "None";
 		
@@ -68,32 +68,32 @@ public enum OmopCodeableConceptMapping {
 			throw new FHIRException("Omop Vocabulary ID cannot be null or empty: '"+omopVocabulary+"'");
 		}
 
-		if ("ATC".equals(omopVocabulary)) 
-			return "http://www.whocc.no/atc";
-		if ("CPT4".equals(omopVocabulary))
-			return "http://www.ama-assn.org/go/cpt";
-		if ("HCPCS".equals(omopVocabulary))
-			return "2.16.840.1.113883.6.14";
-		if ("ICD9CM".equals(omopVocabulary))
-			return "http://hl7.org/fhir/sid/icd-9-cm";
-		if ("ICD9Proc".equals(omopVocabulary))
-			return "http://hl7.org/fhir/sid/icd-9-proc";
-		if ("ICD10".equals(omopVocabulary))
-			return "http://hl7.org/fhir/sid/icd-10";
-		if ("ICD10CM".equals(omopVocabulary))
-			return "http://hl7.org/fhir/sid/icd-10-cm";
-		if ("LOINC".equals(omopVocabulary))
-			return "http://loinc.org";
-		if ("NDC".equals(omopVocabulary))
-			return "http://hl7.org/fhir/sid/ndc";
-		if ("NDFRT".equals(omopVocabulary))
-			return "http://hl7.org/fhir/ndfrt";
-		if ("RxNorm".equals(omopVocabulary))
-			return "http://www.nlm.nih.gov/research/umls/rxnorm";
-		if ("SNOMED".equals(omopVocabulary))
-			return "http://snomed.info/sct";
-		if ("UCUM".equals(omopVocabulary))
-			return "http://unitsofmeasure.org";
+		if (ATC.getOmopVocabulary().equals(omopVocabulary)) 
+			return ATC.getFhirUri();
+		if (CPT.getOmopVocabulary().equals(omopVocabulary))
+			return CPT.getFhirUri();
+		if (HCPCS.getOmopVocabulary().equals(omopVocabulary))
+			return HCPCS.getFhirUri();
+		if (ICD9CM.getOmopVocabulary().equals(omopVocabulary))
+			return ICD9CM.getFhirUri();
+		if (ICD9PROC.getOmopVocabulary().equals(omopVocabulary))
+			return ICD9PROC.getFhirUri();
+		if (ICD10.getOmopVocabulary().equals(omopVocabulary))
+			return ICD10.getFhirUri();
+		if (ICD10CM.getOmopVocabulary().equals(omopVocabulary))
+			return ICD10CM.getFhirUri();
+		if (LOINC.getOmopVocabulary().equals(omopVocabulary))
+			return LOINC.getFhirUri();
+		if (NDC.getOmopVocabulary().equals(omopVocabulary))
+			return NDC.getFhirUri();
+		if (NDFRT.getOmopVocabulary().equals(omopVocabulary))
+			return NDFRT.getFhirUri();
+		if (RXNORM.getOmopVocabulary().equals(omopVocabulary))
+			return RXNORM.getFhirUri();
+		if (SCT.getOmopVocabulary().equals(omopVocabulary))
+			return SCT.getFhirUri();
+		if (UCUM.getOmopVocabulary().equals(omopVocabulary))
+			return UCUM.getFhirUri();
 		
 		return "None";
 		

@@ -11,20 +11,22 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 @Entity
 @Table(name="device_exposure")
 public class DeviceExposure extends BaseEntity {
 	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name="device_exposure_id")
+	@GeneratedValue(strategy=GenerationType.SEQUENCE, generator="device_exposure_seq_gen")
+	@SequenceGenerator(name="device_exposure_seq_gen", sequenceName="device_exposure_id_seq", allocationSize=1)
+	@Column(name="device_exposure_id", updatable= false)
 	@Access(AccessType.PROPERTY)
 	private Long id;
 
 	@ManyToOne
 	@JoinColumn(name="person_id", nullable=false)
-	private Person person;
+	private FPerson fPerson;
 
 	@ManyToOne
 	@JoinColumn(name="device_concept_id", nullable=false)
@@ -59,7 +61,7 @@ public class DeviceExposure extends BaseEntity {
 	private String deviceSourceValue;
 	
 	@Column(name="quantity")
-	private Integer quqntity;
+	private Integer quantity;
 	
 	public Long getId() {
 		return id;
@@ -69,12 +71,12 @@ public class DeviceExposure extends BaseEntity {
 		this.id = id;
 	}
 
-	public Person getPerson () {
-		return person;
+	public FPerson getFPerson () {
+		return fPerson;
 	}
 	
-	public void setPerson (Person person) {
-		this.person = person;
+	public void setFPerson (FPerson fPerson) {
+		this.fPerson = fPerson;
 	}
 	
 	public Concept getDeviceConcept () {
@@ -150,11 +152,11 @@ public class DeviceExposure extends BaseEntity {
 	}
 	
 	public Integer getQuantity() {
-		return this.quqntity;
+		return this.quantity;
 	}
 	
 	public void setQuantity(Integer quantity) {
-		this.quqntity = quantity;
+		this.quantity = quantity;
 	}
 	
 	@Override

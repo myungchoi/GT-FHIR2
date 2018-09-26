@@ -63,6 +63,10 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 		return myOmopService.getSize(mapList);
 	}
 	
+	/***
+	 * constructResource
+	 *   overwrite this if you want to implement includes.
+	 */
 	public v constructResource(Long fhirId, t entity, List<String> includes) {
 		v fhirResource = constructFHIR(fhirId, entity);
 		
@@ -75,7 +79,8 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 	}
 	
 	/***
-	 * 
+	 * toFHIR
+	 *   this is called from FHIR provider for read operation.
 	 */
 	public v toFHIR(IdType id) {
 		Long id_long_part = id.getIdPartAsLong();

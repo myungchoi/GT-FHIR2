@@ -83,21 +83,21 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		EntityManager em = vDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
 
-		Table t = entityClass.getAnnotation(Table.class);
-		if (t != null) {
-			String tableName = t.name();
-			String queryString = "SELECT p.reltuples AS approximate_row_count FROM pg_class p WHERE p.relname = :table_name";
-			Query query = em.createNativeQuery(queryString);
-			query = query.setParameter("table_name", tableName);
-			float res = (float) query.getSingleResult();
-			return (long) res;
-		} else {
+//		Table t = entityClass.getAnnotation(Table.class);
+//		if (t != null) {
+//			String tableName = t.name();
+//			String queryString = "SELECT p.reltuples AS approximate_row_count FROM pg_class p WHERE p.relname = :table_name";
+//			Query query = em.createNativeQuery(queryString);
+//			query = query.setParameter("table_name", tableName);
+//			float res = (float) query.getSingleResult();
+//			return (long) res;
+//		} else {
 			CriteriaQuery<Long> query = builder.createQuery(Long.class);
 			Root<T> root = query.from(entityClass);
 	
 			query.select(builder.count(root));		
 			return em.createQuery(query).getSingleResult();		
-		}
+//		}
 	}
 
 	@Transactional(readOnly = true)
