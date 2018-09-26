@@ -302,6 +302,11 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 					Concept concept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, deviceTypeCoding);
 					if (concept != null) {
 						deviceExposure.setDeviceConcept(concept);
+						if (concept.getId() != 0L) {
+							deviceExposure.setDeviceSourceConcept(concept);
+						} else {
+							deviceExposure.setDeviceSourceValue(deviceTypeCoding.getSystem()+":"+deviceTypeCoding.getCode());
+						}
 					}
 				} catch (FHIRException e) {
 					e.printStackTrace();
