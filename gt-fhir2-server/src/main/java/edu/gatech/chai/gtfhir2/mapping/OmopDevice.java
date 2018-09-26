@@ -119,6 +119,7 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 			}
 		}
 		
+		// set device type concept
 		device.setType(typeCodeableConcept);
 		
 		// set udi.deviceidentifier if udi is available.
