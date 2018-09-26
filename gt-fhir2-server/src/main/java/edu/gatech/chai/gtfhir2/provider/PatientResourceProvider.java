@@ -108,7 +108,7 @@ private int preferredPageSize = 30;
 		
 		Long id=null;
 		try {
-			id = myMapper.toDbase(thePatient, null);
+			id = getMyMapper().toDbase(thePatient, null);
 		} catch (FHIRException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -118,7 +118,7 @@ private int preferredPageSize = 30;
 
 	@Delete()
 	public void deletePatient(@IdParam IdType theId) {
-		if (myMapper.removeByFhirId(theId) <= 0) {
+		if (getMyMapper().removeByFhirId(theId) <= 0) {
 			throw new ResourceNotFoundException(theId);
 		}
 	}
@@ -168,46 +168,46 @@ private int preferredPageSize = 30;
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 		
 		if (thePatientId != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_RES_ID, thePatientId, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_RES_ID, thePatientId, false));
 		}
 		if (thePatientIdentifier != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_IDENTIFIER, thePatientIdentifier, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_IDENTIFIER, thePatientIdentifier, false));
 		}
 		if (theActive != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_ACTIVE, theActive, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_ACTIVE, theActive, false));
 		}
 		if (theEmail != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_EMAIL, theEmail, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_EMAIL, theEmail, false));
 		}
 		if (thePhone != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_PHONE, thePhone, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_PHONE, thePhone, false));
 		}
 		if (theTelecom != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_TELECOM, theTelecom, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_TELECOM, theTelecom, false));
 		}
 		if (theFamilyName != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_FAMILY, theFamilyName, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_FAMILY, theFamilyName, false));
 		}
 		if (theName != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_NAME, theName, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_NAME, theName, false));
 		}
 		if (theGivenName != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_GIVEN, theGivenName, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_GIVEN, theGivenName, false));
 		}
 		if (theBirthDate != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_BIRTHDATE, theBirthDate, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_BIRTHDATE, theBirthDate, false));
 		}
 		if (theAddress != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS, theAddress, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_ADDRESS, theAddress, false));
 		}
 		if (theAddressCity != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS_CITY, theAddressCity, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_ADDRESS_CITY, theAddressCity, false));
 		}
 		if (theAddressState != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS_STATE, theAddressState, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_ADDRESS_STATE, theAddressState, false));
 		}
 		if (theAddressZip != null) {
-			paramList.addAll(myMapper.mapParameter (Patient.SP_ADDRESS_POSTALCODE, theAddressZip, false));
+			paramList.addAll(getMyMapper().mapParameter (Patient.SP_ADDRESS_POSTALCODE, theAddressZip, false));
 		}
 		
 		// Chain Search.
@@ -219,12 +219,12 @@ private int preferredPageSize = 30;
 			if (orgChain != null) {
 				if (Organization.SP_NAME.equals(orgChain)) {
 					String theOrgName = theOrganization.getValue();
-					paramList.addAll(myMapper.mapParameter ("Organization:"+Organization.SP_NAME, theOrgName, false));
+					paramList.addAll(getMyMapper().mapParameter ("Organization:"+Organization.SP_NAME, theOrgName, false));
 				} else if ("".equals(orgChain)) {
-					paramList.addAll(myMapper.mapParameter ("Organization:"+Organization.SP_RES_ID, theOrganization.getValue(), false));
+					paramList.addAll(getMyMapper().mapParameter ("Organization:"+Organization.SP_RES_ID, theOrganization.getValue(), false));
 				}
 			} else {
-				paramList.addAll(myMapper.mapParameter ("Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart(), false));
+				paramList.addAll(getMyMapper().mapParameter ("Organization:"+Organization.SP_RES_ID, theOrganization.getIdPart(), false));
 			}
 		}
 		
@@ -247,7 +247,7 @@ private int preferredPageSize = 30;
 	 */
 	@Read()
 	public Patient readPatient(@IdParam IdType theId) {
-		Patient retval = (Patient) myMapper.toFHIR(theId);
+		Patient retval = (Patient) getMyMapper().toFHIR(theId);
 		if (retval == null) {
 			throw new ResourceNotFoundException(theId);
 		}
@@ -271,7 +271,7 @@ private int preferredPageSize = 30;
 
 		Long fhirId=null;
 		try {
-			fhirId = myMapper.toDbase(thePatient, theId);
+			fhirId = getMyMapper().toDbase(thePatient, theId);
 		} catch (FHIRException e) {
 			e.printStackTrace();
 		}
@@ -372,9 +372,9 @@ private int preferredPageSize = 30;
 			}
 			
 			if (paramList.size() == 0) {
-				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+				getMyMapper().searchWithoutParams(fromIndex, toIndex, retv, includes);
 			} else {
-				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+				getMyMapper().searchWithParams(fromIndex, toIndex, paramList, retv, includes);
 			}
 			
 			return retv;

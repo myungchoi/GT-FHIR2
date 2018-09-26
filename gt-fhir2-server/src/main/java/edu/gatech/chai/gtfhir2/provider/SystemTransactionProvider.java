@@ -122,13 +122,12 @@ public class SystemTransactionProvider {
 					entry.getResource().setId(idType);
 					putList.add(entry.getResource());
 				} else {
-					ThrowFHIRExceptions.unprocessableEntityException(
-							"We support POST and PUT for Messages");
+					ThrowFHIRExceptions.unprocessableEntityException("We support POST and PUT for Messages");
 				}
-			} 
+			}
 		}
 	}
-	
+
 	/**
 	 */
 	@Transaction
@@ -149,10 +148,17 @@ public class SystemTransactionProvider {
 
 		Resource resource = null;
 		BundleEntryComponent entry = null;
-		
+
 		try {
 			switch (theBundle.getType()) {
 			case DOCUMENT:
+				// https://www.hl7.org/fhir/documents.html#bundle
+				// Ignore the fact that the bundle is a document and process all of the
+				// resources that it contains as individual resources. Clients SHOULD not expect
+				// that a server that receives a document submitted using this method will be
+				// able to reassemble the document exactly. (Even if the server can reassemble
+				// the document (see below), the result cannot be expected to be in the same
+				// order, etc. Thus a document signature will very likely be invalid.)
 				entry = theBundle.getEntryFirstRep();
 				resource = entry.getResource();
 				if (resource.getResourceType() == ResourceType.Composition) {
@@ -160,21 +166,21 @@ public class SystemTransactionProvider {
 					// Find out from composition if we can proceed.
 					// For now, we do not care what type of this document is.
 					// We just parse all the entries and do what we need to do.
-					
+
 					addToList(transactionEntries, theBundle, HTTPVerb.POST);
-					
+
 					List<BundleEntryComponent> responseTransaction = myMapper.executeRequests(transactionEntries);
 					if (responseTransaction != null && responseTransaction.size() > 0) {
 						retVal.setEntry(responseTransaction);
 						retVal.setType(BundleType.TRANSACTIONRESPONSE);
 					} else {
-						ThrowFHIRExceptions
-								.unprocessableEntityException("Faied process the bundle, " + theBundle.getType().toString());
+						ThrowFHIRExceptions.unprocessableEntityException(
+								"Faied process the bundle, " + theBundle.getType().toString());
 					}
 				} else {
 					// First entry must be Composition resource.
 					ThrowFHIRExceptions
-							.unprocessableEntityException("First entry in Bundle document type should be Composition");	
+							.unprocessableEntityException("First entry in Bundle document type should be Composition");
 				}
 			case TRANSACTION:
 				System.out.println("We are at the transaction");
@@ -224,8 +230,8 @@ public class SystemTransactionProvider {
 						// This is lab report. they are all to be added to the server.
 						addToList(transactionEntries, theBundle, HTTPVerb.POST);
 					} else {
-						ThrowFHIRExceptions.unprocessableEntityException(
-								"We currently support only HL7 v2 R01 Message");
+						ThrowFHIRExceptions
+								.unprocessableEntityException("We currently support only HL7 v2 R01 Message");
 					}
 				} else {
 					// First entry must be message header.

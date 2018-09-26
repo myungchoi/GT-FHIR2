@@ -91,7 +91,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	}
 	
 	public Long getDiastolicConcept() {
-		return this.DIASTOLIC_CONCEPT_ID;
+		return OmopObservation.DIASTOLIC_CONCEPT_ID;
 	}
 
 	public static OmopObservation getInstance() {
@@ -1513,9 +1513,9 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 					} else {
 						retId = measurementService.create(m).getId();
 					}
-					if (m.getMeasurementConcept().getId() == SYSTOLIC_CONCEPT_ID) {
+					if (m.getMeasurementConcept().getId() == OmopObservation.SYSTOLIC_CONCEPT_ID) {
 						retvalSystolic = retId;
-					} else if (m.getMeasurementConcept().getId() == DIASTOLIC_CONCEPT_ID) {
+					} else if (m.getMeasurementConcept().getId() == OmopObservation.DIASTOLIC_CONCEPT_ID) {
 						retvalDiastolic = retId;
 					}
 				}
@@ -1551,10 +1551,10 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	// is selected. Since we are selecting this already, we need to skip
 	// diastolic.
 	final ParameterWrapper exceptionParam = new ParameterWrapper("Long", Arrays.asList("measurementConcept.id"),
-			Arrays.asList("!="), Arrays.asList(String.valueOf(3012888L)), "or");
+			Arrays.asList("!="), Arrays.asList(String.valueOf(OmopObservation.DIASTOLIC_CONCEPT_ID)), "or");
 
 	final ParameterWrapper exceptionParam4Search = new ParameterWrapper("Long", Arrays.asList("observationConcept.id"),
-			Arrays.asList("!="), Arrays.asList(String.valueOf(3012888L)), "or");
+			Arrays.asList("!="), Arrays.asList(String.valueOf(OmopObservation.DIASTOLIC_CONCEPT_ID)), "or");
 
 	@Override
 	public Long getSize() {
