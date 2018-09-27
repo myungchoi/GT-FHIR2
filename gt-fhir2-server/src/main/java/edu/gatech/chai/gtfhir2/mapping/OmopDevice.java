@@ -58,6 +58,10 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 		
 		// Set patient information.
 		Reference patientReference = new Reference(new IdType(PatientResourceProvider.getType(), entity.getFPerson().getId()));
+		String singleName = entity.getFPerson().getNameAsSingleString();
+		if (singleName != null && !singleName.isEmpty()) {
+			patientReference.setDisplay(singleName);
+		}
 		device.setPatient(patientReference);
 		
 		// Set device type, which is DeviceExposure concept.
@@ -85,14 +89,17 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 		if (deviceSourceValue != null) {
 			String[] sources = deviceSourceValue.split(":");
 			Coding extraCoding = new Coding();
-			if (sources.length != 2) {
+			if (sources.length != 3) {
 				// just put this in the text field
 				extraCoding.setDisplay(deviceSourceValue);
 			} else {
 				// First one is system name. See if this is FHIR URI
 				if (sources[0].startsWith("http://") || sources[0].startsWith("urn:oid")) {
-					extraCoding.setSystem(sources[0]);
-					extraCoding.setCode(sources[1]);
+					if (!systemUri.equals(sources[0]) || !code.equals(sources[1])) {
+						extraCoding.setSystem(sources[0]);
+						extraCoding.setCode(sources[1]);
+						extraCoding.setDisplay(sources[2]);
+					}
 				} else {
 					// See if we can map from our static list.
 					String fhirCodingSystem = "None";
@@ -105,10 +112,14 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 					if ("None".equals(fhirCodingSystem)) {
 						extraCoding.setSystem(sources[0]);
 						extraCoding.setCode(sources[1]);
+						extraCoding.setDisplay(sources[2]);
 						extraCoding.setUserSelected(true);
 					} else {
-						extraCoding.setSystem(fhirCodingSystem);
-						extraCoding.setCode(sources[1]);
+						if (!systemUri.equals(fhirCodingSystem) || !code.equals(sources[1])) {
+							extraCoding.setSystem(fhirCodingSystem);
+							extraCoding.setCode(sources[1]);
+							extraCoding.setDisplay(sources[2]);
+						}
 					}
 				}
 			}

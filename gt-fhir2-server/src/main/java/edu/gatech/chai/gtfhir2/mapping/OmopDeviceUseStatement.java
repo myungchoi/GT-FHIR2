@@ -91,7 +91,12 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 		myDeviceUseStatement.setDevice(new Reference(new IdType(DeviceResourceProvider.getType(), fhirId)));
 		
 		// set subject, which is a patient.
-		myDeviceUseStatement.setSubject(new Reference(new IdType(PatientResourceProvider.getType(), entity.getFPerson().getId())));
+		Reference patientReference = new Reference(new IdType(PatientResourceProvider.getType(), entity.getFPerson().getId()));
+		String singleName = entity.getFPerson().getNameAsSingleString();
+		if (singleName != null && !singleName.isEmpty()) {
+			patientReference.setDisplay(singleName);
+		}
+		myDeviceUseStatement.setSubject(patientReference);
 		
 		// set when this device is used.
 		Period whenUsedPeriod = new Period();
