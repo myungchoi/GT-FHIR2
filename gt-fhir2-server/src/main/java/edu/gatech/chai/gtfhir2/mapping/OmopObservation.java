@@ -1813,7 +1813,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			mapList.add(paramWrapper);
 			break;
 		case "Patient:" + Patient.SP_NAME:
-			String patientName = (String) value;
+			String patientName = ((String) value).replace("\"", "");
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2",
 					"fPerson.prefixName", "fPerson.suffixName"));
