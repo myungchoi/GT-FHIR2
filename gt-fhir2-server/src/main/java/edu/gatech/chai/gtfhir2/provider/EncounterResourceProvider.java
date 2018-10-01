@@ -1,19 +1,21 @@
 package edu.gatech.chai.gtfhir2.provider;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.InstantType;
+import org.hl7.fhir.dstu3.model.OperationOutcome;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.primitive.IdDt;
 import ca.uhn.fhir.rest.annotation.Create;
@@ -27,9 +29,11 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopEncounter;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -105,6 +109,8 @@ public class EncounterResourceProvider implements IResourceProvider {
 	@Search()
 	public IBundleProvider findEncounterByParams(
 			@OptionalParam(name=Encounter.SP_RES_ID) TokenParam theEncounterId,
+			@OptionalParam(name=Encounter.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
+			@OptionalParam(name=Encounter.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
 
 			@IncludeParam(allow={"Encounter:appointment", "Encounter:diagnosis", 
 					"Encounter:episodeofcare", "Encounter:incomingreferral", "Encounter:location", 
@@ -118,9 +124,39 @@ public class EncounterResourceProvider implements IResourceProvider {
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
 
 		if (theEncounterId != null) {
-			paramList.addAll(myMapper.mapParameter (Encounter.SP_RES_ID, theEncounterId, false));
+			paramList.addAll(getMyMapper().mapParameter (Encounter.SP_RES_ID, theEncounterId, false));
 		}
 
+		// With OMOP, we only support subject to be patient.
+		// If the subject has only ID part, we assume that is patient.
+		if (theSubject != null) {
+			if (theSubject.getResourceType() != null && 
+					theSubject.getResourceType().equals(PatientResourceProvider.getType())) {
+				thePatient = theSubject;
+			} else {
+				// If resource is null, we assume Patient.
+				if (theSubject.getResourceType() == null) {
+					thePatient = theSubject;
+				} else {
+					errorProcessing("subject search allows Only Patient Resource, but provided "+theSubject.getResourceType());
+				}
+			}
+		}
+		
+		if (thePatient != null) {
+			String patientChain = thePatient.getChain();
+			if (patientChain != null) {
+				if (Patient.SP_NAME.equals(patientChain)) {
+					String thePatientName = thePatient.getValue();
+					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_NAME, thePatientName, false));
+				} else if ("".equals(patientChain)) {
+					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getValue(), false));
+				}
+			} else {
+				paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getIdPart(), false));
+			}
+		}
+		
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
 		myBundleProvider.setPreferredPageSize(preferredPageSize);
@@ -180,6 +216,14 @@ public class EncounterResourceProvider implements IResourceProvider {
 	private void validateResource(Encounter theEncounter) {
 	}
 
+	private void errorProcessing(String msg) {
+		OperationOutcome outcome = new OperationOutcome();
+		CodeableConcept detailCode = new CodeableConcept();
+		detailCode.setText(msg);
+		outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
+		throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);		
+	}
+	
 	@Override
 	public Class<Encounter> getResourceType() {
 		// TODO Auto-generated method stub

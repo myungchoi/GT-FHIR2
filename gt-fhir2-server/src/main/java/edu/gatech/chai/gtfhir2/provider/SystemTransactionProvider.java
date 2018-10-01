@@ -146,10 +146,11 @@ public class SystemTransactionProvider {
 		transactionEntries.put(HTTPVerb.DELETE, deleteList);
 		transactionEntries.put(HTTPVerb.GET, getList);
 
-		Resource resource = null;
-		BundleEntryComponent entry = null;
+//		Resource resource = null;
+//		BundleEntryComponent entry = null;
 
 		try {
+			Resource resource;
 			switch (theBundle.getType()) {
 			case DOCUMENT:
 				// https://www.hl7.org/fhir/documents.html#bundle
@@ -159,29 +160,55 @@ public class SystemTransactionProvider {
 				// able to reassemble the document exactly. (Even if the server can reassemble
 				// the document (see below), the result cannot be expected to be in the same
 				// order, etc. Thus a document signature will very likely be invalid.)
-				entry = theBundle.getEntryFirstRep();
-				resource = entry.getResource();
-				if (resource.getResourceType() == ResourceType.Composition) {
-					Composition composition = (Composition) resource;
-					// Find out from composition if we can proceed.
-					// For now, we do not care what type of this document is.
-					// We just parse all the entries and do what we need to do.
-
-					addToList(transactionEntries, theBundle, HTTPVerb.POST);
-
-					List<BundleEntryComponent> responseTransaction = myMapper.executeRequests(transactionEntries);
-					if (responseTransaction != null && responseTransaction.size() > 0) {
-						retVal.setEntry(responseTransaction);
-						retVal.setType(BundleType.TRANSACTIONRESPONSE);
+				
+				List<BundleEntryComponent> entries = theBundle.getEntry();
+				int index = 0;
+				for (BundleEntryComponent entry: entries) {
+					resource = entry.getResource();
+					
+					// First entry is Composition
+					if (index == 0) {
+						if (resource.getResourceType() == ResourceType.Composition) {
+							// First check the patient 
+							Composition composition = (Composition) resource;
+							
+						} else {
+							// First entry must be Composition resource.
+							ThrowFHIRExceptions
+									.unprocessableEntityException("First entry in "
+											+ "Bundle document type should be Composition");
+						}
 					} else {
-						ThrowFHIRExceptions.unprocessableEntityException(
-								"Faied process the bundle, " + theBundle.getType().toString());
+						// 
 					}
-				} else {
-					// First entry must be Composition resource.
-					ThrowFHIRExceptions
-							.unprocessableEntityException("First entry in Bundle document type should be Composition");
+					
+					index++;
 				}
+				
+				
+//				entry = theBundle.getEntryFirstRep();
+//				resource = entry.getResource();
+//				if (resource.getResourceType() == ResourceType.Composition) {
+//					Composition composition = (Composition) resource;
+//					// Find out from composition if we can proceed.
+//					// For now, we do not care what type of this document is.
+//					// We just parse all the entries and do what we need to do.
+//
+//					addToList(transactionEntries, theBundle, HTTPVerb.POST);
+//
+//					List<BundleEntryComponent> responseTransaction = myMapper.executeRequests(transactionEntries);
+//					if (responseTransaction != null && responseTransaction.size() > 0) {
+//						retVal.setEntry(responseTransaction);
+//						retVal.setType(BundleType.TRANSACTIONRESPONSE);
+//					} else {
+//						ThrowFHIRExceptions.unprocessableEntityException(
+//								"Faied process the bundle, " + theBundle.getType().toString());
+//					}
+//				} else {
+//					// First entry must be Composition resource.
+//					ThrowFHIRExceptions
+//							.unprocessableEntityException("First entry in Bundle document type should be Composition");
+//				}
 			case TRANSACTION:
 				System.out.println("We are at the transaction");
 				for (BundleEntryComponent nextEntry : theBundle.getEntry()) {
@@ -219,25 +246,25 @@ public class SystemTransactionProvider {
 
 				break;
 			case MESSAGE:
-				entry = theBundle.getEntryFirstRep();
-				resource = entry.getResource();
-				if (resource.getResourceType() == ResourceType.MessageHeader) {
-					MessageHeader messageHeader = (MessageHeader) resource;
-					// We handle observation-type.
-					// TODO: Add other types later.
-					Coding event = messageHeader.getEvent();
-					if ("R01".equals(event.getCode())) {
-						// This is lab report. they are all to be added to the server.
-						addToList(transactionEntries, theBundle, HTTPVerb.POST);
-					} else {
-						ThrowFHIRExceptions
-								.unprocessableEntityException("We currently support only HL7 v2 R01 Message");
-					}
-				} else {
-					// First entry must be message header.
-					ThrowFHIRExceptions
-							.unprocessableEntityException("First entry in Bundle message type should be MessageHeader");
-				}
+//				entry = theBundle.getEntryFirstRep();
+//				resource = entry.getResource();
+//				if (resource.getResourceType() == ResourceType.MessageHeader) {
+//					MessageHeader messageHeader = (MessageHeader) resource;
+//					// We handle observation-type.
+//					// TODO: Add other types later.
+//					Coding event = messageHeader.getEvent();
+//					if ("R01".equals(event.getCode())) {
+//						// This is lab report. they are all to be added to the server.
+//						addToList(transactionEntries, theBundle, HTTPVerb.POST);
+//					} else {
+//						ThrowFHIRExceptions
+//								.unprocessableEntityException("We currently support only HL7 v2 R01 Message");
+//					}
+//				} else {
+//					// First entry must be message header.
+//					ThrowFHIRExceptions
+//							.unprocessableEntityException("First entry in Bundle message type should be MessageHeader");
+//				}
 				break;
 			default:
 				ThrowFHIRExceptions.unprocessableEntityException("Unsupported Bundle Type, "
