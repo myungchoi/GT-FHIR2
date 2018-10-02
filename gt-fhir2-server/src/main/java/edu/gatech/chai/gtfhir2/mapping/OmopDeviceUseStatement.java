@@ -24,7 +24,6 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyDevice;
 import edu.gatech.chai.gtfhir2.model.MyDeviceUseStatement;
-import edu.gatech.chai.gtfhir2.provider.DeviceResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.DeviceUseStatementResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
@@ -88,7 +87,16 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 		
 		// In OMOPonFHIR, both Device and DeviceUseStatement are coming from the same
 		// DeviceExposure table. Thus, Device._id = DeviceUseStatment._id
-		myDeviceUseStatement.setDevice(new Reference(new IdType(DeviceResourceProvider.getType(), fhirId)));
+		// As we use the same device_exposure for both Device and DeviceUseStatement,
+		// it would be easier for user to have a direct access to the device.
+		// So, we contain the device rather than reference it.
+		MyDevice myDevice = OmopDevice.getInstance().constructFHIR(fhirId, entity);
+		myDeviceUseStatement.addContained(myDevice);
+		
+		// Set the Id as a local id.
+		myDeviceUseStatement.setDevice(new Reference("#"+String.valueOf(fhirId)));
+		
+//		myDeviceUseStatement.setDevice(new Reference(new IdType(DeviceResourceProvider.getType(), fhirId)));
 		
 		// set subject, which is a patient.
 		Reference patientReference = new Reference(new IdType(PatientResourceProvider.getType(), entity.getFPerson().getId()));
