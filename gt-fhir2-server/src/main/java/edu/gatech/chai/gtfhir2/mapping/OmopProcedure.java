@@ -94,7 +94,7 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 	}
 
 	@Override
-	public Procedure constructResource(Long fhirId, ProcedureOccurrence entity,List<String> includes) {
+	public Procedure constructResource(Long fhirId, ProcedureOccurrence entity, List<String> includes) {
 		Procedure procedure = constructFHIR(fhirId,entity); 
 		Long omopId = entity.getId();
 		

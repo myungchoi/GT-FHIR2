@@ -13,14 +13,15 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DocumentReference;
 import org.hl7.fhir.dstu3.model.DocumentReference.DocumentReferenceContentComponent;
 import org.hl7.fhir.dstu3.model.DocumentReference.DocumentReferenceContextComponent;
+import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.Enumerations.DocumentReferenceStatus;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
-import ca.uhn.fhir.model.dstu2.resource.Patient;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.ReferenceParam;
@@ -36,6 +37,7 @@ import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Note;
+import edu.gatech.chai.omopv5.jpa.entity.ProcedureOccurrence;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
 import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
 import edu.gatech.chai.omopv5.jpa.service.ConceptService;
@@ -400,6 +402,33 @@ public class OmopDocumentReference extends BaseOmopResource<DocumentReference, N
 		note.setNoteText(note_text);
 		
 		return note;
+	}
+	
+	@Override
+	public DocumentReference constructResource(Long fhirId, Note entity, List<String> includes) {
+		DocumentReference documentReference = constructFHIR(fhirId, entity);
+		
+		if (!includes.isEmpty()) {
+			if (includes.contains("DocumentReference:patient") || includes.contains("DocumentReference:subject")) {
+				if (documentReference.hasSubject()) {
+					Long patientFhirId = documentReference.getSubject().getReferenceElement().getIdPartAsLong();
+					Patient patient = OmopPatient.getInstance().constructFHIR(patientFhirId, entity.getFPerson());
+					documentReference.getSubject().setResource(patient);
+				}
+			}
+			if (includes.contains("DocumentReference:encounter")) {
+				if (documentReference.hasContext()) {
+					DocumentReferenceContextComponent documentContext = documentReference.getContext();
+					if (documentContext.hasEncounter()) {
+						Long encounterFhirId = documentContext.getEncounter().getReferenceElement().getIdPartAsLong();
+						Encounter encounter = OmopEncounter.getInstance().constructFHIR(encounterFhirId, entity.getVisitOccurrence());
+						documentContext.getEncounter().setResource(encounter);
+					}
+				}
+			}
+		}
+		
+		return documentReference;
 	}
 
 	@Override
