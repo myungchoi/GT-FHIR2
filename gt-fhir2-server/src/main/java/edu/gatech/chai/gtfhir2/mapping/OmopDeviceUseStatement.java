@@ -168,23 +168,25 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 			mapList.add(paramWrapper);
 			break;
 		case "Patient:" + Patient.SP_RES_ID:
-			String pId = (String) value;
-			paramWrapper.setParameterType("Long");
-			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
-			paramWrapper.setOperators(Arrays.asList("="));
-			paramWrapper.setValues(Arrays.asList(pId));
-			paramWrapper.setRelationship("or");
-			mapList.add(paramWrapper);
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
+//			String pId = (String) value;
+//			paramWrapper.setParameterType("Long");
+//			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
+//			paramWrapper.setOperators(Arrays.asList("="));
+//			paramWrapper.setValues(Arrays.asList(pId));
+//			paramWrapper.setRelationship("or");
+//			mapList.add(paramWrapper);
 			break;
 		case "Patient:" + Patient.SP_NAME:
-			String patientName = (String) value;
-			paramWrapper.setParameterType("String");
-			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2",
-					"fPerson.prefixName", "fPerson.suffixName"));
-			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
-			paramWrapper.setValues(Arrays.asList("%" + patientName + "%"));
-			paramWrapper.setRelationship("or");
-			mapList.add(paramWrapper);
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
+//			String patientName = (String) value;
+//			paramWrapper.setParameterType("String");
+//			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2",
+//					"fPerson.prefixName", "fPerson.suffixName"));
+//			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
+//			paramWrapper.setValues(Arrays.asList("%" + patientName + "%"));
+//			paramWrapper.setRelationship("or");
+//			mapList.add(paramWrapper);
 			break;
 		default:
 			mapList = null;

@@ -41,6 +41,7 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.gtfhir2.mapping.OmopObservation;
+import edu.gatech.chai.gtfhir2.utilities.ThrowFHIRExceptions;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
 public class ObservationResourceProvider implements IResourceProvider {
@@ -189,7 +190,7 @@ public class ObservationResourceProvider implements IResourceProvider {
 				if (theSubject.getResourceType() == null) {
 					thePatient = theSubject;
 				} else {
-					errorProcessing("subject search allows Only Patient Resource, but provided "+theSubject.getResourceType());
+					ThrowFHIRExceptions.unprocessableEntityException("subject search allows Only Patient Resource, but provided "+theSubject.getResourceType());
 				}
 			}
 		}
@@ -262,14 +263,6 @@ public class ObservationResourceProvider implements IResourceProvider {
 		return new MethodOutcome();
 	}
 	
-	private void errorProcessing(String msg) {
-		OperationOutcome outcome = new OperationOutcome();
-		CodeableConcept detailCode = new CodeableConcept();
-		detailCode.setText(msg);
-		outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
-		throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);		
-	}
-
 	// TODO: Add more validation code here.
 	private void validateResource(Observation theObservation) {
 		OperationOutcome outcome = new OperationOutcome();

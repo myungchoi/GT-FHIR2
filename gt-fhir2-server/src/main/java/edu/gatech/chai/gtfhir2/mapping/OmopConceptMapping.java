@@ -16,6 +16,7 @@ public enum OmopConceptMapping {
 	UNKNOWN(AdministrativeGender.UNKNOWN.toCode(), 8551L),
 	OTHER(AdministrativeGender.OTHER.toCode(), 8521L),
 	NULL(AdministrativeGender.NULL.toCode(),8570L),
+	
 	/*
 	 * OrganizationType Mapping
 	 */
@@ -31,6 +32,7 @@ public enum OmopConceptMapping {
 	BUS(OrganizationType.BUS.toCode(), 8844L), 
 	ORG_OTHER(OrganizationType.OTHER.toCode(), 8844L), 
 	ORG_NULL(OrganizationType.NULL.toCode(), 8844L),
+	
 	/*
 	 * Observation Category Mapping
 	 */
@@ -43,12 +45,18 @@ public enum OmopConceptMapping {
 	EXAM(ObservationCategory.EXAM.toCode(), 44803645L),
 	THERAPY(ObservationCategory.THERAPY.toCode(), 44807025L),
 	OBS_NULL(ObservationCategory.NULL.toCode(), 0L),
+	
 	/*
 	 * Encounter Class Mapping
 	 */
 	INPATIENT(V3ActCode.IMP.toCode(), 9201L),
 	OUTPATIENT(V3ActCode.AMB.toCode(), 9202L),
 	EMERGENCY(V3ActCode.EMER.toCode(), 9203L);
+	
+	/*
+	 * DocumentReference Type Mapping
+	 */
+	
 	
 	public static Long omopForAdministrativeGenderCode(String administrativeGenderCode) throws FHIRException {
 		if (administrativeGenderCode == null || administrativeGenderCode.isEmpty()) {

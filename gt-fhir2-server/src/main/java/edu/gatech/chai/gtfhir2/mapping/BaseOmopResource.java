@@ -75,10 +75,10 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 		return fhirResource;
 	}
 
-	// This needs to be overridden at every OMOP[x] class.
-	public v constructFHIR(Long fhirId, t entity) {
-		return null;
-	}
+	// This needs to be overridden at every Omop[x] class.
+//	public v constructFHIR(Long fhirId, t entity) {
+//		return null;
+//	}
 
 	/***
 	 * toFHIR this is called from FHIR provider for read operation.

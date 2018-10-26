@@ -94,7 +94,7 @@ public class PractitionerResourceProvider implements IResourceProvider {
 
 		Long id = null;
 		try {
-			id = myMapper.toDbase(thePractitioner, null);
+			id = getMyMapper().toDbase(thePractitioner, null);
 		} catch (FHIRException e) {
 			e.printStackTrace();
 			ThrowFHIRExceptions.unprocessableEntityException(e.getMessage());
@@ -105,7 +105,7 @@ public class PractitionerResourceProvider implements IResourceProvider {
 	
 	@Delete()
 	public void deletePractitioner(@IdParam IdType theId) {
-		if (myMapper.removeByFhirId(theId) <= 0) {
+		if (getMyMapper().removeByFhirId(theId) <= 0) {
 			throw new ResourceNotFoundException(theId);
 		}
 	}
