@@ -96,7 +96,7 @@
 		</init-param>
 		<init-param>
 			<param-name>enableOAuth</param-name>
-			<param-value>True</param-value>
+			<param-value>False</param-value>
 		</init-param>
 		<init-param>
 			<param-name>clientId</param-name>
@@ -112,7 +112,7 @@
 		</init-param>
 		<init-param>
 			<param-name>readOnly</param-name>
-			<param-value>False</param-value>
+			<param-value>True</param-value>
 		</init-param>
 
 		<load-on-startup>1</load-on-startup>
