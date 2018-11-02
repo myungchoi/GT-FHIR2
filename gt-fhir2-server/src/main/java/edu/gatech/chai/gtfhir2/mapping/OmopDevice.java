@@ -9,6 +9,7 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Device;
 import org.hl7.fhir.dstu3.model.Device.DeviceUdiComponent;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.slf4j.Logger;
@@ -16,13 +17,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.model.dstu2.resource.Patient;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyDevice;
 import edu.gatech.chai.gtfhir2.provider.DeviceResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.DeviceExposure;
-import edu.gatech.chai.omopv5.jpa.service.ConceptService;
 import edu.gatech.chai.omopv5.jpa.service.DeviceExposureService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -32,7 +33,7 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 	private static final Logger logger = LoggerFactory.getLogger(OmopDevice.class);
 	private static OmopDevice omopDevice = new OmopDevice();
 	
-	private ConceptService conceptService;
+//	private ConceptService conceptService;
 
 	public OmopDevice(WebApplicationContext context) {
 		super(context, DeviceExposure.class, DeviceExposureService.class, DeviceResourceProvider.getType());
@@ -45,7 +46,7 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 	}
 	
 	private void initialize(WebApplicationContext context) {
-		conceptService = context.getBean(ConceptService.class);
+//		conceptService = context.getBean(ConceptService.class);
 	}
 
 	public static OmopDevice getInstance() {
@@ -59,6 +60,10 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 		
 		// Set patient information.
 		Reference patientReference = new Reference(new IdType(PatientResourceProvider.getType(), entity.getFPerson().getId()));
+		String singleName = entity.getFPerson().getNameAsSingleString();
+		if (singleName != null && !singleName.isEmpty()) {
+			patientReference.setDisplay(singleName);
+		}
 		device.setPatient(patientReference);
 		
 		// Set device type, which is DeviceExposure concept.
@@ -86,14 +91,17 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 		if (deviceSourceValue != null) {
 			String[] sources = deviceSourceValue.split(":");
 			Coding extraCoding = new Coding();
-			if (sources.length != 2) {
+			if (sources.length != 3) {
 				// just put this in the text field
 				extraCoding.setDisplay(deviceSourceValue);
 			} else {
 				// First one is system name. See if this is FHIR URI
 				if (sources[0].startsWith("http://") || sources[0].startsWith("urn:oid")) {
-					extraCoding.setSystem(sources[0]);
-					extraCoding.setCode(sources[1]);
+					if (!systemUri.equals(sources[0]) || !code.equals(sources[1])) {
+						extraCoding.setSystem(sources[0]);
+						extraCoding.setCode(sources[1]);
+						extraCoding.setDisplay(sources[2]);
+					}
 				} else {
 					// See if we can map from our static list.
 					String fhirCodingSystem = "None";
@@ -106,10 +114,14 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 					if ("None".equals(fhirCodingSystem)) {
 						extraCoding.setSystem(sources[0]);
 						extraCoding.setCode(sources[1]);
+						extraCoding.setDisplay(sources[2]);
 						extraCoding.setUserSelected(true);
 					} else {
-						extraCoding.setSystem(fhirCodingSystem);
-						extraCoding.setCode(sources[1]);
+						if (!systemUri.equals(fhirCodingSystem) || !code.equals(sources[1])) {
+							extraCoding.setSystem(fhirCodingSystem);
+							extraCoding.setCode(sources[1]);
+							extraCoding.setDisplay(sources[2]);
+						}
 					}
 				}
 			}
@@ -206,6 +218,27 @@ public class OmopDevice extends BaseOmopResource<Device, DeviceExposure, DeviceE
 				}
 			}
 
+			break;
+		case "Patient:" + Patient.SP_RES_ID:
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
+//			String pId = (String) value;
+//			paramWrapper.setParameterType("Long");
+//			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
+//			paramWrapper.setOperators(Arrays.asList("="));
+//			paramWrapper.setValues(Arrays.asList(pId));
+//			paramWrapper.setRelationship("or");
+//			mapList.add(paramWrapper);
+			break;
+		case "Patient:" + Patient.SP_NAME:
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
+//			String patientName = ((String) value).replace("\"", "");
+//			paramWrapper.setParameterType("String");
+//			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2",
+//					"fPerson.prefixName", "fPerson.suffixName"));
+//			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
+//			paramWrapper.setValues(Arrays.asList("%" + patientName + "%"));
+//			paramWrapper.setRelationship("or");
+//			mapList.add(paramWrapper);
 			break;
 		default:
 			mapList = null;

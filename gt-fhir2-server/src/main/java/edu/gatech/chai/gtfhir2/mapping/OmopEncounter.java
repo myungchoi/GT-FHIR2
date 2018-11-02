@@ -20,6 +20,7 @@ import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.model.dstu2.resource.Patient;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.provider.EncounterResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.OrganizationResourceProvider;
@@ -209,6 +210,12 @@ public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, 
 			paramWrapper.setValues(Arrays.asList(encounterId));
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
+			break;
+		case "Patient:" + Patient.SP_RES_ID:
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
+			break;
+		case "Patient:" + Patient.SP_NAME:
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
 			break;
 		default:
 			mapList = null;

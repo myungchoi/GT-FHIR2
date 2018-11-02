@@ -40,12 +40,12 @@
 		</servlet-class>
 		<init-param>
 			<param-name>introspectUrl</param-name>
-			<param-value>http://localhost:8060/introspect</param-value>
+			<param-value>http://docker.for.mac.localhost:8060/introspect</param-value>
 			<!-- <param-value>http://smart-st.i3l.gatech.edu:9085/introspect</param-value> -->
 		</init-param>
 		<init-param>
 			<param-name>client_id</param-name>
-			<param-value>client</param-value>
+			<param-value>client_omop</param-value>
 		</init-param>
 		<init-param>
 			<param-name>client_secret</param-name>
@@ -88,11 +88,11 @@
 		</servlet-class>
 		<init-param>
 			<param-name>authServerUrl</param-name>
-			<param-value>http://localhost:8060</param-value>
+			<param-value>http://docker.for.mac.localhost:8060</param-value>
 		</init-param>
 		<init-param>
 			<param-name>introspectUrl</param-name>
-			<param-value>http://localhost:8060/introspect</param-value>
+			<param-value>http://docker.for.mac.localhost:8060/introspect</param-value>
 		</init-param>
 		<init-param>
 			<param-name>enableOAuth</param-name>
@@ -100,7 +100,7 @@
 		</init-param>
 		<init-param>
 			<param-name>clientId</param-name>
-			<param-value>client</param-value>
+			<param-value>client_omop</param-value>
 		</init-param>
 		<init-param>
 			<param-name>clientSecret</param-name>
@@ -112,7 +112,7 @@
 		</init-param>
 		<init-param>
 			<param-name>readOnly</param-name>
-			<param-value>False</param-value>
+			<param-value>True</param-value>
 		</init-param>
 
 		<load-on-startup>1</load-on-startup>

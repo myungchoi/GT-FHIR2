@@ -90,6 +90,9 @@ public class RestfulServlet extends RestfulServer {
 		DeviceUseStatementResourceProvider deviceUseStatementResourceProvider = new DeviceUseStatementResourceProvider();
 		providers.add(deviceUseStatementResourceProvider);
 		
+		DocumentReferenceResourceProvider documentReferenceResourceProvider = new DocumentReferenceResourceProvider();
+		providers.add(documentReferenceResourceProvider);
+
 //		systemTransactionProvider.addSupportedProvider(ConditionResourceProvider.getType(), conditionResourceProvider.getMyMapper());
 //		systemTransactionProvider.addSupportedProvider(EncounterResourceProvider.getType(), encounterResourceProvider.getMyMapper());
 //		systemTransactionProvider.addSupportedProvider(MedicationResourceProvider.getType(), medicationResourceProvider.getMyMapper());

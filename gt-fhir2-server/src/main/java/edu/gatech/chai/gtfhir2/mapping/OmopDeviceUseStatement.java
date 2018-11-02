@@ -24,7 +24,6 @@ import org.springframework.web.context.WebApplicationContext;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.gtfhir2.model.MyDevice;
 import edu.gatech.chai.gtfhir2.model.MyDeviceUseStatement;
-import edu.gatech.chai.gtfhir2.provider.DeviceResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.DeviceUseStatementResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PatientResourceProvider;
 import edu.gatech.chai.gtfhir2.provider.PractitionerResourceProvider;
@@ -65,7 +64,6 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 	@Override
 	public MyDeviceUseStatement constructResource(Long fhirId, DeviceExposure entity, List<String> includes) {
 		MyDeviceUseStatement deviceUseStatement = constructFHIR(fhirId, entity);
-		Long omopId = entity.getId();
 		
 		if (!includes.isEmpty()) {
 			if (includes.contains("DeviceUseStatement:device")) {
@@ -89,10 +87,24 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 		
 		// In OMOPonFHIR, both Device and DeviceUseStatement are coming from the same
 		// DeviceExposure table. Thus, Device._id = DeviceUseStatment._id
-		myDeviceUseStatement.setDevice(new Reference(new IdType(DeviceResourceProvider.getType(), fhirId)));
+		// As we use the same device_exposure for both Device and DeviceUseStatement,
+		// it would be easier for user to have a direct access to the device.
+		// So, we contain the device rather than reference it.
+		MyDevice myDevice = OmopDevice.getInstance().constructFHIR(fhirId, entity);
+		myDeviceUseStatement.addContained(myDevice);
+		
+		// Set the Id as a local id.
+		myDeviceUseStatement.setDevice(new Reference("#"+String.valueOf(fhirId)));
+		
+//		myDeviceUseStatement.setDevice(new Reference(new IdType(DeviceResourceProvider.getType(), fhirId)));
 		
 		// set subject, which is a patient.
-		myDeviceUseStatement.setSubject(new Reference(new IdType(PatientResourceProvider.getType(), entity.getFPerson().getId())));
+		Reference patientReference = new Reference(new IdType(PatientResourceProvider.getType(), entity.getFPerson().getId()));
+		String singleName = entity.getFPerson().getNameAsSingleString();
+		if (singleName != null && !singleName.isEmpty()) {
+			patientReference.setDisplay(singleName);
+		}
+		myDeviceUseStatement.setSubject(patientReference);
 		
 		// set when this device is used.
 		Period whenUsedPeriod = new Period();
@@ -156,23 +168,25 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 			mapList.add(paramWrapper);
 			break;
 		case "Patient:" + Patient.SP_RES_ID:
-			String pId = (String) value;
-			paramWrapper.setParameterType("Long");
-			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
-			paramWrapper.setOperators(Arrays.asList("="));
-			paramWrapper.setValues(Arrays.asList(pId));
-			paramWrapper.setRelationship("or");
-			mapList.add(paramWrapper);
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
+//			String pId = (String) value;
+//			paramWrapper.setParameterType("Long");
+//			paramWrapper.setParameters(Arrays.asList("fPerson.id"));
+//			paramWrapper.setOperators(Arrays.asList("="));
+//			paramWrapper.setValues(Arrays.asList(pId));
+//			paramWrapper.setRelationship("or");
+//			mapList.add(paramWrapper);
 			break;
 		case "Patient:" + Patient.SP_NAME:
-			String patientName = (String) value;
-			paramWrapper.setParameterType("String");
-			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2",
-					"fPerson.prefixName", "fPerson.suffixName"));
-			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
-			paramWrapper.setValues(Arrays.asList("%" + patientName + "%"));
-			paramWrapper.setRelationship("or");
-			mapList.add(paramWrapper);
+			addParamlistForPatientIDName(parameter, (String)value, paramWrapper, mapList);
+//			String patientName = (String) value;
+//			paramWrapper.setParameterType("String");
+//			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2",
+//					"fPerson.prefixName", "fPerson.suffixName"));
+//			paramWrapper.setOperators(Arrays.asList("like", "like", "like", "like", "like"));
+//			paramWrapper.setValues(Arrays.asList("%" + patientName + "%"));
+//			paramWrapper.setRelationship("or");
+//			mapList.add(paramWrapper);
 			break;
 		default:
 			mapList = null;
@@ -310,7 +324,6 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 					}
 				} catch (FHIRException e) {
 					e.printStackTrace();
-					
 				}
 			}
 			

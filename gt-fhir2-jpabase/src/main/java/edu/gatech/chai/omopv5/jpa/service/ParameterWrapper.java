@@ -165,9 +165,9 @@ public class ParameterWrapper {
 
 					if (oper.equalsIgnoreCase("like")) {
 						if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-							subWhere = builder.or(subWhere, builder.like(path, valueName));
+							subWhere = builder.or(subWhere, builder.like(builder.lower(path), valueName.toLowerCase()));
 						} else {
-							subWhere = builder.and(subWhere, builder.like(path, valueName));
+							subWhere = builder.and(subWhere, builder.like(builder.lower(path), valueName.toLowerCase()));
 						}
 					} else if (oper.equalsIgnoreCase("=")) {
 						if (param.getRelationship() == null || param.getRelationship().equals("or")) {
@@ -183,9 +183,9 @@ public class ParameterWrapper {
 						}
 					} else {
 						if (param.getRelationship() == null || param.getRelationship().equals("or")) {
-							subWhere = builder.or(subWhere, builder.notLike(path, valueName));
+							subWhere = builder.or(subWhere, builder.notLike(builder.lower(path), valueName.toLowerCase()));
 						} else {
-							subWhere = builder.and(subWhere, builder.notLike(path, valueName));
+							subWhere = builder.and(subWhere, builder.notLike(builder.lower(path), valueName.toLowerCase()));
 						}
 					}
 				}

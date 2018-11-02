@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.hl7.fhir.dstu3.model.Device;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.web.context.ContextLoaderListener;
@@ -20,6 +21,7 @@ import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
@@ -119,6 +121,7 @@ public class DeviceResourceProvider implements IResourceProvider {
 
 	@Search()
 	public IBundleProvider findDevicesByParams(
+			@OptionalParam(name=Device.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient, 
 			@OptionalParam(name=Device.SP_TYPE) TokenOrListParam theOrTypes
 			) {
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
@@ -133,6 +136,21 @@ public class DeviceResourceProvider implements IResourceProvider {
 				paramList.addAll(getMyMapper().mapParameter (Device.SP_TYPE, type, orValue));
 			}
 		}
+		
+		if (thePatient != null) {
+			String patientChain = thePatient.getChain();
+			if (patientChain != null) {
+				if (Patient.SP_NAME.equals(patientChain)) {
+					String thePatientName = thePatient.getValue();
+					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_NAME, thePatientName, false));
+				} else if ("".equals(patientChain)) {
+					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getValue(), false));
+				}
+			} else {
+				paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getIdPart(), false));
+			}
+		}
+
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
 		myBundleProvider.setPreferredPageSize(preferredPageSize);
