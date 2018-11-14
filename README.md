@@ -34,14 +34,7 @@ Application URLs
 
 Additional Information
 -
-Status: work-in-progress
-
-Patient: 
-- Write a single patient
-- Search without and with parameter: (by family name) adding more
-
-Organization:
-- Basic read.
+Status: Details available in http://omoponfhir.org/
 
 Contributors:
 - Lead: Myung Choi
