@@ -150,6 +150,8 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 			break;
 		case "Patient:" + Patient.SP_NAME:
 			String patientName = value.replace("\"", "");
+			patientName = patientName.replace("'", "");
+			
 			paramWrapper.setParameterType("String");
 			paramWrapper.setParameters(Arrays.asList("fPerson.familyName", "fPerson.givenName1", "fPerson.givenName2",
 					"fPerson.prefixName", "fPerson.suffixName"));
