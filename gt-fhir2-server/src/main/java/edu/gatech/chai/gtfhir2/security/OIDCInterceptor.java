@@ -6,10 +6,12 @@ package edu.gatech.chai.gtfhir2.security;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.uhn.fhir.rest.api.RequestTypeEnum;
 import ca.uhn.fhir.rest.api.RestOperationTypeEnum;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 //import ca.uhn.fhir.rest.method.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
+import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
 import ca.uhn.fhir.rest.server.interceptor.InterceptorAdapter;
 
 /**
@@ -35,22 +37,25 @@ public class OIDCInterceptor extends InterceptorAdapter {
 	public boolean incomingRequestPostProcessed(RequestDetails theRequestDetails, HttpServletRequest theRequest,
 			HttpServletResponse theResponse) throws AuthenticationException {
 
-		System.out.println("[OAuth] Request from " + theRequest.getRemoteAddr());
+		ourLog.debug("[OAuth] Request from " + theRequest.getRemoteAddr());
 
 		if (readOnly.equalsIgnoreCase("True")) {
-			if (theRequest.getMethod().equalsIgnoreCase("GET"))
+			if (theRequest.getMethod().equalsIgnoreCase("GET")) {
 				return true;
-			else
-				return false;
+			} else {
+				RequestTypeEnum[] allowedMethod = new RequestTypeEnum[] {RequestTypeEnum.GET};
+				throw new MethodNotAllowedException("Server Running in Read Only", allowedMethod);
+//				return false;
+			}
 		}
 		
 		if (enableOAuth.equalsIgnoreCase("False")) {
-			System.out.println("[OAuth] OAuth is disabled. Request from " + theRequest.getRemoteAddr() + "is approved");
+			ourLog.debug("[OAuth] OAuth is disabled. Request from " + theRequest.getRemoteAddr() + "is approved");
 			return true;
 		}
 		
 		if (theRequestDetails.getRestOperationType() == RestOperationTypeEnum.METADATA) {
-			System.out.println("This is METADATA request.");
+			ourLog.debug("This is METADATA request.");
 
 			// Enumeration<String> headerNames = theRequest.getHeaderNames();
 			// while (headerNames.hasMoreElements()) {
@@ -104,7 +109,7 @@ public class OIDCInterceptor extends InterceptorAdapter {
 		// resourceOperationType:"+resourceOperationType);
 
 		// checking Auth
-		System.out.println("IntrospectURL:" + getIntrospectUrl() + " clientID:" + getClientId() + " clientSecret:"
+		ourLog.debug("IntrospectURL:" + getIntrospectUrl() + " clientID:" + getClientId() + " clientSecret:"
 				+ getClientSecret());
 		Authorization myAuth = new Authorization(getIntrospectUrl(), getClientId(), getClientSecret());
 
