@@ -26,6 +26,7 @@ After updating the ENV variables in the Dockerfile start the application
 ```
 sudo docker-compose up --build -d
 ```
+NOTE: The GT-FHIR2 is set to READ-ONLY. If you want to write to GT-FHIR2, web.xml in WEB-INFO must have readOnly set to False.
 
 Application URLs
 -
