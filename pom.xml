@@ -37,8 +37,8 @@
 	</description>
 
 	<modules>
-		<module>gt-fhir2-jpabase</module>
-		<module>gt-fhir2-server</module>
+		<module>omoponfhir-omopv5-jpabase</module>
+		<module>omoponfhir-stu3-server</module>
 	</modules>
 
 	<dependencies>
