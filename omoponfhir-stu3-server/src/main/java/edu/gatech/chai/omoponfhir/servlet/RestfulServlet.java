@@ -116,7 +116,7 @@ public class RestfulServlet extends RestfulServer {
 		 */
 		FifoMemoryPagingProvider pp = new FifoMemoryPagingProvider(5);
 		pp.setDefaultPageSize(50);
-		pp.setMaximumPageSize(200);
+		pp.setMaximumPageSize(100000);
 		setPagingProvider(pp);
 
 		/*
