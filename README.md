@@ -2,6 +2,7 @@ GT-FHIR2: Georgia Tech - OmopOnFHIR Implementation version 2
 =
 - Supports OMOP v5
 - Supports STU3
+- [WIP] Supports DSTU2 -- currently work in progress. omoponfhir-dstu2-server/ is just copy of omoponfhir-stu3-server. When it's completed, pom and dockerfile will include this directory.
 
 Database Dependencies
 -
@@ -26,6 +27,7 @@ After updating the ENV variables in the Dockerfile start the application
 ```
 sudo docker-compose up --build -d
 ```
+NOTE: The GT-FHIR2 is set to READ-ONLY. If you want to write to GT-FHIR2, web.xml in WEB-INFO must have readOnly set to False.
 
 Application URLs
 -
