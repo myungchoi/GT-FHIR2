@@ -17,6 +17,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
@@ -34,6 +35,7 @@ import ca.uhn.fhir.rest.annotation.ServerBase;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.StringParam;
@@ -301,29 +303,57 @@ public class PatientResourceProvider implements IResourceProvider {
 	 * $everything operation for a single patient.
 	 */
 	@Operation(name = "$everything", idempotent = true)
-	public Bundle patientEverythingOperation(@IdParam IdType thePatientId, @OperationParam(name = "start") DateType theStart,
-			@OperationParam(name = "end") DateType theEnd, @ServerBase String serverBase) {
+	public IBundleProvider patientEverythingOperation(RequestDetails theRequestDetails, @IdParam IdType thePatientId, @OperationParam(name = "start") DateType theStart,
+			@OperationParam(name = "end") DateType theEnd) {
 
-		Date startDate = null;
-		Date endDate = null;
-		
 		if (thePatientId == null) {
-			// We do not support /Patient/$everything now. Return error.
-			ThrowFHIRExceptions.unprocessableEntityException("Patient ID is requred for this operation");
-		}
-		if (theStart != null) {
-			startDate = theStart.getValue();
+			ThrowFHIRExceptions.unprocessableEntityException("Patient Id must be present");
 		}
 		
-		if (theEnd != null) {
-			endDate = theEnd.getValue();
-		}
+		Date startDate = null;
+		if (theStart != null) startDate = theStart.getValue();
 		
-		String baseUrl = thePatientId.getBaseUrl();
-		System.out.println("TEST!!!!!!! baseUrl:"+serverBase);
-		Bundle retVal = getMyMapper().getEverthingfor(baseUrl, thePatientId.getIdPartAsLong(), startDate, endDate);
+		Date endDate = null;
+		if (theEnd != null) endDate = theEnd.getValue();
 
-		return retVal;
+//		final IdType patientId = thePatientId;
+//		final String baseUrl = theRequestDetails.getFhirServerBase();
+		
+		List<IBaseResource> resources = new ArrayList<IBaseResource>();
+		resources.add(getMyMapper().toFHIR(thePatientId));
+
+		getMyMapper().getEverthingfor(resources, thePatientId.getIdPartAsLong(), startDate, endDate);
+		
+		final List<IBaseResource> retv = resources;
+		final Integer totalsize = retv.size();
+		final Integer pageSize = preferredPageSize;
+		
+		return new IBundleProvider() {
+			@Override
+			public IPrimitiveType<Date> getPublished() {
+				return null;
+			}
+
+			@Override
+			public List<IBaseResource> getResources(int theFromIndex, int theToIndex) {
+				return retv.subList(theFromIndex, theToIndex);
+			}
+
+			@Override
+			public String getUuid() {
+				return null;
+			}
+
+			@Override
+			public Integer preferredPageSize() {
+				return pageSize;
+			}
+
+			@Override
+			public Integer size() {
+				return totalsize;
+			}
+		};
 	}
 
 	/**

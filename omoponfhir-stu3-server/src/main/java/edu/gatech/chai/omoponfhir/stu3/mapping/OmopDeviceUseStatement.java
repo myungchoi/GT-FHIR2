@@ -18,6 +18,8 @@ import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IIdType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -40,6 +42,9 @@ import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 
 public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatement, DeviceExposure, DeviceExposureService>
 		implements IResourceMapping<MyDeviceUseStatement, DeviceExposure> {
+	
+	private static final Logger logger = LoggerFactory.getLogger(OmopDeviceUseStatement.class);
+	private static OmopDeviceUseStatement omopDeviceUseStatement = new OmopDeviceUseStatement();
 
 	private ConceptService conceptService;
 	private FPersonService fPersonService;
@@ -59,6 +64,10 @@ public class OmopDeviceUseStatement extends BaseOmopResource<MyDeviceUseStatemen
 		conceptService = context.getBean(ConceptService.class);
 		fPersonService = context.getBean(FPersonService.class);
 		providerService = context.getBean(ProviderService.class);
+	}
+	
+	public static OmopDeviceUseStatement getInstance() {
+		return OmopDeviceUseStatement.omopDeviceUseStatement;
 	}
 
 	@Override

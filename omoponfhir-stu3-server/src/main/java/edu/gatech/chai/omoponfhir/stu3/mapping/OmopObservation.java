@@ -13,7 +13,6 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DateTimeType;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Observation.ObservationComponentComponent;
@@ -55,8 +54,8 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 	private static OmopObservation omopObservation = new OmopObservation();
 
-	public static final Long SYSTOLIC_CONCEPT_ID = 3004249L;
-	public static final Long DIASTOLIC_CONCEPT_ID = 3012888L;
+	public static final long SYSTOLIC_CONCEPT_ID = 3004249L;
+	public static final long DIASTOLIC_CONCEPT_ID = 3012888L;
 	public static final String SYSTOLIC_LOINC_CODE = "8480-6";
 	public static final String DIASTOLIC_LOINC_CODE = "8462-4";
 	public static final String BP_SYSTOLIC_DIASTOLIC_CODE = "85354-9";
@@ -92,7 +91,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	}
 
 	public static OmopObservation getInstance() {
-		return omopObservation;
+		return OmopObservation.omopObservation;
 	}
 
 	@Override
@@ -118,7 +117,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		// together. The Observation ID will be systolic's OMOP ID.
 		// public static final Long SYSTOLIC_CONCEPT_ID = new Long(3004249);
 		// public static final Long DIASTOLIC_CONCEPT_ID = new Long(3012888);
-		if (SYSTOLIC_CONCEPT_ID.equals(fObservationView.getObservationConcept().getId())) {
+		if (OmopObservation.SYSTOLIC_CONCEPT_ID == fObservationView.getObservationConcept().getId()) {
 			// Set coding for systolic and diastolic observation
 			systemUriString = OmopCodeableConceptMapping.LOINC.getFhirUri();
 			codeString = BP_SYSTOLIC_DIASTOLIC_CODE;

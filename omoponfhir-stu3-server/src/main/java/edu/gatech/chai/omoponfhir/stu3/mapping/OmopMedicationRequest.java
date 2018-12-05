@@ -96,7 +96,7 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 	}
 
 	public static OmopMedicationRequest getInstance() {
-		return omopMedicationRequest;
+		return OmopMedicationRequest.omopMedicationRequest;
 	}
 	
 	@Override
@@ -388,7 +388,7 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 			"Long",
 			Arrays.asList("drugTypeConcept.id"),
 			Arrays.asList("="),
-			Arrays.asList(String.valueOf(MEDICATIONREQUEST_CONCEPT_TYPE_ID)),
+			Arrays.asList(String.valueOf(OmopMedicationRequest.MEDICATIONREQUEST_CONCEPT_TYPE_ID)),
 			"or"
 			);
 

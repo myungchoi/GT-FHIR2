@@ -57,7 +57,7 @@ public class OmopCondition extends BaseOmopResource<Condition, ConditionOccurren
     }
 
     public static OmopCondition getInstance() {
-        return omopCondition;
+        return OmopCondition.omopCondition;
     }
 
     @Override

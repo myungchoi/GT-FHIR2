@@ -64,7 +64,7 @@ public class OmopEncounter extends BaseOmopResource<Encounter, VisitOccurrence, 
 	}
 
 	public static OmopEncounter getInstance() {
-		return omopEncounter;
+		return OmopEncounter.omopEncounter;
 	}
 
 	@Override

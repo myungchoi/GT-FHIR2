@@ -70,7 +70,7 @@ public class OmopProcedure extends BaseOmopResource<Procedure, ProcedureOccurren
 	}
 	
 	public static OmopProcedure getInstance() {
-		return omopProcedure;
+		return OmopProcedure.omopProcedure;
 	}
 	
 	@Override

@@ -83,7 +83,7 @@ public class OmopDocumentReference extends BaseOmopResource<DocumentReference, N
 	}
 
 	public static OmopDocumentReference getInstance() {
-		return omopDocumentReference;
+		return OmopDocumentReference.omopDocumentReference;
 	}
 
 	@Override

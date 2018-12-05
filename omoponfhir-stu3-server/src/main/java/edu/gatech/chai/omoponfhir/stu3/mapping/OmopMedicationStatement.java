@@ -110,7 +110,7 @@ public class OmopMedicationStatement extends BaseOmopResource<MedicationStatemen
 	}
 
 	public static OmopMedicationStatement getInstance() {
-		return omopMedicationStatement;
+		return OmopMedicationStatement.omopMedicationStatement;
 	}
 
 	@Override

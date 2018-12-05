@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Condition;
 import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.Encounter;
 import org.hl7.fhir.dstu3.model.HumanName;
@@ -35,17 +36,23 @@ import org.hl7.fhir.instance.model.api.IIdType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
+import edu.gatech.chai.omoponfhir.stu3.model.MyDeviceUseStatement;
 import edu.gatech.chai.omoponfhir.stu3.model.MyOrganization;
+import edu.gatech.chai.omoponfhir.stu3.provider.ConditionResourceProvider;
+import edu.gatech.chai.omoponfhir.stu3.provider.DeviceUseStatementResourceProvider;
 import edu.gatech.chai.omoponfhir.stu3.provider.EncounterResourceProvider;
 import edu.gatech.chai.omoponfhir.stu3.provider.OrganizationResourceProvider;
 import edu.gatech.chai.omoponfhir.stu3.provider.PatientResourceProvider;
 import edu.gatech.chai.omoponfhir.stu3.provider.PractitionerResourceProvider;
 import edu.gatech.chai.omoponfhir.stu3.utilities.AddressUtil;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
+import edu.gatech.chai.omopv5.jpa.entity.ConditionOccurrence;
+import edu.gatech.chai.omopv5.jpa.entity.DeviceExposure;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Location;
 import edu.gatech.chai.omopv5.jpa.entity.Provider;
@@ -911,17 +918,44 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		return fperson;
 	}
 
-	public Bundle getEverthingfor(String baseUrl, Long patientId, Date startDate, Date endDate) {
-		Bundle bundle = new Bundle();
+	private ParameterWrapper constructDateParameterWrapper(List<String> keys, Date startDate, Date endDate) {
+		String key1, key2;
 
-		String fullBaseUrl = "";
-		if (baseUrl != null && !baseUrl.isEmpty()) {
-			if (baseUrl.endsWith("/")) {
-				fullBaseUrl = baseUrl;
-			} else {
-				fullBaseUrl = baseUrl+"/";
-			}
+		key1 = keys.get(0);
+		key2 = keys.get(0);
+		if (keys.size() == 2) {
+			key2 = keys.get(1);
 		}
+
+		ParameterWrapper dateParamWrapper = new ParameterWrapper();
+		dateParamWrapper.setUpperRelationship("and");
+		if (startDate != null && endDate != null) {
+			dateParamWrapper.setParameterType("Date");
+			dateParamWrapper.setParameters(Arrays.asList(key1, key2));
+			dateParamWrapper.setOperators(Arrays.asList(">=", "<="));
+			dateParamWrapper
+					.setValues(Arrays.asList(String.valueOf(startDate.getTime()), String.valueOf(endDate.getTime())));
+			dateParamWrapper.setRelationship("and");
+		} else if (startDate != null) {
+			dateParamWrapper.setParameterType("Date");
+			dateParamWrapper.setParameters(Arrays.asList(key1));
+			dateParamWrapper.setOperators(Arrays.asList(">="));
+			dateParamWrapper.setValues(Arrays.asList(String.valueOf(startDate.getTime())));
+			dateParamWrapper.setRelationship("or");
+		} else if (endDate != null) {
+			dateParamWrapper.setParameterType("Date");
+			dateParamWrapper.setParameters(Arrays.asList(key1));
+			dateParamWrapper.setOperators(Arrays.asList("<="));
+			dateParamWrapper.setValues(Arrays.asList(String.valueOf(endDate.getTime())));
+			dateParamWrapper.setRelationship("or");
+		} else {
+			return null;
+		}
+
+		return dateParamWrapper;
+	}
+
+	public void getEverthingfor(List<IBaseResource> resources, Long patientId, Date startDate, Date endDate) {
 		// OMOP Tables that references the patient are as follows.
 		// * condition_occurrence : Condition
 		// * death : death on FHIR (need to revisit) TODO
@@ -931,56 +965,93 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		// * note : DocumentReference
 		// * procedure_occurrence : Procecure
 		// * visit_occurrence: : Encounter
-		List<ParameterWrapper> mapList = new ArrayList<ParameterWrapper>();
+
 		ParameterWrapper paramWrapper = new ParameterWrapper();
-		paramWrapper.setUpperRelationship("and");
-
-		if (patientId == null || patientId == 0L) {
-			// We have invalid patient Id. Return Empty.
-			return bundle;
-		}
-
 		String pId = String.valueOf(patientId);
 		paramWrapper.setParameterType("Long");
 		paramWrapper.setParameters(Arrays.asList("fPerson.id"));
 		paramWrapper.setOperators(Arrays.asList("="));
 		paramWrapper.setValues(Arrays.asList(pId));
 		paramWrapper.setRelationship("or");
-		mapList.add(paramWrapper);
+		paramWrapper.setUpperRelationship("and");
 
-		// Create mapList if startDate or endDate is available.
-		if (startDate != null) {
-			paramWrapper.setParameterType("Date");
-			paramWrapper.setParameters(Arrays.asList("date"));
-			paramWrapper.setOperators(Arrays.asList(">="));
-			paramWrapper.setValues(Arrays.asList(String.valueOf(startDate.getTime())));
-			paramWrapper.setRelationship("or");
-			mapList.add(paramWrapper);
-		}
-		if (endDate != null) {
-			paramWrapper.setParameterType("Date");
-			paramWrapper.setParameters(Arrays.asList("date"));
-			paramWrapper.setOperators(Arrays.asList("<="));
-			paramWrapper.setValues(Arrays.asList(String.valueOf(endDate.getTime())));
-			paramWrapper.setRelationship("or");
-			mapList.add(paramWrapper);
+		// Condition Occurrence.
+		List<ParameterWrapper> conditionMapList = new ArrayList<ParameterWrapper>();
+		conditionMapList.add(paramWrapper);
+		ParameterWrapper dateParamWrapper = constructDateParameterWrapper(Arrays.asList("startDate", "endDate"), startDate, endDate);
+		if (dateParamWrapper != null) {
+			conditionMapList.add(dateParamWrapper);
 		}
 
-		int total = 0;
+		OmopCondition omopConditionMapper = OmopCondition.getInstance();
+		omopConditionMapper.searchWithParams(0, 0, conditionMapList, resources, new ArrayList<String>());
+
+		// device_exposure : DeviceUseStatement
+		List<ParameterWrapper> deviceMapList = new ArrayList<ParameterWrapper>();
+		deviceMapList.add(paramWrapper);
+		dateParamWrapper = constructDateParameterWrapper(
+				Arrays.asList("deviceExposureStartDate", "deviceExposureEndDate"), startDate, endDate);
+		if (dateParamWrapper != null) {
+			deviceMapList.add(dateParamWrapper);
+		}
+
+		OmopDeviceUseStatement omopDeviceUseStatementMapper = OmopDeviceUseStatement.getInstance();
+		omopDeviceUseStatementMapper.searchWithParams(0, 0, deviceMapList, resources, new ArrayList<String>());
+
+		// drug_exposure : Medication[x]
+		List<ParameterWrapper> medicationStatementMapList = new ArrayList<ParameterWrapper>();
+		medicationStatementMapList.add(paramWrapper);
+		dateParamWrapper = constructDateParameterWrapper(Arrays.asList("drugExposureStartDate", "drugExposureEndDate"),
+				startDate, endDate);
+		if (dateParamWrapper != null) {
+			medicationStatementMapList.add(dateParamWrapper);
+		}
 		
-		// First, generate Patient Resource.
-		FPerson fPerson = getMyOmopService()
-				.findById(IdMapping.getOMOPfromFHIR(patientId, PatientResourceProvider.getType()));
-		Patient patientResource = constructFHIR(patientId, fPerson);
-		BundleEntryComponent entryComponent = new BundleEntryComponent();
-		entryComponent.setFullUrl(fullBaseUrl+PatientResourceProvider.getType()+"/"+patientId);
-		entryComponent.setResource(patientResource);
+		OmopMedicationStatement omopMedicationStatementMapper = OmopMedicationStatement.getInstance();
+		omopMedicationStatementMapper.searchWithParams(0, 0, medicationStatementMapList, resources, new ArrayList<String>());
 		
-		bundle.addEntry(entryComponent);
-		bundle.setTotal(++total);
-		bundle.setType(BundleType.SEARCHSET);
+		// measurement & observation : Observation
+		List<ParameterWrapper> fobservationMapList = new ArrayList<ParameterWrapper>();
+		fobservationMapList.add(paramWrapper);
+		dateParamWrapper = constructDateParameterWrapper(Arrays.asList("date"), startDate, endDate);
+		if (dateParamWrapper != null) {
+			fobservationMapList.add(dateParamWrapper);
+		}
 		
-		return bundle;
+		OmopObservation omopObservationMapper = OmopObservation.getInstance();
+		omopObservationMapper.searchWithParams(0, 0, fobservationMapList, resources, new ArrayList<String>());
+		
+		// note : DocumentReference
+		List<ParameterWrapper> noteMapList = new ArrayList<ParameterWrapper>();
+		noteMapList.add(paramWrapper);
+		if (dateParamWrapper != null) {
+			noteMapList.add(dateParamWrapper);
+		}
+		
+		OmopDocumentReference omopDocumentReferenceMapper = OmopDocumentReference.getInstance();
+		omopDocumentReferenceMapper.searchWithParams(0, 0, noteMapList, resources, new ArrayList<String>());
+		
+		// procedure_occurrence : Procecure
+		List<ParameterWrapper> procedureMapList = new ArrayList<ParameterWrapper>();
+		procedureMapList.add(paramWrapper);
+		dateParamWrapper = constructDateParameterWrapper(Arrays.asList("procedureDate"), startDate, endDate);
+		if (dateParamWrapper != null) {
+			procedureMapList.add(dateParamWrapper);
+		}
+		
+		OmopProcedure omopProcedureMapper = OmopProcedure.getInstance();
+		omopProcedureMapper.searchWithParams(0, 0, procedureMapList, resources, new ArrayList<String>());
+
+		// * visit_occurrence: : Encounter
+		List<ParameterWrapper> visitMapList = new ArrayList<ParameterWrapper>();
+		visitMapList.add(paramWrapper);
+		dateParamWrapper = constructDateParameterWrapper(Arrays.asList("startDate", "endDate"), startDate, endDate);
+		if (dateParamWrapper != null) {
+			visitMapList.add(dateParamWrapper);
+		}
+		
+		OmopEncounter omopEncounterMapper = OmopEncounter.getInstance();
+		omopEncounterMapper.searchWithParams(0, 0, visitMapList, resources, new ArrayList<String>());
 	}
 
 	// // Move below to Address
