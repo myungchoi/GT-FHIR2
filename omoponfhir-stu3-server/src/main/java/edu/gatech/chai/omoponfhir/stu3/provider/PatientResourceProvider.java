@@ -326,7 +326,7 @@ public class PatientResourceProvider implements IResourceProvider {
 		
 		final List<IBaseResource> retv = resources;
 		final Integer totalsize = retv.size();
-		final Integer pageSize = preferredPageSize;
+		final Integer pageSize = totalsize; // Some clients do not support pagination. preferredPageSize;
 		
 		return new IBundleProvider() {
 			@Override
