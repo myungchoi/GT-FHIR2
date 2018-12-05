@@ -2,6 +2,7 @@ GT-FHIR2: Georgia Tech - OmopOnFHIR Implementation version 2
 =
 - Supports OMOP v5
 - Supports STU3
+- [WIP] Supports DSTU2 -- currently work in progress. omoponfhir-dstu2-server/ is just copy of omoponfhir-stu3-server. When it's completed, pom and dockerfile will include this directory.
 
 Database Dependencies
 -
