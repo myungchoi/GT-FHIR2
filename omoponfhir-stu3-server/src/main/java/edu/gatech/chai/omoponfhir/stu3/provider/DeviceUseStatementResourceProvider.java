@@ -246,9 +246,9 @@ public class DeviceUseStatementResourceProvider implements IResourceProvider {
 			}
 
 			if (paramList.size() == 0) {
-				getMyMapper().searchWithoutParams(theFromIndex, theToIndex, retv, includes);
+				getMyMapper().searchWithoutParams(theFromIndex, theToIndex, retv, includes, null);
 			} else {
-				getMyMapper().searchWithParams(theFromIndex, theToIndex, paramList, retv, includes);
+				getMyMapper().searchWithParams(theFromIndex, theToIndex, paramList, retv, includes, null);
 			}
 
 			return retv;

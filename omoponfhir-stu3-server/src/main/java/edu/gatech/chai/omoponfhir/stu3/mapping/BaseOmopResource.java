@@ -97,8 +97,8 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 	}
 
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
-			List<String> includes) {
-		List<t> entities = getMyOmopService().searchWithoutParams(fromIndex, toIndex);
+			List<String> includes, String sort) {
+		List<t> entities = getMyOmopService().searchWithoutParams(fromIndex, toIndex, sort);
 
 		// We got the results back from OMOP database. Now, we need to construct
 		// the list of
@@ -115,8 +115,8 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 	}
 
 	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> mapList,
-			List<IBaseResource> listResources, List<String> includes) {
-		List<t> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, mapList);
+			List<IBaseResource> listResources, List<String> includes, String sort) {
+		List<t> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, mapList, sort);
 
 		for (t entity : entities) {
 			Long omopId = entity.getIdAsLong();

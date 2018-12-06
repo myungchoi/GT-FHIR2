@@ -20,8 +20,8 @@ public interface IResourceMapping<v extends Resource, t extends BaseEntity> {
 	public Long getSize(List<ParameterWrapper> mapList);
 
 	public v constructResource(Long fhirId, t entity, List<String> includes);
-	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes);
-	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> map, List<IBaseResource> listResources, List<String> includes);
+	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources, List<String> includes, String sort);
+	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> map, List<IBaseResource> listResources, List<String> includes, String sort);
 
 	public List<ParameterWrapper> mapParameter(String parameter, Object value, boolean or);
 	public v constructFHIR(Long fhirId, t entity);

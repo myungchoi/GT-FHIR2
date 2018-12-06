@@ -1475,7 +1475,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				List<IBaseResource> resources = new ArrayList<IBaseResource>();
 				List<String> includes = new ArrayList<String>();
 
-				searchWithParams(0, 0, paramList, resources, includes);
+				searchWithParams(0, 0, paramList, resources, includes, null);
 				if (resources.size() > 0) {
 					IBaseResource res = resources.get(0);
 					fhirIdLong = res.getIdElement().getIdPartAsLong();
@@ -1580,10 +1580,10 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 	@Override
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
-			List<String> includes) {
+			List<String> includes, String sort) {
 
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper>();
-		searchWithParams(fromIndex, toIndex, paramList, listResources, includes);
+		searchWithParams(fromIndex, toIndex, paramList, listResources, includes, sort);
 
 		// List<ParameterWrapper> exceptions = new
 		// ArrayList<ParameterWrapper>();
@@ -1614,10 +1614,10 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> paramList,
-			List<IBaseResource> listResources, List<String> includes) {
+			List<IBaseResource> listResources, List<String> includes, String sort) {
 		paramList.add(exceptionParam4Search);
 
-		List<FObservationView> fObservationViews = getMyOmopService().searchWithParams(fromIndex, toIndex, paramList);
+		List<FObservationView> fObservationViews = getMyOmopService().searchWithParams(fromIndex, toIndex, paramList, sort);
 
 		for (FObservationView fObservationView : fObservationViews) {
 			Long omopId = fObservationView.getId();

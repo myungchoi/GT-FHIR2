@@ -47,7 +47,7 @@ public class CodeableConceptUtil {
 		List<ParameterWrapper> params = new ArrayList<ParameterWrapper>();
 		params.add(param);
 
-		List<Concept> conceptIds = conceptService.searchWithParams(0, 0, params);
+		List<Concept> conceptIds = conceptService.searchWithParams(0, 0, params, null);
 		if (conceptIds.isEmpty()) {
 			return null;
 		}

@@ -33,8 +33,11 @@ import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.ServerBase;
+import ca.uhn.fhir.rest.annotation.Sort;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.api.SortOrderEnum;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.DateParam;
@@ -131,6 +134,26 @@ public class PatientResourceProvider implements IResourceProvider {
 		}
 	}
 
+	private String constructOrderParams(SortSpec theSort) {
+		if (theSort == null) return null;
+		
+		String orderParams = new String();
+		String direction;
+		
+		if (theSort.getOrder() != null) direction = theSort.getOrder().toString();
+		else direction = "ASC";
+
+		String orderParam = getMyMapper().constructSort(theSort.getParamName(), direction);
+		if (orderParams.isEmpty()) orderParams = orderParams.concat(orderParam);
+		else orderParams = orderParams.concat(","+orderParam);
+		
+		if (theSort.getChain() != null) { 
+			orderParams = orderParams.concat(constructOrderParams(theSort.getChain()));
+		}
+		
+		return orderParams;
+	}
+	
 	/**
 	 * The "@Search" annotation indicates that this method supports the search
 	 * operation. You may have many different method annotated with this annotation,
@@ -162,10 +185,10 @@ public class PatientResourceProvider implements IResourceProvider {
 			@OptionalParam(name = Patient.SP_EMAIL) TokenParam theEmail,
 			@OptionalParam(name = Patient.SP_PHONE) TokenParam thePhone,
 			@OptionalParam(name = Patient.SP_TELECOM) TokenParam theTelecom,
-
 			@OptionalParam(name = Patient.SP_ORGANIZATION, chainWhitelist = { "",
 					Organization.SP_NAME }) ReferenceParam theOrganization,
-
+			@Sort SortSpec theSort,
+			
 			@IncludeParam(allow = { "Patient:general-practitioner", "Patient:organization",
 					"Patient:link" }) final Set<Include> theIncludes,
 
@@ -245,10 +268,15 @@ public class PatientResourceProvider implements IResourceProvider {
 						theOrganization.getIdPart(), false));
 			}
 		}
+		
+		String orderParams = constructOrderParams(theSort);
+		System.out.println("MYSORT!!! "+orderParams);
 
 		MyBundleProvider myBundleProvider = new MyBundleProvider(paramList, theIncludes, theReverseIncludes);
 		myBundleProvider.setTotalSize(getTotalSize(paramList));
 		myBundleProvider.setPreferredPageSize(preferredPageSize);
+		myBundleProvider.setOrderParams(orderParams);
+		
 		return myBundleProvider;
 
 	}
@@ -380,6 +408,7 @@ public class PatientResourceProvider implements IResourceProvider {
 	class MyBundleProvider extends OmopFhirBundleProvider implements IBundleProvider {
 		Set<Include> theIncludes;
 		Set<Include> theReverseIncludes;
+		String orderParams = null;
 
 		public MyBundleProvider(List<ParameterWrapper> paramList, Set<Include> theIncludes,
 				Set<Include> theReverseIncludes) {
@@ -389,6 +418,14 @@ public class PatientResourceProvider implements IResourceProvider {
 			this.theReverseIncludes = theReverseIncludes;
 		}
 
+		public String getOrderParams() {
+			return this.orderParams;
+		}
+		
+		public void setOrderParams(String orderParams) {
+			this.orderParams = orderParams;
+		}
+		
 		@Override
 		public List<IBaseResource> getResources(int fromIndex, int toIndex) {
 			List<IBaseResource> retv = new ArrayList<IBaseResource>();
@@ -448,10 +485,11 @@ public class PatientResourceProvider implements IResourceProvider {
 				}
 			}
 
+			System.out.println("SORT!!!!!! "+orderParams);
 			if (paramList.size() == 0) {
-				getMyMapper().searchWithoutParams(fromIndex, toIndex, retv, includes);
+				getMyMapper().searchWithoutParams(fromIndex, toIndex, retv, includes, orderParams);
 			} else {
-				getMyMapper().searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+				getMyMapper().searchWithParams(fromIndex, toIndex, paramList, retv, includes, orderParams);
 			}
 
 			return retv;

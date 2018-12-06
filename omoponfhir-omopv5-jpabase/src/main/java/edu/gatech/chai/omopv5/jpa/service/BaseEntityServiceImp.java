@@ -9,6 +9,7 @@ import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Order;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
@@ -117,8 +118,27 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		return em.createQuery(query).getSingleResult();
 	}
 	
+	protected List<Order> addSort (CriteriaBuilder builder, Root<T> root, String sort) {
+		List<Order> orders = new ArrayList<Order>();
+		if (sort != null && !sort.isEmpty()) {
+			String[] sort_ = sort.split(",");
+			for (int i=0; i<sort_.length; i++) {
+				String[] items = sort_[i].split(" ");
+				if ("ASC".equals(items[1])) {
+					orders.add(builder.asc(root.get(items[0])));
+				} else {
+					orders.add(builder.desc(root.get(items[0])));
+				}
+			}
+		} else {
+			orders.add(builder.asc(root.get("id")));
+		}
+		
+		return orders;
+	}
+	
 	@Transactional(readOnly = true)
-	public List<T> searchWithoutParams(int fromIndex, int toIndex) {
+	public List<T> searchWithoutParams(int fromIndex, int toIndex, String sort) {
 		int length = toIndex - fromIndex;
 		EntityManager em = vDao.getEntityManager();		
 		List<T> retvals = new ArrayList<T>();
@@ -128,7 +148,9 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 		Root<T> root = query.from(entityClass);
 		
 		query.select(root);
-		query.orderBy(builder.asc(root.get("id")));
+		
+		// Sort		
+		query.orderBy(addSort(builder, root, sort));
 		
 		if (length <= 0) {
 			retvals = em.createQuery(query)
@@ -143,7 +165,7 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	}
 
 	@Transactional(readOnly = true)
-	public List<T> searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> paramList) {
+	public List<T> searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> paramList, String sort) {
 		int length = toIndex - fromIndex;
 		EntityManager em = vDao.getEntityManager();
 		CriteriaBuilder builder = em.getCriteriaBuilder();
@@ -157,6 +179,9 @@ public abstract class BaseEntityServiceImp<T extends BaseEntity, V extends BaseE
 	
 		query.select(root);
 		query.where(builder.and(predicates.toArray(new Predicate[predicates.size()])));
+
+		// Sort		
+		query.orderBy(addSort(builder, root, sort));
 
 		if (length <= 0) {
 			retvals = em.createQuery(query)

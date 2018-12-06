@@ -408,20 +408,20 @@ public class OmopMedicationRequest extends BaseOmopResource<MedicationRequest, D
 
 	@Override
 	public void searchWithoutParams(int fromIndex, int toIndex, List<IBaseResource> listResources,
-			List<String> includes) {
+			List<String> includes, String sort) {
 
 		// This is read all. But, since we will add an exception conditions to add filter.
 		// we will call the search with params method.
 		List<ParameterWrapper> paramList = new ArrayList<ParameterWrapper> ();
-		searchWithParams (fromIndex, toIndex, paramList, listResources, includes);
+		searchWithParams (fromIndex, toIndex, paramList, listResources, includes, sort);
 	}
 
 	@Override
 	public void searchWithParams(int fromIndex, int toIndex, List<ParameterWrapper> mapList,
-			List<IBaseResource> listResources, List<String> includes) {
+			List<IBaseResource> listResources, List<String> includes, String sort) {
 		mapList.add(filterParam);
 
-		List<DrugExposure> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, mapList);
+		List<DrugExposure> entities = getMyOmopService().searchWithParams(fromIndex, toIndex, mapList, sort);
 
 		for (DrugExposure entity : entities) {
 			Long omopId = entity.getIdAsLong();

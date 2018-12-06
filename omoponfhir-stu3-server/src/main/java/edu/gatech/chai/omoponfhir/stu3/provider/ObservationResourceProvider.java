@@ -348,9 +348,9 @@ public class ObservationResourceProvider implements IResourceProvider {
 			}
 
 			if (paramList.size() == 0) {
-				getMyMapper().searchWithoutParams(fromIndex, toIndex, retv, includes);
+				getMyMapper().searchWithoutParams(fromIndex, toIndex, retv, includes, null);
 			} else {
-				getMyMapper().searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+				getMyMapper().searchWithParams(fromIndex, toIndex, paramList, retv, includes, null);
 			}
 
 			return retv;

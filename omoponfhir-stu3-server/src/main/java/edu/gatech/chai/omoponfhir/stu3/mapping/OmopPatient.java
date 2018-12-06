@@ -421,7 +421,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 
 			mapList.add(revIncludeparam);
 
-			List<VisitOccurrence> VisitOccurrences = visitOccurrenceService.searchWithParams(0, 0, mapList);
+			List<VisitOccurrence> VisitOccurrences = visitOccurrenceService.searchWithParams(0, 0, mapList, null);
 			for (VisitOccurrence visitOccurrence : VisitOccurrences) {
 				Long fhirId = IdMapping.getFHIRfromOMOP(visitOccurrence.getId(), EncounterResourceProvider.getType());
 				Encounter enc = OmopEncounter.getInstance().constructFHIR(fhirId, visitOccurrence);
@@ -731,6 +731,23 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 
 		return mapList;
 	}
+	
+	public String constructSort(String sp, String direction) {
+		String retv; 
+		if (sp.equals(Patient.SP_FAMILY)) {
+			retv = "familyName "+direction;
+		} else if (sp.equals(Patient.SP_GIVEN)) {
+			retv = "givenName1 "+direction+",givenName2 "+direction;
+		} else if (sp.equals(Patient.SP_GENDER)) { 
+			retv = "genderConcept "+direction;
+		} else if (sp.equals(Patient.SP_BIRTHDATE)) {
+			retv = "yearOfBirth "+direction+",monthOfBirth "+direction+",dayOfBirth "+direction+",timeOfBirth "+direction;
+		} else {
+			retv = "id "+direction;
+		}
+		
+		return retv;
+	}
 
 	@Override
 	public FPerson constructOmop(Long omopId, Patient patient) {
@@ -984,7 +1001,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 
 		OmopCondition omopConditionMapper = OmopCondition.getInstance();
-		omopConditionMapper.searchWithParams(0, 0, conditionMapList, resources, new ArrayList<String>());
+		omopConditionMapper.searchWithParams(0, 0, conditionMapList, resources, new ArrayList<String>(), null);
 
 		// device_exposure : DeviceUseStatement
 		List<ParameterWrapper> deviceMapList = new ArrayList<ParameterWrapper>();
@@ -996,7 +1013,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 
 		OmopDeviceUseStatement omopDeviceUseStatementMapper = OmopDeviceUseStatement.getInstance();
-		omopDeviceUseStatementMapper.searchWithParams(0, 0, deviceMapList, resources, new ArrayList<String>());
+		omopDeviceUseStatementMapper.searchWithParams(0, 0, deviceMapList, resources, new ArrayList<String>(), null);
 
 		// drug_exposure : Medication[x]
 		List<ParameterWrapper> medicationStatementMapList = new ArrayList<ParameterWrapper>();
@@ -1008,7 +1025,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 		
 		OmopMedicationStatement omopMedicationStatementMapper = OmopMedicationStatement.getInstance();
-		omopMedicationStatementMapper.searchWithParams(0, 0, medicationStatementMapList, resources, new ArrayList<String>());
+		omopMedicationStatementMapper.searchWithParams(0, 0, medicationStatementMapList, resources, new ArrayList<String>(), null);
 		
 		// measurement & observation : Observation
 		List<ParameterWrapper> fobservationMapList = new ArrayList<ParameterWrapper>();
@@ -1019,7 +1036,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 		
 		OmopObservation omopObservationMapper = OmopObservation.getInstance();
-		omopObservationMapper.searchWithParams(0, 0, fobservationMapList, resources, new ArrayList<String>());
+		omopObservationMapper.searchWithParams(0, 0, fobservationMapList, resources, new ArrayList<String>(), null);
 		
 		// note : DocumentReference
 		List<ParameterWrapper> noteMapList = new ArrayList<ParameterWrapper>();
@@ -1029,7 +1046,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 		
 		OmopDocumentReference omopDocumentReferenceMapper = OmopDocumentReference.getInstance();
-		omopDocumentReferenceMapper.searchWithParams(0, 0, noteMapList, resources, new ArrayList<String>());
+		omopDocumentReferenceMapper.searchWithParams(0, 0, noteMapList, resources, new ArrayList<String>(), null);
 		
 		// procedure_occurrence : Procecure
 		List<ParameterWrapper> procedureMapList = new ArrayList<ParameterWrapper>();
@@ -1040,7 +1057,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 		
 		OmopProcedure omopProcedureMapper = OmopProcedure.getInstance();
-		omopProcedureMapper.searchWithParams(0, 0, procedureMapList, resources, new ArrayList<String>());
+		omopProcedureMapper.searchWithParams(0, 0, procedureMapList, resources, new ArrayList<String>(), null);
 
 		// * visit_occurrence: : Encounter
 		List<ParameterWrapper> visitMapList = new ArrayList<ParameterWrapper>();
@@ -1051,7 +1068,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		}
 		
 		OmopEncounter omopEncounterMapper = OmopEncounter.getInstance();
-		omopEncounterMapper.searchWithParams(0, 0, visitMapList, resources, new ArrayList<String>());
+		omopEncounterMapper.searchWithParams(0, 0, visitMapList, resources, new ArrayList<String>(), null);
 	}
 
 	// // Move below to Address

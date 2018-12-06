@@ -266,9 +266,9 @@ public class ConditionResourceProvider implements IResourceProvider {
 			List<String> includes = new ArrayList<String>();
 
 			if (paramList.size() == 0) {
-				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes);
+				myMapper.searchWithoutParams(fromIndex, toIndex, retv, includes, null);
 			} else {
-				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes);
+				myMapper.searchWithParams(fromIndex, toIndex, paramList, retv, includes, null);
 			}
 
 			return retv;
