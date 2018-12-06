@@ -3,6 +3,7 @@ package edu.gatech.chai.omoponfhir.stu3.provider;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -146,8 +147,8 @@ public class PatientResourceProvider implements IResourceProvider {
 	 * @return This method returns a list of Patients in bundle. This list may
 	 *         contain multiple matching resources, or it may also be empty.
 	 */
-	@Search()
-	public IBundleProvider findPatientsByParams(@OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
+	@Search(allowUnknownParams=true)
+	public IBundleProvider findPatientsByParams(RequestDetails theRequestDetails, @OptionalParam(name = Patient.SP_RES_ID) TokenParam thePatientId,
 			@OptionalParam(name = Patient.SP_IDENTIFIER) TokenParam thePatientIdentifier,
 			@OptionalParam(name = Patient.SP_ACTIVE) TokenParam theActive,
 			@OptionalParam(name = Patient.SP_FAMILY) StringParam theFamilyName,
@@ -170,7 +171,7 @@ public class PatientResourceProvider implements IResourceProvider {
 
 			@IncludeParam(allow = { "Encounter:subject",
 					"Observation:subject" }, reverse = true) final Set<Include> theReverseIncludes) {
-
+		
 		/*
 		 * Create parameter map, which will be used later to construct predicate. The
 		 * predicate construction should depend on the DB schema. Therefore, we should
