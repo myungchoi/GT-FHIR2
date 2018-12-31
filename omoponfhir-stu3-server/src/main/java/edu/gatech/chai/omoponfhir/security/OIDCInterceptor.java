@@ -38,7 +38,11 @@ public class OIDCInterceptor extends InterceptorAdapter {
 			HttpServletResponse theResponse) throws AuthenticationException {
 
 		ourLog.debug("[OAuth] Request from " + theRequest.getRemoteAddr());
-
+		String readOnlyEnv = System.getenv("FHIR_READONLY");
+		if (readOnlyEnv != null && !readOnlyEnv.isEmpty()) {
+			setReadOnly(readOnlyEnv);
+		}
+		
 		if (readOnly.equalsIgnoreCase("True")) {
 			if (theRequest.getMethod().equalsIgnoreCase("GET")) {
 				return true;

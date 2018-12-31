@@ -3,7 +3,7 @@ package edu.gatech.chai.omoponfhir.servlet;
 import java.util.*;
 
 import edu.gatech.chai.omoponfhir.security.OIDCInterceptor;
-import edu.gatech.chai.omoponfhir.stu3.provider.*;
+import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.*;
 import edu.gatech.chai.omoponfhir.stu3.security.SMARTonFHIRConformanceStatement;
 
 import org.springframework.web.context.WebApplicationContext;

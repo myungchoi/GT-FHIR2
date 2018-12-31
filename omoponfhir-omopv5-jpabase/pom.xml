@@ -11,10 +11,10 @@
 	</parent>
 
 	<groupId>edu.gatech.chai</groupId>
-	<artifactId>gt-fhir2-jpabase</artifactId>
+	<artifactId>omoponfhir-omopv5-jpabase</artifactId>
 	<packaging>jar</packaging>
 	<version>1.0-SNAPSHOT</version>
-	<name>gt-fhir2-jpabase</name>
+	<name>omoponfhir-omopv5-jpabase</name>
 	<url>http://maven.apache.org</url>
 	<dependencies>
 		<dependency>
