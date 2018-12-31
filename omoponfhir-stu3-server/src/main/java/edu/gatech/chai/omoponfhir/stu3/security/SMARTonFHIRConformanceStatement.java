@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright (c) 2019 Georgia Tech Research Institute
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 /**
  * 
  */
@@ -32,7 +47,6 @@ public class SMARTonFHIRConformanceStatement extends ServerCapabilityStatementPr
 	// "http://fhir-registry.smarthealthit.org/Profile/oauth-uris#register";
 
 	static String oauthURI = "http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris";
-
 	static String authorizeURI = "authorize";
 	static String tokenURI = "token";
 	static String registerURI = "register";
@@ -67,27 +81,29 @@ public class SMARTonFHIRConformanceStatement extends ServerCapabilityStatementPr
 
 		// Set security.service
 		CodeableConcept codeableConcept = new CodeableConcept();
-		Coding coding = new Coding("https://www.hl7.org/fhir/codesystem-restful-security-service.html", "SMART-on-FHIR", "SMART-on-FHIR");
+		Coding coding = new Coding("https://www.hl7.org/fhir/codesystem-restful-security-service.html", "SMART-on-FHIR",
+				"SMART-on-FHIR");
 		codeableConcept.addCoding(coding);
-		
+
 		restSec.addService(codeableConcept);
 
 		// We need to add SMART on FHIR required conformance statement.
+		
 		Extension secExtension = new Extension();
 		secExtension.setUrl(oauthURI);
-		
+
 		Extension authorizeExtension = new Extension();
 		authorizeExtension.setUrl(authorizeURI);
 		authorizeExtension.setValue(new UriType(authorizeURIvalue));
-		
+
 		Extension tokenExtension = new Extension();
 		tokenExtension.setUrl(tokenURI);
 		tokenExtension.setValue(new UriType(tokenURIvalue));
-		
+
 		Extension registerExtension = new Extension();
 		registerExtension.setUrl(registerURI);
 		registerExtension.setValue(new UriType(registerURIvalue));
-		
+
 		secExtension.addExtension(authorizeExtension);
 		secExtension.addExtension(tokenExtension);
 		secExtension.addExtension(registerExtension);
@@ -113,13 +129,13 @@ public class SMARTonFHIRConformanceStatement extends ServerCapabilityStatementPr
 
 	public void setAuthServerUrl(String url) {
 		if (url.endsWith("/")) {
-			authorizeURIvalue = url+"authorize";
-			tokenURIvalue = url+"token";
-			registerURIvalue = url+"register";
+			authorizeURIvalue = url + "authorize";
+			tokenURIvalue = url + "token";
+			registerURIvalue = url + "register";
 		} else {
-			authorizeURIvalue = url+"/authorize";
-			tokenURIvalue = url+"/token";
-			registerURIvalue = url+"/register";
+			authorizeURIvalue = url + "/authorize";
+			tokenURIvalue = url + "/token";
+			registerURIvalue = url + "/register";
 		}
 	}
 }
