@@ -40,6 +40,8 @@ import edu.gatech.chai.omopv5.jpa.service.MeasurementService;
 import edu.gatech.chai.omopv5.jpa.service.ObservationService;
 
 public class OmopServerOperations {
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(OmopServerOperations.class);
+
 	private static OmopTransaction omopTransaction = new OmopTransaction();
 	private FPersonService fPersonService;
 	private ObservationService observationService;
@@ -127,7 +129,7 @@ public class OmopServerOperations {
 				String originalId = resource.getId();
 				Long fhirId = OmopPatient.getInstance().toDbase((Patient) resource, null);
 				patientMap.put(originalId, fhirId);
-				System.out.println("Adding patient info to patientMap "+originalId+"->"+fhirId);
+				logger.debug("Adding patient info to patientMap "+originalId+"->"+fhirId);
 				responseEntries.add(addResponseEntry("201 Created", "Patient/"+fhirId));
 			}
 		}

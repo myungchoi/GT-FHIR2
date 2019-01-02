@@ -717,21 +717,22 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 
 		return mapList;
 	}
-	
+
 	public String constructSort(String sp, String direction) {
-		String retv; 
+		String retv;
 		if (sp.equals(Patient.SP_FAMILY)) {
-			retv = "familyName "+direction;
+			retv = "familyName " + direction;
 		} else if (sp.equals(Patient.SP_GIVEN)) {
-			retv = "givenName1 "+direction+",givenName2 "+direction;
-		} else if (sp.equals(Patient.SP_GENDER)) { 
-			retv = "genderConcept "+direction;
+			retv = "givenName1 " + direction + ",givenName2 " + direction;
+		} else if (sp.equals(Patient.SP_GENDER)) {
+			retv = "genderConcept " + direction;
 		} else if (sp.equals(Patient.SP_BIRTHDATE)) {
-			retv = "yearOfBirth "+direction+",monthOfBirth "+direction+",dayOfBirth "+direction+",timeOfBirth "+direction;
+			retv = "yearOfBirth " + direction + ",monthOfBirth " + direction + ",dayOfBirth " + direction
+					+ ",timeOfBirth " + direction;
 		} else {
-			retv = "id "+direction;
+			retv = "id " + direction;
 		}
-		
+
 		return retv;
 	}
 
@@ -804,11 +805,13 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		if (patientIterator.hasNext()) {
 			HumanName next = patientIterator.next();
 			// the next method was not advancing to the next element, then the
-			// need to use the get(index) method
-			fperson.setGivenName1(next.getGiven().get(0).getValue());
-			if (next.getGiven().size() > 1) // TODO add unit tests, to assure
-											// this won't be changed to hasNext
-				fperson.setGivenName2(next.getGiven().get(1).getValue());
+			// need to use the get(index) method.
+			if (next.getGiven().size() > 0) {
+				fperson.setGivenName1(next.getGiven().get(0).getValue());
+				if (next.getGiven().size() > 1) // TODO add unit tests, to assure
+												// this won't be changed to hasNext
+					fperson.setGivenName2(next.getGiven().get(1).getValue());
+			}
 			String family = next.getFamily();
 			fperson.setFamilyName(family);
 			if (next.getSuffix().iterator().hasNext())
@@ -857,17 +860,23 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		fperson.setEthnicityConcept(ethnicity);
 
 		Calendar c = Calendar.getInstance();
-		c.setTime(patient.getBirthDate());
-		fperson.setYearOfBirth(c.get(Calendar.YEAR));
-		fperson.setMonthOfBirth(c.get(Calendar.MONTH) + 1);
-		fperson.setDayOfBirth(c.get(Calendar.DAY_OF_MONTH));
-
+		if (patient.getBirthDate() != null) {
+			c.setTime(patient.getBirthDate());
+			fperson.setYearOfBirth(c.get(Calendar.YEAR));
+			fperson.setMonthOfBirth(c.get(Calendar.MONTH) + 1);
+			fperson.setDayOfBirth(c.get(Calendar.DAY_OF_MONTH));
+		}
 		// TODO set deceased value in Person; Set gender concept (source value
 		// is set); list of addresses (?)
 		// this.death = patient.getDeceased();
 
 		fperson.setGenderConcept(new Concept());
-		String genderCode = patient.getGender().toCode();
+		String genderCode;
+		if (patient.getGender() != null) {
+			genderCode = patient.getGender().toCode();
+		} else {
+			genderCode = AdministrativeGender.NULL.toString();
+		}
 		try {
 			fperson.getGenderConcept().setId(OmopConceptMapping.omopForAdministrativeGenderCode(genderCode));
 		} catch (FHIRException e) {
@@ -906,11 +915,13 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		for (ContactPoint contactPoint : contactPoints) {
 			ContactPointSystem contactSystem = contactPoint.getSystem();
 			String system = new String();
-			if (contactSystem != null) system = contactSystem.toCode();
-			
+			if (contactSystem != null)
+				system = contactSystem.toCode();
+
 			String use = new String();
 			ContactPointUse contactUse = contactPoint.getUse();
-			if (contactUse != null) use = contactUse.toCode();
+			if (contactUse != null)
+				use = contactUse.toCode();
 			String value = contactPoint.getValue();
 			if (index == 0) {
 				fperson.setContactPoint1(system + ":" + use + ":" + value);
@@ -986,7 +997,8 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		// Condition Occurrence.
 		List<ParameterWrapper> conditionMapList = new ArrayList<ParameterWrapper>();
 		conditionMapList.add(paramWrapper);
-		ParameterWrapper dateParamWrapper = constructDateParameterWrapper(Arrays.asList("startDate", "endDate"), startDate, endDate);
+		ParameterWrapper dateParamWrapper = constructDateParameterWrapper(Arrays.asList("startDate", "endDate"),
+				startDate, endDate);
 		if (dateParamWrapper != null) {
 			conditionMapList.add(dateParamWrapper);
 		}
@@ -1014,10 +1026,11 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		if (dateParamWrapper != null) {
 			medicationStatementMapList.add(dateParamWrapper);
 		}
-		
+
 		OmopMedicationStatement omopMedicationStatementMapper = OmopMedicationStatement.getInstance();
-		omopMedicationStatementMapper.searchWithParams(0, 0, medicationStatementMapList, resources, new ArrayList<String>(), null);
-		
+		omopMedicationStatementMapper.searchWithParams(0, 0, medicationStatementMapList, resources,
+				new ArrayList<String>(), null);
+
 		// measurement & observation : Observation
 		List<ParameterWrapper> fobservationMapList = new ArrayList<ParameterWrapper>();
 		fobservationMapList.add(paramWrapper);
@@ -1025,20 +1038,20 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		if (dateParamWrapper != null) {
 			fobservationMapList.add(dateParamWrapper);
 		}
-		
+
 		OmopObservation omopObservationMapper = OmopObservation.getInstance();
 		omopObservationMapper.searchWithParams(0, 0, fobservationMapList, resources, new ArrayList<String>(), null);
-		
+
 		// note : DocumentReference
 		List<ParameterWrapper> noteMapList = new ArrayList<ParameterWrapper>();
 		noteMapList.add(paramWrapper);
 		if (dateParamWrapper != null) {
 			noteMapList.add(dateParamWrapper);
 		}
-		
+
 		OmopDocumentReference omopDocumentReferenceMapper = OmopDocumentReference.getInstance();
 		omopDocumentReferenceMapper.searchWithParams(0, 0, noteMapList, resources, new ArrayList<String>(), null);
-		
+
 		// procedure_occurrence : Procecure
 		List<ParameterWrapper> procedureMapList = new ArrayList<ParameterWrapper>();
 		procedureMapList.add(paramWrapper);
@@ -1046,7 +1059,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		if (dateParamWrapper != null) {
 			procedureMapList.add(dateParamWrapper);
 		}
-		
+
 		OmopProcedure omopProcedureMapper = OmopProcedure.getInstance();
 		omopProcedureMapper.searchWithParams(0, 0, procedureMapList, resources, new ArrayList<String>(), null);
 
@@ -1057,7 +1070,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		if (dateParamWrapper != null) {
 			visitMapList.add(dateParamWrapper);
 		}
-		
+
 		OmopEncounter omopEncounterMapper = OmopEncounter.getInstance();
 		omopEncounterMapper.searchWithParams(0, 0, visitMapList, resources, new ArrayList<String>(), null);
 	}
