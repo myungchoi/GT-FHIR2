@@ -13,7 +13,7 @@
 	<groupId>edu.gatech.chai</groupId>
 	<artifactId>omoponfhir-omopv5-jpabase</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0</version>
+	<version>1.0.0</version>
 	<name>omoponfhir-omopv5-jpabase</name>
 	<url>http://maven.apache.org</url>
 
@@ -65,11 +65,6 @@
 			<groupId>net.jcip</groupId>
 			<artifactId>jcip-annotations</artifactId>
 			<version>1.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>2.9.5</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.json/json -->
 		<dependency>

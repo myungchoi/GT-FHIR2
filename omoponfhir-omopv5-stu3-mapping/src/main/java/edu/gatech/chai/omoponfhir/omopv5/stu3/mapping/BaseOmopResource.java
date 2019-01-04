@@ -33,7 +33,6 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity, p extends IService<t>>
 		implements IResourceMapping<v, t> {
 
-	@Autowired
 	protected FhirOmopVocabularyMapImpl fhirOmopVocabularyMap;
 	
 	private p myOmopService;
@@ -49,6 +48,7 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 		myOmopService = context.getBean(serviceClass);
 		myEntityClass = entityClass;
 		myFhirResourceType = fhirResourceType;
+		fhirOmopVocabularyMap = new FhirOmopVocabularyMapImpl();
 	}
 
 	public String getMyFhirResourceType() {

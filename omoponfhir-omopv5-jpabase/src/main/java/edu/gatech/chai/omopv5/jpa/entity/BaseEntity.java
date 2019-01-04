@@ -18,7 +18,6 @@ package edu.gatech.chai.omopv5.jpa.entity;
 
 public abstract class BaseEntity implements IBaseEntity {
 	public Long getIdAsLong() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 }

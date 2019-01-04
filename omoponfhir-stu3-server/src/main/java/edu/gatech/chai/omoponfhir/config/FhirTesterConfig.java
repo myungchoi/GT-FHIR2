@@ -53,11 +53,24 @@ public class FhirTesterConfig {
 	@Bean
 	public TesterConfig testerConfig() {
 		TesterConfig retVal = new TesterConfig();
+		String serverBaseUrl = System.getenv("SERVERBASE_URL");
+		if (serverBaseUrl == null || serverBaseUrl.isEmpty() || serverBaseUrl.trim().equalsIgnoreCase("")) {
+			serverBaseUrl = "${serverBase}/fhir";
+		} else {
+			serverBaseUrl = serverBaseUrl.trim();
+			if (!serverBaseUrl.startsWith("http://") && !serverBaseUrl.startsWith("https://")) {
+				serverBaseUrl = "https://"+serverBaseUrl;
+			}
+			
+			if (serverBaseUrl.endsWith("/")) {
+				serverBaseUrl = serverBaseUrl.substring(0, serverBaseUrl.length()-2);
+			}
+		}
 		retVal
 			.addServer()
 				.withId("home")
 				.withFhirVersion(FhirVersionEnum.DSTU3)
-				.withBaseUrl("${serverBase}/fhir")
+				.withBaseUrl(serverBaseUrl)
 				.withName("Local Tester");
 //			.addServer()
 //				.withId("hapi")

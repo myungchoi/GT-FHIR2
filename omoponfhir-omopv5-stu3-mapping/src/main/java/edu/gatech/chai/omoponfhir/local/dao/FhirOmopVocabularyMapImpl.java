@@ -52,7 +52,7 @@ public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
 
 	@Override
 	public int save(FhirOmopVocabularyMapEntry conceptMapEntry) {
-		String sql = "INSERT INTO FhirOmopVocabularyMap (omop_concept_code_name, fhir_url_system_name, other_system_name) values (?,?,?)";
+		String sql = "INSERT INTO FhirOmopVocabularyMap (omop_vocabulary_id, fhir_url_system, other_system) values (?,?,?)";
 
 		try (Connection conn = this.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, conceptMapEntry.getOmopConceptCodeName());
@@ -73,7 +73,7 @@ public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
 
 	@Override
 	public void update(FhirOmopVocabularyMapEntry conceptMapEntry) {
-		String sql = "UPDATE FhirOmopVocabularyMap SET fhir_url_system_name=?, other_system_name=? where omop_concept_code_name=?";
+		String sql = "UPDATE FhirOmopVocabularyMap SET fhir_url_system=?, other_system=? where omop_vocabulary_id=?";
 
 		try (Connection conn = this.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, conceptMapEntry.getFhirUrlSystemName());
@@ -89,7 +89,7 @@ public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
 
 	@Override
 	public void delete(String omopConceptCodeName) {
-		String sql = "DELETE FROM FhirOmopVocabularyMap where omop_concept_code_name = ?";
+		String sql = "DELETE FROM FhirOmopVocabularyMap where omop_vocabulary_id = ?";
 		
 		try (Connection conn = this.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, omopConceptCodeName);
@@ -110,9 +110,9 @@ public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				FhirOmopVocabularyMapEntry conceptMapEntry = new FhirOmopVocabularyMapEntry();
-				conceptMapEntry.setOmopConceptCodeName(rs.getString("omop_concept_code_name"));
-				conceptMapEntry.setFhirUrlSystemName(rs.getString("fhir_url_system_name"));
-				conceptMapEntry.setOtherSystemName(rs.getString("other_system_name"));
+				conceptMapEntry.setOmopConceptCodeName(rs.getString("omop_vocabulary_id"));
+				conceptMapEntry.setFhirUrlSystemName(rs.getString("fhir_url_system"));
+				conceptMapEntry.setOtherSystemName(rs.getString("other_system"));
 				conceptMapEntryList.add(conceptMapEntry);
 			}
 			logger.info(conceptMapEntryList.size()+" Concept Map entries obtained");
@@ -125,8 +125,8 @@ public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
 
 	@Override
 	public String getOmopVocabularyFromFhirSystemName(String fhirSystemName) {
-		String retv = new String();
-		String sql = "SELECT * FROM FhirOmopVocabularyMap where fhir_url_system_name=? or other_system_name=?";
+		String retv = "None";
+		String sql = "SELECT * FROM FhirOmopVocabularyMap where fhir_url_system=? or other_system=?";
 
 		try (Connection conn = this.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, fhirSystemName);
@@ -134,7 +134,7 @@ public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
 			
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
-				retv = rs.getString("omop_concept_code_name");
+				retv = rs.getString("omop_vocabulary_id");
 			}
 			logger.debug("Omop Vocabulary,"+retv+" , found for "+fhirSystemName);
 		} catch (SQLException e) {
@@ -146,15 +146,18 @@ public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
 
 	@Override
 	public String getFhirSystemNameFromOmopVocabulary(String omopVocabulary) {
-		String retv = new String();
-		String sql = "SELECT * FROM FhirOmopVocabularyMap where omop_concept_code_name=?";
+		String retv = "None";
+		String sql = "SELECT * FROM FhirOmopVocabularyMap where omop_vocabulary_id=?";
 
 		try (Connection conn = this.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, omopVocabulary);
 			
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
-				retv = rs.getString("omop_concept_code_name");
+				retv = rs.getString("fhir_url_system");
+				if (retv == null) {
+					retv = rs.getString("other_system");
+				}
 			}
 			logger.debug("FHIR System name,"+retv+" , found for "+omopVocabulary);
 		} catch (SQLException e) {

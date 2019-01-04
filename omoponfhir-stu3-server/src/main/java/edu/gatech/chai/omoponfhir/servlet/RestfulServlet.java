@@ -29,7 +29,9 @@ import ca.uhn.fhir.narrative.DefaultThymeleafNarrativeGenerator;
 import ca.uhn.fhir.narrative.INarrativeGenerator;
 import ca.uhn.fhir.rest.api.EncodingEnum;
 import ca.uhn.fhir.rest.server.FifoMemoryPagingProvider;
+import ca.uhn.fhir.rest.server.HardcodedServerAddressStrategy;
 import ca.uhn.fhir.rest.server.IResourceProvider;
+import ca.uhn.fhir.rest.server.IServerAddressStrategy;
 import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
@@ -57,6 +59,23 @@ public class RestfulServlet extends RestfulServer {
 		// Set server name
 		setServerName("GT-FHIR2 for OMOPv5");
 		
+		
+		// If we have system environment variable to hardcode the base URL, do it now.
+		String serverBaseUrl = System.getenv("SERVERBASE_URL");
+		if (serverBaseUrl != null && !serverBaseUrl.isEmpty() && !serverBaseUrl.trim().equalsIgnoreCase("")) {
+			serverBaseUrl = serverBaseUrl.trim();
+			if (!serverBaseUrl.startsWith("http://") && !serverBaseUrl.startsWith("https://")) {
+				serverBaseUrl = "https://"+serverBaseUrl;
+			}
+			
+			if (serverBaseUrl.endsWith("/")) {
+				serverBaseUrl = serverBaseUrl.substring(0, serverBaseUrl.length()-2);
+			}
+
+			IServerAddressStrategy serverAddressStrategy = new HardcodedServerAddressStrategy(serverBaseUrl);
+			setServerAddressStrategy(serverAddressStrategy);
+		}
+
 		/*
 		 * Set non resource provider.
 		 */
