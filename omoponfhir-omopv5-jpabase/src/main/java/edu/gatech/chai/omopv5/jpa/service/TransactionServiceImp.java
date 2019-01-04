@@ -27,14 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.gatech.chai.omopv5.jpa.dao.ConditionOccurrenceDao;
 import edu.gatech.chai.omopv5.jpa.dao.FPersonDao;
-import edu.gatech.chai.omopv5.jpa.dao.FResourcesDao;
 import edu.gatech.chai.omopv5.jpa.dao.MeasurementDao;
 import edu.gatech.chai.omopv5.jpa.dao.ObservationDao;
 import edu.gatech.chai.omopv5.jpa.dao.ProcedureOccurrenceDao;
-import edu.gatech.chai.omopv5.jpa.dao.TransactionDao;
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
-import edu.gatech.chai.omopv5.jpa.entity.FResources;
 import edu.gatech.chai.omopv5.jpa.entity.Measurement;
 import edu.gatech.chai.omopv5.jpa.entity.Observation;
 
