@@ -16,7 +16,6 @@
 package edu.gatech.chai.omoponfhir.local.dao;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -28,27 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import edu.gatech.chai.omoponfhir.local.model.FhirOmopVocabularyMapEntry;
 
-public class FhirOmopVocabularyMapImpl implements FhirOmopVocabularyMap {
+public class FhirOmopVocabularyMapImpl extends BaseFhirOmopMap implements FhirOmopVocabularyMap {
 	final static Logger logger = LoggerFactory.getLogger(FhirOmopVocabularyMapImpl.class);
-
-	@Override
-	public Connection connect() {
-		String url = "jdbc:sqlite::resource:omoponfhir.db";
-		Connection conn = null;
-		try {
-			Class.forName("org.sqlite.JDBC");
-			conn = DriverManager.getConnection(url);
-			logger.info("Connected to database");
-		} catch (SQLException e) {
-			logger.info(e.getMessage());
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			logger.info(e.getMessage());
-			e.printStackTrace();
-		}
-
-		return conn;
-	}
 
 	@Override
 	public int save(FhirOmopVocabularyMapEntry conceptMapEntry) {
