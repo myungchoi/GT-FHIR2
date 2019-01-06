@@ -63,7 +63,7 @@ public class FhirTesterConfig {
 			}
 			
 			if (serverBaseUrl.endsWith("/")) {
-				serverBaseUrl = serverBaseUrl.substring(0, serverBaseUrl.length()-2);
+				serverBaseUrl = serverBaseUrl.substring(0, serverBaseUrl.length()-1);
 			}
 		}
 		retVal

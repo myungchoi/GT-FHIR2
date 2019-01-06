@@ -69,7 +69,7 @@ public class RestfulServlet extends RestfulServer {
 			}
 			
 			if (serverBaseUrl.endsWith("/")) {
-				serverBaseUrl = serverBaseUrl.substring(0, serverBaseUrl.length()-2);
+				serverBaseUrl = serverBaseUrl.substring(0, serverBaseUrl.length()-1);
 			}
 
 			IServerAddressStrategy serverAddressStrategy = new HardcodedServerAddressStrategy(serverBaseUrl);

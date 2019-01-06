@@ -25,6 +25,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.context.WebApplicationContext;
 
+import edu.gatech.chai.omoponfhir.local.dao.FhirOmopCodeMapImpl;
 import edu.gatech.chai.omoponfhir.local.dao.FhirOmopVocabularyMapImpl;
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.service.IService;
@@ -34,6 +35,7 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 		implements IResourceMapping<v, t> {
 
 	protected FhirOmopVocabularyMapImpl fhirOmopVocabularyMap;
+	protected FhirOmopCodeMapImpl fhirOmopCodeMap;
 	
 	private p myOmopService;
 	private Class<t> myEntityClass;
@@ -49,6 +51,7 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 		myEntityClass = entityClass;
 		myFhirResourceType = fhirResourceType;
 		fhirOmopVocabularyMap = new FhirOmopVocabularyMapImpl();
+		fhirOmopCodeMap = new FhirOmopCodeMapImpl();
 	}
 
 	public String getMyFhirResourceType() {

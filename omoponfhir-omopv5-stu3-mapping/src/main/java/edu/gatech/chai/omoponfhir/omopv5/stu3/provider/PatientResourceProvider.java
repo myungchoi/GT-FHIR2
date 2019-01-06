@@ -60,6 +60,7 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.mapping.OmopPatient;
+import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.utilities.ThrowFHIRExceptions;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 
@@ -126,7 +127,7 @@ public class PatientResourceProvider implements IResourceProvider {
 	 * which adds a new instance of a resource to the server.
 	 */
 	@Create()
-	public MethodOutcome createPatient(@ResourceParam Patient thePatient) {
+	public MethodOutcome createPatient(@ResourceParam USCorePatient thePatient) {
 		validateResource(thePatient);
 
 		Long id = null;
@@ -324,7 +325,7 @@ public class PatientResourceProvider implements IResourceProvider {
 	 * @return This method returns a "MethodOutcome"
 	 */
 	@Update()
-	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam Patient thePatient) {
+	public MethodOutcome updatePatient(@IdParam IdType theId, @ResourceParam USCorePatient thePatient) {
 		validateResource(thePatient);
 
 		Long fhirId = null;
