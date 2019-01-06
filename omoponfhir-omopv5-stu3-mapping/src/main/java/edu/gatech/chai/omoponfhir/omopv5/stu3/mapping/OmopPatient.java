@@ -52,6 +52,7 @@ import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.model.MyOrganization;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient;
+import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient.Ethnicity;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient.Race;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.EncounterResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.OrganizationResourceProvider;
@@ -314,6 +315,7 @@ public class OmopPatient extends BaseOmopResource<USCorePatient, FPerson, FPerso
 		patient.setTelecom(contactPoints);
 
 		// US Core Patient Extension
+		// Race
 		Concept raceConcept = fPerson.getRaceConcept();
 		String raceSourceString = fPerson.getRaceSourceValue();
 		Coding raceCoding = null;
@@ -333,6 +335,28 @@ public class OmopPatient extends BaseOmopResource<USCorePatient, FPerson, FPerso
 			myRace.getCategory().add(raceCoding);
 			patient.setRace(myRace);
 		}
+		
+		// Ethnicity
+		Concept ethnicityConcept = fPerson.getEthnicityConcept();
+		String ethnicitySourceString = fPerson.getEthnicitySourceValue();
+		Coding ethnicityCoding = null;
+		if (ethnicityConcept == null) {
+			if (ethnicitySourceString != null && !ethnicitySourceString.isEmpty()) {
+				ethnicityCoding = fhirOmopCodeMap.getFhirCodingFromOmopSourceString(ethnicitySourceString);
+			}
+		} else {
+			Long ethnicityConceptId = ethnicityConcept.getIdAsLong();
+			if (ethnicityConceptId != 0L) {
+				ethnicityCoding = fhirOmopCodeMap.getFhirCodingFromOmopConcept(ethnicityConceptId);
+			}
+		}
+		
+		if (ethnicityCoding != null) {
+			Ethnicity myEthnicity = patient.getEthnicity();
+			myEthnicity.getCategory().add(ethnicityCoding);
+			patient.setEthnicity(myEthnicity);
+		}
+		
 		return patient;
 	}
 
@@ -868,12 +892,6 @@ public class OmopPatient extends BaseOmopResource<USCorePatient, FPerson, FPerso
 		// }
 		// }
 
-		// Ethnicity is not available in FHIR resource. Set to 0L as there is no
-		// unknown ethnicity.
-		Concept ethnicity = new Concept();
-		ethnicity.setId(0L);
-		fperson.setEthnicityConcept(ethnicity);
-
 		Calendar c = Calendar.getInstance();
 		if (patient.getBirthDate() != null) {
 			c.setTime(patient.getBirthDate());
@@ -963,6 +981,22 @@ public class OmopPatient extends BaseOmopResource<USCorePatient, FPerson, FPerso
 			}
 		} 
 		fperson.setRaceConcept(omopRaceConcept);
+		
+		// Do extension for ethnicity.
+		Ethnicity myEthnicity = patient.getEthnicity();
+		Concept omopEthnicityConcept = new Concept(0L);
+		if (!myEthnicity.isEmpty()) {
+			for (Coding myCategory: myEthnicity.getCategory()) {
+				Long omopEthnicityConceptId = fhirOmopCodeMap.getOmopCodeFromFhirCoding(myCategory);
+				fperson.setEthnicitySourceValue(myCategory.getDisplay());
+				if (omopEthnicityConceptId != 0L) {
+					omopEthnicityConcept.setId(omopEthnicityConceptId);
+					break;
+				}
+			}
+		}
+		fperson.setEthnicityConcept(omopEthnicityConcept);
+
 		return fperson;
 	}
 

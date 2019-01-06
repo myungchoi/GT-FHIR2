@@ -45,6 +45,12 @@ public class USCorePatient extends Patient {
 	@Child(name = "race", min = 0, max = 1)
 	private Race myRace;
 
+	@Description(shortDefinition = "Concepts classifying the person into a named category of humans sharing common history, traits, geographical origin or nationality")
+	@Extension(url = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity", isModifier = false, definedLocally = true)
+	@Child(name = "ethnicity", min = 0, max = 1)
+	private Ethnicity myEthnicity;
+
+	
 	public Race getRace() {
 		if (myRace == null) {
 			myRace = new Race();
@@ -57,9 +63,21 @@ public class USCorePatient extends Patient {
 		this.myRace = myRace;
 	}
 	
+	public Ethnicity getEthnicity() {
+		if (myEthnicity == null) {
+			myEthnicity = new Ethnicity();
+		}
+		
+		return myEthnicity;
+	}
+	
+	public void setEthnicity(Ethnicity myEthnicity) {
+		this.myEthnicity = myEthnicity;
+	}
+	
 	@Override
 	public boolean isEmpty() {
-        return super.isEmpty() && ElementUtil.isEmpty(myRace);
+        return super.isEmpty() && ElementUtil.isEmpty(myRace, myEthnicity);
 	}
 
 	/**
@@ -77,6 +95,56 @@ public class USCorePatient extends Patient {
 		 * This is a primitive datatype extension
 		 */
 		@Description(shortDefinition = "The 5 race category codes according to the OMB Standards")
+		@Extension(url = "ombCategory", isModifier = false, definedLocally = true)
+		@Child(name = "category", min = 0, max = 5)
+		private List<Coding> myCategory;
+
+		public List<Coding> getCategory() {
+			if (myCategory == null) {
+				myCategory = new ArrayList<Coding>();
+			}
+			
+			return myCategory;
+		}
+
+		public void setCategory(List<Coding> myCategory) {
+			this.myCategory = myCategory;
+		}
+
+		/*
+		 * ***************************** Boilerplate methods- Hopefully these will be
+		 * removed or made optional in a future version of HAPI but for now they need to
+		 * be added to all block types. These two methods follow a simple pattern where
+		 * a utility method from ElementUtil is called and all fields are passed in.
+		 *****************************/
+
+		@Override
+		public <T extends IElement> List<T> getAllPopulatedChildElementsOfType(Class<T> theType) {
+			return ElementUtil.allPopulatedChildElements(theType, myCategory);
+		}
+
+		@Override
+		public boolean isEmpty() {
+			return ElementUtil.isEmpty(myCategory);
+		}
+
+	}
+	
+	/**
+	 * This "block definition" defines an extension type with multiple child
+	 * extensions. It is referenced by the field myRace above.
+	 */
+	@Block
+	public static class Ethnicity extends BaseIdentifiableElement implements IExtension {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * This is a primitive datatype extension
+		 */
+		@Description(shortDefinition = "The 2 ethnicity category codes according to the OMB Standards")
 		@Extension(url = "ombCategory", isModifier = false, definedLocally = true)
 		@Child(name = "category", min = 0, max = 5)
 		private List<Coding> myCategory;
