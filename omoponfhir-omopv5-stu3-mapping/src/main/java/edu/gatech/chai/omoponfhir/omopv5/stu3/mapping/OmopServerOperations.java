@@ -34,6 +34,7 @@ import org.hl7.fhir.instance.model.api.IIdType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.service.FPersonService;
 import edu.gatech.chai.omopv5.jpa.service.MeasurementService;
@@ -127,7 +128,7 @@ public class OmopServerOperations {
 		for (Resource resource : resources) {
 			if (resource.getResourceType() == ResourceType.Patient) {
 				String originalId = resource.getId();
-				Long fhirId = OmopPatient.getInstance().toDbase((Patient) resource, null);
+				Long fhirId = OmopPatient.getInstance().toDbase((USCorePatient) resource, null);
 				patientMap.put(originalId, fhirId);
 				logger.debug("Adding patient info to patientMap "+originalId+"->"+fhirId);
 				responseEntries.add(addResponseEntry("201 Created", "Patient/"+fhirId));

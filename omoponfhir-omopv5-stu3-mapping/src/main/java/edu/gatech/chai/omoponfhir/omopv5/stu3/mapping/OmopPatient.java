@@ -38,7 +38,6 @@ import org.hl7.fhir.dstu3.model.Patient.PatientLinkComponent;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Address.AddressUse;
-import org.hl7.fhir.dstu3.model.CodeType;
 import org.hl7.fhir.dstu3.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.dstu3.model.codesystems.V3MaritalStatus;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -53,6 +52,7 @@ import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.model.MyOrganization;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient;
+import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient.Race;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.EncounterResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.OrganizationResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.PatientResourceProvider;
@@ -70,8 +70,8 @@ import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.ProviderService;
 import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
 
-public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonService>
-		implements IResourceMapping<Patient, FPerson> {
+public class OmopPatient extends BaseOmopResource<USCorePatient, FPerson, FPersonService>
+		implements IResourceMapping<USCorePatient, FPerson> {
 
 	private static OmopPatient omopPatient = new OmopPatient();
 
@@ -112,8 +112,8 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 	}
 
 	@Override
-	public Patient constructResource(Long fhirId, FPerson entity, List<String> includes) {
-		Patient patient = constructFHIR(fhirId, entity);
+	public USCorePatient constructResource(Long fhirId, FPerson entity, List<String> includes) {
+		USCorePatient patient = constructFHIR(fhirId, entity);
 		Long omopId = entity.getId();
 
 		if (!includes.isEmpty()) {
@@ -173,7 +173,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 	}
 
 	@Override
-	public Patient constructFHIR(Long fhirId, FPerson fPerson) {
+	public USCorePatient constructFHIR(Long fhirId, FPerson fPerson) {
 		USCorePatient patient = new USCorePatient();
 		patient.setId(new IdType(fhirId));
 
@@ -228,6 +228,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 					patient.setGender(gender);
 				} catch (FHIRException e) {
 					e.printStackTrace();
+					patient.setGender(AdministrativeGender.OTHER);
 				}
 			}
 		}
@@ -315,27 +316,21 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		// US Core Patient Extension
 		Concept raceConcept = fPerson.getRaceConcept();
 		String raceSourceString = fPerson.getRaceSourceValue();
-		List<Coding> raceCodings = new ArrayList<Coding>();
+		Coding raceCoding = null;
 		if (raceConcept == null) {
 			if (raceSourceString != null && !raceSourceString.isEmpty()) {
-				Coding raceCoding = fhirOmopCodeMap.getFhirCodingFromOmopSourceString(raceSourceString);
-				if (raceCoding != null && !raceCoding.isEmpty()) {
-					raceCodings.add(raceCoding);
-				}
+				raceCoding = fhirOmopCodeMap.getFhirCodingFromOmopSourceString(raceSourceString);
 			}
 		} else {
 			Long raceConceptId = raceConcept.getIdAsLong();
 			if (raceConceptId != 0L) {
-				Coding raceCoding = fhirOmopCodeMap.getFhirCodingFromOmopConcept(raceConceptId);
-				if (raceCoding != null && !raceCoding.isEmpty()) {
-					raceCodings.add(raceCoding);
-				}
+				raceCoding = fhirOmopCodeMap.getFhirCodingFromOmopConcept(raceConceptId);
 			}
 		}
 
-		if (raceCodings.size() > 0) {
-			USCorePatient.Race myRace = new USCorePatient.Race();
-			myRace.setCategory(raceCodings);
+		if (raceCoding != null) {
+			Race myRace = patient.getRace();
+			myRace.getCategory().add(raceCoding);
 			patient.setRace(myRace);
 		}
 		return patient;
@@ -351,7 +346,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 	 *         refer this resource.
 	 */
 	@Override
-	public Long toDbase(Patient patient, IdType fhirId) throws FHIRException {
+	public Long toDbase(USCorePatient patient, IdType fhirId) throws FHIRException {
 		Long omopId = null;
 
 		if (fhirId != null) {
@@ -761,7 +756,7 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 	}
 
 	@Override
-	public FPerson constructOmop(Long omopId, Patient patient) {
+	public FPerson constructOmop(Long omopId, USCorePatient patient) {
 		FPerson fperson = null;
 		String personSourceValue = null;
 
@@ -873,10 +868,6 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 		// }
 		// }
 
-		Concept race = new Concept();
-		race.setId(8552L);
-		fperson.setRaceConcept(race);
-
 		// Ethnicity is not available in FHIR resource. Set to 0L as there is no
 		// unknown ethnicity.
 		Concept ethnicity = new Concept();
@@ -958,6 +949,20 @@ public class OmopPatient extends BaseOmopResource<Patient, FPerson, FPersonServi
 			index++;
 		}
 
+		// Do extension for race.
+		Race myRace = patient.getRace();
+		Concept omopRaceConcept = new Concept(8552L);
+		if (!myRace.isEmpty()) {
+			for (Coding myCategory: myRace.getCategory()) {
+				Long omopRaceConceptId = fhirOmopCodeMap.getOmopCodeFromFhirCoding(myCategory);
+				fperson.setRaceSourceValue(myCategory.getDisplay());
+				if (omopRaceConceptId != 0L) {
+					omopRaceConcept.setId(omopRaceConceptId);
+					break;
+				}
+			}
+		} 
+		fperson.setRaceConcept(omopRaceConcept);
 		return fperson;
 	}
 

@@ -47,16 +47,21 @@ public class USCorePatient extends Patient {
 
 	public Race getRace() {
 		if (myRace == null) {
-			return new Race();
+			myRace = new Race();
 		} 
 		
-		return this.myRace;
+		return myRace;
 	}
 	
 	public void setRace(Race myRace) {
 		this.myRace = myRace;
 	}
 	
+	@Override
+	public boolean isEmpty() {
+        return super.isEmpty() && ElementUtil.isEmpty(myRace);
+	}
+
 	/**
 	 * This "block definition" defines an extension type with multiple child
 	 * extensions. It is referenced by the field myRace above.
@@ -77,8 +82,8 @@ public class USCorePatient extends Patient {
 		private List<Coding> myCategory;
 
 		public List<Coding> getCategory() {
-			if (myCategory.size() == 0) {
-				return new ArrayList<Coding>();
+			if (myCategory == null) {
+				myCategory = new ArrayList<Coding>();
 			}
 			
 			return myCategory;

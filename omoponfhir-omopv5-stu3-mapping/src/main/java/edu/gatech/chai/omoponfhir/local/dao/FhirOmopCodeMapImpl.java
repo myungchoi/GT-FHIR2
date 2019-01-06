@@ -94,7 +94,7 @@ public class FhirOmopCodeMapImpl extends BaseFhirOmopMap implements FhirOmopCode
 	@Override
 	public Long getOmopCodeFromFhirCoding(Coding fhirCoding) {
 		Long retv = 0L;
-		String sql = "SELECT * FROM FhirOmopCodeMap where fhir_system=? or fhir_code=?";
+		String sql = "SELECT * FROM FhirOmopCodeMap where fhir_system=? and fhir_code=?";
 
 		String fhirSystem = fhirCoding.getSystem();
 		String fhirCode = fhirCoding.getCode();
@@ -142,7 +142,7 @@ public class FhirOmopCodeMapImpl extends BaseFhirOmopMap implements FhirOmopCode
 				retv.setDisplay(fhirDisplay);
 			}
 			logger.debug(" Fhir coding found " + fhirSystem + " and " + fhirCode + " and " + fhirDisplay
-					+ " for Omop Concept" + omopConcept);
+					+ " for Omop Concept " + omopConcept);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		}
@@ -173,7 +173,7 @@ public class FhirOmopCodeMapImpl extends BaseFhirOmopMap implements FhirOmopCode
 				retv.setDisplay(fhirDisplay);
 			}
 			logger.debug(" Fhir coding found " + fhirSystem + " and " + fhirCode + " and " + fhirDisplay
-					+ " for Omop Source String" + omopSourceString);
+					+ " for Omop Source String " + omopSourceString);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		}

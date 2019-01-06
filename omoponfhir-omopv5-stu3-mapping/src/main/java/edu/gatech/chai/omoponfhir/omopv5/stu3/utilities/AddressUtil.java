@@ -62,7 +62,8 @@ public class AddressUtil {
 				location.setCity(city);
 				location.setState(state);
 			} else {
-				return new Location(line1, line2, city, state, zipCode);
+				Location newLocation = locationService.create(new Location(line1, line2, city, state, zipCode));
+				return newLocation;
 			}
 		}
 

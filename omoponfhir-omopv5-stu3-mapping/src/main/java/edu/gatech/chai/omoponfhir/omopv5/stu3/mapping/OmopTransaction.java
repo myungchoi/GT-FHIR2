@@ -37,6 +37,7 @@ import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
 import edu.gatech.chai.omopv5.jpa.service.TransactionService;
+import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.ObservationResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.PatientResourceProvider;
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
@@ -155,7 +156,7 @@ public class OmopTransaction {
 		for (Resource resource : postList) {
 			if (resource.getResourceType() == ResourceType.Patient) {
 				String originalId = resource.getId();
-				Long fhirId = OmopPatient.getInstance().toDbase((Patient) resource, null);
+				Long fhirId = OmopPatient.getInstance().toDbase((USCorePatient) resource, null);
 //				OmopPatient patientMappingInstance = new OmopPatient(myContext);
 //				FPerson fPerson = patientMappingInstance.constructOmop(null, (Patient) resource);
 //				FPerson retFPerson = fPersonService.create(fPerson);
@@ -192,7 +193,7 @@ public class OmopTransaction {
 		for (Resource resource : putList) {
 			if (resource.getResourceType() == ResourceType.Patient) {
 				// This is PUT. We must have fhirId that we want to update.
-				Patient patient = (Patient) resource;
+				USCorePatient patient = (USCorePatient) resource;
 				IdType fhirIdType = patient.getIdElement();
 				Long fhirId = OmopPatient.getInstance().toDbase(patient, fhirIdType);
 				patientMap.put(resource.getId(), fhirId);
@@ -240,7 +241,7 @@ public class OmopTransaction {
 		for (Resource resource : postList) {
 			switch (resource.getResourceType()) {
 			case Patient:
-				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (Patient) resource);
+				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (USCorePatient) resource);
 				keyString = resource.getId() + "^FPerson";
 				addBaseEntity(entityToCreate, keyString, fPerson);
 				System.out.println("key:" + keyString + ", fPerson");
