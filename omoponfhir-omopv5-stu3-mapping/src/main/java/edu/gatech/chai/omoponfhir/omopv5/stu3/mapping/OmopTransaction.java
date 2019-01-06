@@ -29,7 +29,6 @@ import org.hl7.fhir.dstu3.model.Bundle.BundleEntryResponseComponent;
 import org.hl7.fhir.dstu3.model.Bundle.HTTPVerb;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Observation;
-import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IIdType;
@@ -38,8 +37,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import edu.gatech.chai.omopv5.jpa.service.TransactionService;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.model.USCorePatient;
-import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.ObservationResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.PatientResourceProvider;
+import edu.gatech.chai.omoponfhir.omopv5.stu3.utilities.ExtensionUtil;
 import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
 import edu.gatech.chai.omopv5.jpa.entity.Measurement;
@@ -73,7 +72,7 @@ public class OmopTransaction {
 		observationService = context.getBean(ObservationService.class);
 		measurementService = context.getBean(MeasurementService.class);
 	}
-	
+
 	public static OmopTransaction getInstance() {
 		return omopTransaction;
 	}
@@ -96,13 +95,13 @@ public class OmopTransaction {
 			// This is OMOP requirement. We skip this for Transaction Messages.
 			return null;
 		}
-		
+
 		Long fhirId = patientMap.get(subject.getReference());
 		if (fhirId == null || fhirId == 0L) {
 			// See if we have this patient in OMOP DB.
 			IIdType referenceIdType = subject.getReferenceElement();
 			if (referenceIdType == null || referenceIdType.isEmpty()) {
-				// Giving up... 
+				// Giving up...
 				return null;
 			}
 			try {
@@ -130,11 +129,11 @@ public class OmopTransaction {
 			return new IdType("Patient", fhirId);
 		}
 	}
-	
+
 	public void addResponseEntry(List<BundleEntryComponent> responseEntries, String status, String location) {
 		BundleEntryComponent entryBundle = new BundleEntryComponent();
 		UUID uuid = UUID.randomUUID();
-		entryBundle.setFullUrl("urn:uuid:"+uuid.toString());
+		entryBundle.setFullUrl("urn:uuid:" + uuid.toString());
 		BundleEntryResponseComponent responseBundle = new BundleEntryResponseComponent();
 		responseBundle.setStatus(status);
 		if (location != null)
@@ -142,91 +141,97 @@ public class OmopTransaction {
 		entryBundle.setResponse(responseBundle);
 		responseEntries.add(entryBundle);
 	}
-	
+
 	public List<BundleEntryComponent> executeRequests(Map<HTTPVerb, Object> entries) throws FHIRException {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
 
 		List<Resource> postList = (List<Resource>) entries.get(HTTPVerb.POST);
 		List<Resource> putList = (List<Resource>) entries.get(HTTPVerb.PUT);
 		List<Resource> getList = (List<Resource>) entries.get(HTTPVerb.GET);
-		
-		Map<String, Long> patientMap = new HashMap<String, Long> ();
-		
-		// do patient first. 
+
+		Map<String, Long> patientMap = new HashMap<String, Long>();
+
+		// do patient first.
 		for (Resource resource : postList) {
 			if (resource.getResourceType() == ResourceType.Patient) {
 				String originalId = resource.getId();
-				Long fhirId = OmopPatient.getInstance().toDbase((USCorePatient) resource, null);
+
+				Long fhirId = OmopPatient.getInstance().toDbase(ExtensionUtil.usCorePatientFromResource(resource),
+						null);
 //				OmopPatient patientMappingInstance = new OmopPatient(myContext);
 //				FPerson fPerson = patientMappingInstance.constructOmop(null, (Patient) resource);
 //				FPerson retFPerson = fPersonService.create(fPerson);
 //				Long fhirId = IdMapping.getFHIRfromOMOP(retFPerson.getIdAsLong(), PatientResourceProvider.getType());
 				patientMap.put(originalId, fhirId);
-				System.out.println("Adding patient info to patientMap "+originalId+"->"+fhirId);
-				addResponseEntry(responseEntries, "201 Created", "Patient/"+fhirId);
+				System.out.println("Adding patient info to patientMap " + originalId + "->" + fhirId);
+				addResponseEntry(responseEntries, "201 Created", "Patient/" + fhirId);
 			}
 		}
-		
+
 		// Now process the rest.
 		for (Resource resource : postList) {
 			if (resource.getResourceType() == ResourceType.Patient) {
 				// already done.
 				continue;
 			}
-			
+
 			if (resource.getResourceType() == ResourceType.Observation) {
 				Observation observation = (Observation) resource;
 				Reference subject = observation.getSubject();
-				IdType refIdType = linkToPatient (subject, patientMap);
-				if (refIdType == null) continue;
+				IdType refIdType = linkToPatient(subject, patientMap);
+				if (refIdType == null)
+					continue;
 				observation.setSubject(new Reference(refIdType));
-				
+
 				Long fhirId = OmopObservation.getInstance().toDbase(observation, null);
 				if (fhirId == null)
 					addResponseEntry(responseEntries, "400 Bad Request", null);
 				else
-					addResponseEntry(responseEntries, "201 Created", "Observation/"+fhirId);
-				
+					addResponseEntry(responseEntries, "201 Created", "Observation/" + fhirId);
+
 			}
 		}
 
 		for (Resource resource : putList) {
 			if (resource.getResourceType() == ResourceType.Patient) {
 				// This is PUT. We must have fhirId that we want to update.
-				USCorePatient patient = (USCorePatient) resource;
+				USCorePatient patient = ExtensionUtil.usCorePatientFromResource(resource);
 				IdType fhirIdType = patient.getIdElement();
 				Long fhirId = OmopPatient.getInstance().toDbase(patient, fhirIdType);
 				patientMap.put(resource.getId(), fhirId);
 
-				addResponseEntry(responseEntries, "201 Created", "Patient/"+fhirId);
+				addResponseEntry(responseEntries, "201 Created", "Patient/" + fhirId);
 			} else if (resource.getResourceType() == ResourceType.Observation) {
 				Observation observation = (Observation) resource;
 				Reference subject = observation.getSubject();
-				IdType refIdType = linkToPatient (subject, patientMap);
-				if (refIdType == null) continue;
+				IdType refIdType = linkToPatient(subject, patientMap);
+				if (refIdType == null)
+					continue;
 				observation.setSubject(new Reference(refIdType));
-				
+
 				IdType fhirIdType = observation.getIdElement();
 				Long fhirId = OmopObservation.getInstance().toDbase(observation, fhirIdType);
 
-				addResponseEntry(responseEntries, "201 Created", "Observation/"+fhirId);
+				addResponseEntry(responseEntries, "201 Created", "Observation/" + fhirId);
 			}
 		}
 
 		// TODO: HTTPVerb.GET must be implemented here.
-		
-		return responseEntries;	
+
+		return responseEntries;
 	}
-	
+
 	/**
 	 * 
 	 * @param entries
 	 * @return
 	 * @throws FHIRException
 	 * 
-	 * Transaction type of Transaction operation is atomic. If one fails, all should be dropped.
-	 * Thus, we can't process one entry at a time. We should do this in one JPA transaction so that
-	 * if one failed, all can be rolled back.
+	 *                       Transaction type of Transaction operation is atomic. If
+	 *                       one fails, all should be dropped. Thus, we can't
+	 *                       process one entry at a time. We should do this in one
+	 *                       JPA transaction so that if one failed, all can be
+	 *                       rolled back.
 	 */
 	public List<BundleEntryComponent> executeTransaction(Map<HTTPVerb, Object> entries) throws FHIRException {
 		List<BundleEntryComponent> responseEntries = new ArrayList<BundleEntryComponent>();
@@ -241,7 +246,8 @@ public class OmopTransaction {
 		for (Resource resource : postList) {
 			switch (resource.getResourceType()) {
 			case Patient:
-				FPerson fPerson = OmopPatient.getInstance().constructOmop(null, (USCorePatient) resource);
+				FPerson fPerson = OmopPatient.getInstance().constructOmop(null,
+						ExtensionUtil.usCorePatientFromResource(resource));
 				keyString = resource.getId() + "^FPerson";
 				addBaseEntity(entityToCreate, keyString, fPerson);
 				System.out.println("key:" + keyString + ", fPerson");
