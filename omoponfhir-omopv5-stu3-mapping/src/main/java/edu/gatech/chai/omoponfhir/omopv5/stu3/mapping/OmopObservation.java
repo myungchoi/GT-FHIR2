@@ -1964,6 +1964,9 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 //			paramWrapper.setRelationship("or");
 //			mapList.add(paramWrapper);
 			break;
+		case "Patient:" + Patient.SP_IDENTIFIER:
+			addParamlistForPatientIDName(parameter, (String) value, paramWrapper, mapList);
+			break;
 		default:
 			mapList = null;
 		}
