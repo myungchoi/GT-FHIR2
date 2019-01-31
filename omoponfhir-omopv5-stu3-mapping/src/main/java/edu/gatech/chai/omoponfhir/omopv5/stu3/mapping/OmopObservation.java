@@ -301,7 +301,8 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 				Coding typeCoding = new Coding("http://hl7.org/fhir/observation-category", "exam", "");
 				typeConcept.addCoding(typeCoding);
 				observation.addCategory(typeConcept);
-			} else if (fObservationView.getTypeConcept().getId() == 44818702L) {
+			} else if (fObservationView.getTypeConcept().getId() == 44818702L
+					|| fObservationView.getTypeConcept().getId() == 44791245L) {
 				CodeableConcept typeConcept = new CodeableConcept();
 				// This is Lab result
 				Coding typeCoding = new Coding("http://hl7.org/fhir/observation-category", "laboratory", "");
@@ -1963,6 +1964,9 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 //			paramWrapper.setValues(Arrays.asList("%" + patientName + "%"));
 //			paramWrapper.setRelationship("or");
 //			mapList.add(paramWrapper);
+			break;
+		case "Patient:" + Patient.SP_IDENTIFIER:
+			addParamlistForPatientIDName(parameter, (String) value, paramWrapper, mapList);
 			break;
 		default:
 			mapList = null;

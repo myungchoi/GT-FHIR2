@@ -164,8 +164,8 @@ public class ObservationResourceProvider implements IResourceProvider {
 	public IBundleProvider findObservationsByParams(
 			@OptionalParam(name=Observation.SP_CODE) TokenOrListParam theOrCodes,
 			@OptionalParam(name=Observation.SP_DATE) DateParam theDate,
-			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam thePatient,
-			@OptionalParam(name=Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME}) ReferenceParam theSubject,
+			@OptionalParam(name=Observation.SP_PATIENT, chainWhitelist={"", Patient.SP_NAME, Patient.SP_IDENTIFIER}) ReferenceParam thePatient,
+			@OptionalParam(name=Observation.SP_SUBJECT, chainWhitelist={"", Patient.SP_NAME, Patient.SP_IDENTIFIER}) ReferenceParam theSubject,
 
 			@IncludeParam(allow={"Observation:based-on", "Observation:context", 
 					"Observation:device", "Observation:encounter", "Observation:patient", 
@@ -214,6 +214,8 @@ public class ObservationResourceProvider implements IResourceProvider {
 				if (Patient.SP_NAME.equals(patientChain)) {
 					String thePatientName = thePatient.getValue();
 					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_NAME, thePatientName, false));
+				} else if (Patient.SP_IDENTIFIER.equals(patientChain)) {
+					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_IDENTIFIER, thePatient.getValue(), false));
 				} else if ("".equals(patientChain)) {
 					paramList.addAll(getMyMapper().mapParameter ("Patient:"+Patient.SP_RES_ID, thePatient.getValue(), false));
 				}

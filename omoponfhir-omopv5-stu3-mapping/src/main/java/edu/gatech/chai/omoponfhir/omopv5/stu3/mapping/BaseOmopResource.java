@@ -183,6 +183,17 @@ public abstract class BaseOmopResource<v extends Resource, t extends BaseEntity,
 			paramWrapper.setRelationship("or");
 			mapList.add(paramWrapper);
 			break;
+		case "Patient:" + Patient.SP_IDENTIFIER:
+			String identifier = value.replace("\"", "");
+			identifier = identifier.replace("'", "");
+			
+			paramWrapper.setParameterType("String");
+			paramWrapper.setParameters(Arrays.asList("fPerson.personSourceValue"));
+			paramWrapper.setOperators(Arrays.asList("like"));
+			paramWrapper.setValues(Arrays.asList("%" + identifier + "%"));
+			paramWrapper.setRelationship("or");
+			mapList.add(paramWrapper);
+			break;
 		default:
 			return;
 		}
