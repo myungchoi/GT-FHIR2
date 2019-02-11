@@ -38,7 +38,7 @@ public class CareSiteServiceImp extends BaseEntityServiceImp<CareSite, CareSiteD
 	@Transactional(readOnly = true)
 	public CareSite searchByLocation(Location location) {
 		EntityManager em = getEntityDao().getEntityManager();
-		String query = "SELECT t FROM CareSite t WHERE location_id like :value:";
+		String query = "SELECT t FROM CareSite t WHERE location_id like :value";
 		List<? extends CareSite> results = em.createQuery(query, CareSite.class)
 				.setParameter("value",location.getId()).getResultList();
 		if (results.size() > 0) {
