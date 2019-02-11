@@ -19,6 +19,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DateTimeType;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Observation;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Observation.ObservationComponentComponent;
@@ -54,14 +56,19 @@ import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.EncounterResourceProvider
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.ObservationResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.PatientResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.PractitionerResourceProvider;
+import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
 import edu.gatech.chai.omopv5.jpa.entity.Concept;
 import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
 import edu.gatech.chai.omopv5.jpa.entity.FPerson;
+import edu.gatech.chai.omopv5.jpa.entity.FactRelationship;
 import edu.gatech.chai.omopv5.jpa.entity.Measurement;
+import edu.gatech.chai.omopv5.jpa.entity.Note;
 import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
 import edu.gatech.chai.omopv5.jpa.service.ConceptService;
 import edu.gatech.chai.omopv5.jpa.service.FObservationViewService;
+import edu.gatech.chai.omopv5.jpa.service.FactRelationshipService;
 import edu.gatech.chai.omopv5.jpa.service.MeasurementService;
+import edu.gatech.chai.omopv5.jpa.service.NoteService;
 import edu.gatech.chai.omopv5.jpa.service.ObservationService;
 import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
 import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
@@ -83,6 +90,8 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 	private MeasurementService measurementService;
 	private ObservationService observationService;
 	private VisitOccurrenceService visitOccurrenceService;
+	private NoteService noteService;
+	private FactRelationshipService factRelationshipService;
 
 	public OmopObservation(WebApplicationContext context) {
 		super(context, FObservationView.class, FObservationViewService.class, ObservationResourceProvider.getType());
@@ -101,7 +110,8 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		measurementService = context.getBean(MeasurementService.class);
 		observationService = context.getBean(ObservationService.class);
 		visitOccurrenceService = context.getBean(VisitOccurrenceService.class);
-
+		noteService = context.getBean(NoteService.class);
+		factRelationshipService = context.getBean(FactRelationshipService.class);
 	}
 
 	public Long getDiastolicConcept() {
@@ -123,7 +133,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			// If we can't find FHIR Uri or system name, just use Omop Vocabulary Id.
 			systemUriString = omopVocabulary;
 		}
-		
+
 		// If we have unit, this should be used across all the value.
 		String unitSystemUri = new String();
 		String unitCode = new String();
@@ -135,12 +145,12 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			if ("None".equals(unitSystemUri)) {
 				unitSystemUri = omopUnitVocabularyId;
 			}
-			
+
 			unitUnit = fObservationView.getUnitConcept().getName();
 			unitCode = fObservationView.getUnitConcept().getConceptCode();
 
 		}
-		
+
 		String codeString = fObservationView.getObservationConcept().getConceptCode();
 		String displayString;
 		if (fObservationView.getObservationConcept().getId() == 0L) {
@@ -340,6 +350,44 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			observation.addPerformer(performerRef);
 		}
 
+		String identifierString = fObservationView.getSourceValue();
+		if (identifierString != null && !identifierString.isEmpty()) {
+			Identifier identifier = new Identifier();
+			identifier.setValue(identifierString);
+			observation.addIdentifier(identifier);
+		}
+
+		if (fObservationView.getId() > 0) {
+			List<BaseEntity> methods = factRelationshipService.searchMeasurementUsingMethod(fObservationView.getId());
+			if (methods != null && methods.size() > 0) {
+				for (BaseEntity method : methods) {
+					if (method instanceof Note) {
+						Note note = (Note) method;
+						String methodString = noteService.findById(note.getId()).getNoteText();
+						CodeableConcept methodCodeable = new CodeableConcept();
+						methodCodeable.setText(methodString);
+						observation.setMethod(methodCodeable);
+					} else if (method instanceof Concept) {
+						Concept concept = (Concept) method;
+						CodeableConcept methodCodeable = CodeableConceptUtil
+								.getCodeableConceptFromOmopConcept(conceptService.findById(concept.getId()));
+						observation.setMethod(methodCodeable);
+					} else {
+						logger.error("Method couldn't be retrieved. Method class type undefined");
+					}
+				}
+			}
+
+			List<Note> notes = factRelationshipService.searchMeasurementContainsComments(fObservationView.getId());
+			String comments = "";
+			for (Note note : notes) {
+				comments = comments.concat(noteService.findById(note.getId()).getNoteText());
+			}
+			if (!comments.isEmpty()) {
+				observation.setComment(comments);
+			}
+		}
+
 		return observation;
 	}
 
@@ -440,25 +488,26 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		FPerson tPerson = new FPerson();
 		tPerson.setId(omopPersonId);
 
+		Identifier identifier_value = fhirResource.getIdentifierFirstRep();
 		if (omopId == null) {
 			// Create.
 			if (systolicMeasurement == null && systolicValue != null) {
 				systolicMeasurement = new Measurement();
 
-				// if (identifier_value != null) {
-				// systolicMeasurement.setSourceValue(identifier_value);
-				// }
-				systolicMeasurement.setSourceValue(SYSTOLIC_LOINC_CODE);
+				if (identifier_value != null && !identifier_value.isEmpty()) {
+					systolicMeasurement.setSourceValue(identifier_value.getValue());
+				}
+//				systolicMeasurement.setSourceValue(SYSTOLIC_LOINC_CODE);
 				systolicMeasurement.setFPerson(tPerson);
 
 			}
 			if (diastolicMeasurement == null && diastolicValue != null) {
 				diastolicMeasurement = new Measurement();
 
-				// if (identifier_value != null) {
-				// diastolicMeasurement.setSourceValue(identifier_value);
-				// }
-				diastolicMeasurement.setSourceValue(DIASTOLIC_LOINC_CODE);
+				if (identifier_value != null) {
+					diastolicMeasurement.setSourceValue(identifier_value.getValue());
+				}
+//				diastolicMeasurement.setSourceValue(DIASTOLIC_LOINC_CODE);
 				diastolicMeasurement.setFPerson(tPerson);
 			}
 
@@ -820,10 +869,10 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			}
 		}
 
-		// Identifier identifier = fhirResource.getIdentifierFirstRep();
-		// if (!identifier.isEmpty()) {
-		// measurement.setSourceValue(identifier.getValue());
-		// }
+		Identifier identifier = fhirResource.getIdentifierFirstRep();
+		if (identifier != null && !identifier.isEmpty()) {
+			measurement.setSourceValue(identifier.getValue());
+		}
 
 		String idString = fhirResource.getSubject().getReferenceElement().getIdPart();
 
@@ -1156,10 +1205,11 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			}
 		}
 
-		// Identifier identifier = fhirResource.getIdentifierFirstRep();
-		// if (!identifier.isEmpty()) {
-		// observation.setSourceValue(identifier.getValue());
-		// }
+		Identifier identifier = fhirResource.getIdentifierFirstRep();
+		if (identifier != null && !identifier.isEmpty()) {
+			// This will be overwritten if we fail to get code mapped to concept id.
+			observation.setSourceValue(identifier.getValue());
+		}
 
 		Long fhirSubjectId = fhirResource.getSubject().getReferenceElement().getIdPartAsLong();
 		Long omopPersonId = IdMapping.getOMOPfromFHIR(fhirSubjectId, PatientResourceProvider.getType());
@@ -1630,6 +1680,9 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		Map<String, Object> entityMap = constructOmopMeasurementObservation(omopId, fhirResource);
 		Long retId = null;
 
+		Date date = null;
+		FPerson fPerson = null;
+		Long domainConceptId = null;
 		if (entityMap != null && ((String) entityMap.get("type")).equalsIgnoreCase("measurement")) {
 			measurements = (List<Measurement>) entityMap.get("entity");
 
@@ -1647,19 +1700,19 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 					} else if (m.getMeasurementConcept().getId() == OmopObservation.DIASTOLIC_CONCEPT_ID) {
 						retvalDiastolic = retId;
 					}
+
+					date = m.getDate();
+					fPerson = m.getFPerson();
 				}
 			}
 
 			// Ok, done. now we return.
 			if (retvalSystolic != null)
-				return retvalSystolic;
+				retId = retvalSystolic;
 			else if (retvalDiastolic != null)
-				return retvalDiastolic;
-			else if (retId != null)
-				return retId;
-			else
-				return null;
+				retId = retvalDiastolic;
 
+			domainConceptId = 21L;
 		} else {
 			observation = (edu.gatech.chai.omopv5.jpa.entity.Observation) entityMap.get("entity");
 			if (observation.getId() != null) {
@@ -1667,13 +1720,180 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 			} else {
 				retId = observationService.create(observation).getId();
 			}
+
+			date = observation.getDate();
+			fPerson = observation.getFPerson();
+
+			domainConceptId = 27L;
 		}
 
 		if (retId == null)
 			return null;
 
+		// Check method in FHIR. If we hacve method, check the concept ID if it's
+		// codeable concept and put
+		// entry in the relationship table. If test, use Note table and put the
+		// relationship in relationship table.
+		CodeableConcept methodCodeable = fhirResource.getMethod();
+		List<Coding> methodCodings = methodCodeable.getCoding();
+		String methodString = methodCodeable.getText();
+		if (methodCodings != null && !methodCodings.isEmpty()) {
+			for (Coding methodCoding : methodCodings) {
+				Concept methodConcept = CodeableConceptUtil.getOmopConceptWithFhirConcept(conceptService, methodCoding);
+				if (methodConcept == null) {
+					String methodCodingDisplay = methodCoding.getDisplay();
+					if (methodCodingDisplay != null && !methodCodingDisplay.isEmpty()) {
+						createFactRelationship(date, fPerson, methodCodingDisplay, domainConceptId, 26L, 44818800L,
+								retId, null);
+//						Note methodNote = new Note();
+//						methodNote.setDate(date);
+//						methodNote.setFPerson(fPerson);
+//						methodNote.setNoteText(methodCodingDisplay);
+//						methodNote.setType(new Concept(44814645L));
+//						Note note = noteService.create(methodNote);
+//
+//						// Create relationship.
+//						FactRelationship factRelationship = new FactRelationship();
+//						factRelationship.setDomainConcept1(domainConceptId);
+//						factRelationship.setFactId1(retId);
+//						factRelationship.setDomainConcept2(26L);
+//						factRelationship.setFactId2(note.getId());
+//						factRelationship.setRelationshipConcept(new Concept(44818800L));
+//						factRelationshipService.create(factRelationship);
+					}
+				} else {
+					// Create relationship.
+					createFactRelationship(null, null, null, domainConceptId, 58L, 44818800L, retId,
+							methodConcept.getId());
+//					FactRelationship factRelationship = new FactRelationship();
+//					factRelationship.setDomainConcept1(domainConceptId);
+//					factRelationship.setFactId1(retId);
+//					factRelationship.setDomainConcept2(58L);
+//					factRelationship.setFactId2(methodConcept.getId());
+//					factRelationship.setRelationshipConcept(new Concept(44818800L));
+//					factRelationshipService.create(factRelationship);
+				}
+			}
+		} else {
+			if (methodString != null && !methodString.isEmpty()) {
+				createFactRelationship(date, fPerson, methodString, domainConceptId, 26L, 44818800L, retId, null);
+
+//				Note methodNote = new Note();
+//				methodNote.setDate(date);
+//				methodNote.setFPerson(fPerson);
+//				methodNote.setNoteText(methodString);
+//				methodNote.setType(new Concept(44814645L));
+//				Note note = noteService.create(methodNote);
+//
+//				// Create relationship.
+//				FactRelationship factRelationship = new FactRelationship();
+//				factRelationship.setDomainConcept1(domainConceptId);
+//				factRelationship.setFactId1(retId);
+//				factRelationship.setDomainConcept2(26L);
+//				factRelationship.setFactId2(note.getId());
+//				factRelationship.setRelationshipConcept(new Concept(44818800L));
+//				factRelationshipService.create(factRelationship);
+			}
+		}
+
+		// Check comments. If exists, put them in note table. And create relationship
+		// entry.
+		String comment = fhirResource.getComment();
+		if (comment != null && !comment.isEmpty()) {
+			createFactRelationship(date, fPerson, comment, domainConceptId, 26L, 44818721L, retId, null);
+//			Note methodNote = new Note();
+//			methodNote.setDate(date);
+//			methodNote.setFPerson(fPerson);
+//			methodNote.setNoteText(comment);
+//			methodNote.setType(new Concept(44814645L));
+//			Note note = noteService.create(methodNote);
+//
+//			// Create relationship.
+//			FactRelationship factRelationship = new FactRelationship();
+//			factRelationship.setDomainConcept1(domainConceptId);
+//			factRelationship.setFactId1(retId);
+//			factRelationship.setDomainConcept2(26L);
+//			factRelationship.setFactId2(note.getId());
+//			factRelationship.setRelationshipConcept(new Concept(44818721L));
+//			factRelationshipService.create(factRelationship);
+		}
+
 		Long retFhirId = IdMapping.getFHIRfromOMOP(retId, ObservationResourceProvider.getType());
 		return retFhirId;
+	}
+
+	private void createFactRelationship(Date noteDate, FPerson noteFPerson, String noteText, Long domainConceptId1,
+			Long domainConceptId2, Long relationshipId, Long factId1, Long factId2) {
+		// Create relationship.
+		FactRelationship factRelationship = new FactRelationship();
+
+		if (noteDate != null && noteFPerson != null && noteText != null) {
+			// Check if this note exists.
+			List<Note> existingNotes = noteService.searchByColumnString("noteText", noteText);
+			Note note;
+			boolean found = false;
+			if (existingNotes != null && existingNotes.size() > 0) {
+				// check other fields for all notes.
+				for (Note existingNote : existingNotes) {
+					Calendar cal = Calendar.getInstance();
+					cal.setTime(noteDate);
+					int noteYear = cal.get(Calendar.YEAR);
+					int noteMonth = cal.get(Calendar.MONTH);
+					int noteDay = cal.get(Calendar.DAY_OF_MONTH);
+
+					cal.setTime(existingNote.getDate());
+					int exNoteYear = cal.get(Calendar.YEAR);
+					int exNoteMonth = cal.get(Calendar.MONTH);
+					int exNoteDay = cal.get(Calendar.DAY_OF_MONTH);
+
+					if (noteYear == exNoteYear && noteMonth == exNoteMonth && noteDay == exNoteDay
+							&& noteFPerson.getId() == existingNote.getFPerson().getId()
+							&& 44814645L == existingNote.getType().getId()) {
+
+						// check if we have this in the fact relationship table. If so,
+						// there is no further action required.
+						List<FactRelationship> factRelationships = factRelationshipService.searchFactRelationship(
+								domainConceptId1, factId1, domainConceptId2, factId2, relationshipId);
+						if (factRelationships.size() > 0) {
+							found = true;
+						}
+
+						note = existingNote;
+						break;
+					}
+				}
+			}
+			if (found == false) {
+				Note methodNote = new Note();
+				methodNote.setDate(noteDate);
+				methodNote.setFPerson(noteFPerson);
+				methodNote.setNoteText(noteText);
+				methodNote.setType(new Concept(44814645L));
+
+				note = noteService.create(methodNote);
+			} else {
+				return;
+			}
+			factRelationship.setFactId2(note.getId());
+		} else {
+			// This is relationship to concept. Thus, we don't need to create entry for
+			// concept.
+			// But, check fact relationship table for its existence.
+			List<FactRelationship> factRelationships = factRelationshipService.searchFactRelationship(domainConceptId1,
+					factId1, domainConceptId2, factId2, relationshipId);
+
+			if (factRelationships.size() > 0) {
+				return;
+			}
+
+			factRelationship.setFactId2(factId2);
+		}
+
+		factRelationship.setDomainConcept1(domainConceptId1);
+		factRelationship.setFactId1(factId1);
+		factRelationship.setDomainConcept2(domainConceptId2);
+		factRelationship.setRelationshipConcept(new Concept(relationshipId));
+		factRelationshipService.create(factRelationship);
 	}
 
 	// Blood Pressure is stored in the component. So, we store two values in

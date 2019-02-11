@@ -43,11 +43,11 @@ public class ConceptRelationship extends BaseEntity implements Serializable {
 	@Id
 	@ManyToOne
 	@JoinColumn(name="concept_id_1")
-	private Concept conceptId1;
+	private Concept concept1;
 	
 	@ManyToOne
 	@JoinColumn(name="concept_id_2")
-	private Concept conceptId2;
+	private Concept concept2;
 	
 	@Column(name="relationship_id")
 	private String relationshipId;
