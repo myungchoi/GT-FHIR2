@@ -56,22 +56,22 @@ import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.EncounterResourceProvider
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.ObservationResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.PatientResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.provider.PractitionerResourceProvider;
-import edu.gatech.chai.omopv5.jpa.entity.BaseEntity;
-import edu.gatech.chai.omopv5.jpa.entity.Concept;
-import edu.gatech.chai.omopv5.jpa.entity.FObservationView;
-import edu.gatech.chai.omopv5.jpa.entity.FPerson;
-import edu.gatech.chai.omopv5.jpa.entity.FactRelationship;
-import edu.gatech.chai.omopv5.jpa.entity.Measurement;
-import edu.gatech.chai.omopv5.jpa.entity.Note;
-import edu.gatech.chai.omopv5.jpa.entity.VisitOccurrence;
-import edu.gatech.chai.omopv5.jpa.service.ConceptService;
-import edu.gatech.chai.omopv5.jpa.service.FObservationViewService;
-import edu.gatech.chai.omopv5.jpa.service.FactRelationshipService;
-import edu.gatech.chai.omopv5.jpa.service.MeasurementService;
-import edu.gatech.chai.omopv5.jpa.service.NoteService;
-import edu.gatech.chai.omopv5.jpa.service.ObservationService;
-import edu.gatech.chai.omopv5.jpa.service.ParameterWrapper;
-import edu.gatech.chai.omopv5.jpa.service.VisitOccurrenceService;
+import edu.gatech.chai.omopv5.dba.service.ConceptService;
+import edu.gatech.chai.omopv5.dba.service.FObservationViewService;
+import edu.gatech.chai.omopv5.dba.service.FactRelationshipService;
+import edu.gatech.chai.omopv5.dba.service.MeasurementService;
+import edu.gatech.chai.omopv5.dba.service.NoteService;
+import edu.gatech.chai.omopv5.dba.service.ObservationService;
+import edu.gatech.chai.omopv5.dba.service.ParameterWrapper;
+import edu.gatech.chai.omopv5.dba.service.VisitOccurrenceService;
+import edu.gatech.chai.omopv5.model.entity.BaseEntity;
+import edu.gatech.chai.omopv5.model.entity.Concept;
+import edu.gatech.chai.omopv5.model.entity.FObservationView;
+import edu.gatech.chai.omopv5.model.entity.FPerson;
+import edu.gatech.chai.omopv5.model.entity.FactRelationship;
+import edu.gatech.chai.omopv5.model.entity.Measurement;
+import edu.gatech.chai.omopv5.model.entity.Note;
+import edu.gatech.chai.omopv5.model.entity.VisitOccurrence;
 
 public class OmopObservation extends BaseOmopResource<Observation, FObservationView, FObservationViewService>
 		implements IResourceMapping<Observation, FObservationView> {
@@ -1187,12 +1187,12 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 	}
 
-	public edu.gatech.chai.omopv5.jpa.entity.Observation constructOmopObservation(Long omopId,
+	public edu.gatech.chai.omopv5.model.entity.Observation constructOmopObservation(Long omopId,
 			Observation fhirResource) {
-		edu.gatech.chai.omopv5.jpa.entity.Observation observation = null;
+		edu.gatech.chai.omopv5.model.entity.Observation observation = null;
 		if (omopId == null) {
 			// This is CREATE.
-			observation = new edu.gatech.chai.omopv5.jpa.entity.Observation();
+			observation = new edu.gatech.chai.omopv5.model.entity.Observation();
 		} else {
 			observation = observationService.findById(omopId);
 			if (observation == null) {
@@ -1469,7 +1469,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		Map<String, Object> retVal = new HashMap<String, Object>();
 
 		List<Measurement> measurements = null;
-		edu.gatech.chai.omopv5.jpa.entity.Observation observation = null;
+		edu.gatech.chai.omopv5.model.entity.Observation observation = null;
 
 		for (Coding coding : fhirResource.getCode().getCoding()) {
 			String code = coding.getCode();
@@ -1675,7 +1675,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		validation(fhirResource, fhirId);
 
 		List<Measurement> measurements = null;
-		edu.gatech.chai.omopv5.jpa.entity.Observation observation = null;
+		edu.gatech.chai.omopv5.model.entity.Observation observation = null;
 
 		Map<String, Object> entityMap = constructOmopMeasurementObservation(omopId, fhirResource);
 		Long retId = null;
@@ -1714,7 +1714,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 			domainConceptId = 21L;
 		} else {
-			observation = (edu.gatech.chai.omopv5.jpa.entity.Observation) entityMap.get("entity");
+			observation = (edu.gatech.chai.omopv5.model.entity.Observation) entityMap.get("entity");
 			if (observation.getId() != null) {
 				retId = observationService.update(observation).getId();
 			} else {
