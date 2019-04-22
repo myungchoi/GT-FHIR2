@@ -139,7 +139,13 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		String unitCode = new String();
 		String unitUnit = new String();
 		Concept unitConcept = fObservationView.getUnitConcept();
-		if (unitConcept != null) {
+		if (unitConcept == null || unitConcept.getId() == 0L) {
+			// see if we can get the unit from source column.
+			String unitSource = fObservationView.getUnitSourceValue();
+			unitConcept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, OmopCodeableConceptMapping.UCUM.getOmopVocabulary(), unitSource);
+		}
+		
+		if (unitConcept != null && unitConcept.getId() != 0L) {
 			String omopUnitVocabularyId = fObservationView.getUnitConcept().getVocabulary().getId();
 			unitSystemUri = fhirOmopVocabularyMap.getFhirSystemNameFromOmopVocabulary(omopUnitVocabularyId);
 			if ("None".equals(unitSystemUri)) {
@@ -148,8 +154,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 			unitUnit = fObservationView.getUnitConcept().getName();
 			unitCode = fObservationView.getUnitConcept().getConceptCode();
-
-		}
+		} 
 
 		String codeString = fObservationView.getObservationConcept().getConceptCode();
 		String displayString;
