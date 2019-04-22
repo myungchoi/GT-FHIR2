@@ -135,25 +135,26 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		}
 
 		// If we have unit, this should be used across all the value.
-		String unitSystemUri = new String();
-		String unitCode = new String();
-		String unitUnit = new String();
+		String unitSystemUri = null;
+		String unitCode = null;
+		String unitUnit = null;
+		String unitSource = null;
 		Concept unitConcept = fObservationView.getUnitConcept();
 		if (unitConcept == null || unitConcept.getId() == 0L) {
 			// see if we can get the unit from source column.
-			String unitSource = fObservationView.getUnitSourceValue();
+			unitSource = fObservationView.getUnitSourceValue();
 			unitConcept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, OmopCodeableConceptMapping.UCUM.getOmopVocabulary(), unitSource);
 		}
 		
 		if (unitConcept != null && unitConcept.getId() != 0L) {
-			String omopUnitVocabularyId = fObservationView.getUnitConcept().getVocabulary().getId();
+			String omopUnitVocabularyId = unitConcept.getVocabulary().getId();
 			unitSystemUri = fhirOmopVocabularyMap.getFhirSystemNameFromOmopVocabulary(omopUnitVocabularyId);
 			if ("None".equals(unitSystemUri)) {
 				unitSystemUri = omopUnitVocabularyId;
 			}
 
-			unitUnit = fObservationView.getUnitConcept().getName();
-			unitCode = fObservationView.getUnitConcept().getConceptCode();
+			unitUnit = unitConcept.getName();
+			unitCode = unitConcept.getConceptCode();
 		} 
 
 		String codeString = fObservationView.getObservationConcept().getConceptCode();
@@ -193,11 +194,15 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 
 				// Unit is defined as a concept code in omop v4, then unit and
 				// code are the same in this case
-				if (fObservationView.getUnitConcept() != null) {
+				if (unitSystemUri != null || unitCode != null || unitUnit != null) {
 					quantity.setUnit(unitUnit);
 					quantity.setCode(unitCode);
 					quantity.setSystem(unitSystemUri);
 					comp.setValue(quantity);
+				} else {
+					if (unitSource != null) {
+						quantity.setUnit(unitSource);
+					}
 				}
 			}
 			components.add(comp);
@@ -219,7 +224,7 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 					Quantity quantity = new Quantity(diastolicDb.getValueAsNumber().doubleValue());
 					// Unit is defined as a concept code in omop v4, then unit
 					// and code are the same in this case
-					if (diastolicDb.getUnitConcept() != null) {
+					if (diastolicDb.getUnitConcept() != null && diastolicDb.getUnitConcept().getId() != 0L) {
 						quantity.setUnit(diastolicDb.getUnitConcept().getName());
 						quantity.setCode(diastolicDb.getUnitConcept().getConceptCode());
 						String unitSystem = fhirOmopVocabularyMap.getFhirSystemNameFromOmopVocabulary(
@@ -228,6 +233,23 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 							unitSystem = diastolicDb.getUnitConcept().getVocabulary().getId();
 						quantity.setSystem(unitSystem);
 						comp.setValue(quantity);
+					} else {
+						String diastolicUnitSource = diastolicDb.getUnitSourceValue();
+						if (diastolicUnitSource != null && !diastolicUnitSource.isEmpty()) {
+							Concept diastolicUnitConcept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, OmopCodeableConceptMapping.UCUM.getOmopVocabulary(), unitSource);
+							if (diastolicUnitConcept != null && diastolicUnitConcept.getId() != 0L) {
+								quantity.setUnit(diastolicUnitConcept.getName());
+								quantity.setCode(diastolicUnitConcept.getConceptCode());
+								String unitSystem = fhirOmopVocabularyMap.getFhirSystemNameFromOmopVocabulary(
+										diastolicUnitConcept.getVocabulary().getId());
+								if ("None".equals(unitSystem))
+									unitSystem = diastolicUnitConcept.getVocabulary().getId();
+								quantity.setSystem(unitSystem);
+							} else {
+								quantity.setUnit(diastolicUnitSource);
+							}
+							comp.setValue(quantity);								
+						}
 					}
 				}
 				components.add(comp);
@@ -239,13 +261,23 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		} else {
 			if (fObservationView.getValueAsNumber() != null) {
 				Quantity quantity = new Quantity(fObservationView.getValueAsNumber().doubleValue());
-				if (fObservationView.getUnitConcept() != null) {
-					// Unit is defined as a concept code in omop v4, then unit
-					// and code are the same in this case
+				if (unitSystemUri != null || unitCode != null || unitUnit != null) {
 					quantity.setUnit(unitUnit);
 					quantity.setCode(unitCode);
 					quantity.setSystem(unitSystemUri);
+				} else {
+					if (unitSource != null) {
+						quantity.setUnit(unitSource);
+					}
 				}
+				
+//				if (fObservationView.getUnitConcept() != null) {
+//					// Unit is defined as a concept code in omop v4, then unit
+//					// and code are the same in this case
+//					quantity.setUnit(unitUnit);
+//					quantity.setCode(unitCode);
+//					quantity.setSystem(unitSystemUri);
+//				}
 				observation.setValue(quantity);
 			} else if (fObservationView.getValueAsString() != null) {
 				observation.setValue(new StringType(fObservationView.getValueAsString()));
