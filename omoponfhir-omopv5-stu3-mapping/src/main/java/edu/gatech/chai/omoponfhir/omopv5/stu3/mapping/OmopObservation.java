@@ -143,7 +143,9 @@ public class OmopObservation extends BaseOmopResource<Observation, FObservationV
 		if (unitConcept == null || unitConcept.getId() == 0L) {
 			// see if we can get the unit from source column.
 			unitSource = fObservationView.getUnitSourceValue();
-			unitConcept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, OmopCodeableConceptMapping.UCUM.getOmopVocabulary(), unitSource);
+			if (unitSource != null && !unitSource.isEmpty()) {
+				unitConcept = CodeableConceptUtil.getOmopConceptWithOmopVacabIdAndCode(conceptService, OmopCodeableConceptMapping.UCUM.getOmopVocabulary(), unitSource);
+			}
 		}
 		
 		if (unitConcept != null && unitConcept.getId() != 0L) {
