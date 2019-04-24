@@ -46,6 +46,7 @@ import org.hl7.fhir.instance.model.api.IIdType;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.ParamPrefixEnum;
 import ca.uhn.fhir.rest.param.StringParam;
@@ -761,22 +762,61 @@ public class OmopPatient extends BaseOmopResource<USCorePatient, FPerson, FPerso
 		return mapList;
 	}
 
-	public String constructSort(String sp, String direction) {
-		String retv;
-		if (sp.equals(Patient.SP_FAMILY)) {
-			retv = "familyName " + direction;
-		} else if (sp.equals(Patient.SP_GIVEN)) {
-			retv = "givenName1 " + direction + ",givenName2 " + direction;
-		} else if (sp.equals(Patient.SP_GENDER)) {
-			retv = "genderConcept " + direction;
-		} else if (sp.equals(Patient.SP_BIRTHDATE)) {
-			retv = "yearOfBirth " + direction + ",monthOfBirth " + direction + ",dayOfBirth " + direction
+//	@Override
+//	public String constructSort(String sp, String direction) {
+//		String retv;
+//		if (sp.equals(Patient.SP_FAMILY)) {
+//			retv = "familyName " + direction;
+//		} else if (sp.equals(Patient.SP_GIVEN)) {
+//			retv = "givenName1 " + direction + ",givenName2 " + direction;
+//		} else if (sp.equals(Patient.SP_GENDER)) {
+//			retv = "genderConcept " + direction;
+//		} else if (sp.equals(Patient.SP_BIRTHDATE)) {
+//			retv = "yearOfBirth " + direction + ",monthOfBirth " + direction + ",dayOfBirth " + direction
+//					+ ",timeOfBirth " + direction;
+//		} else {
+//			retv = "id " + direction;
+//		}
+//
+//		return retv;
+//	}
+//
+	
+	@Override
+	public String constructOrderParams(SortSpec theSort) {
+		if (theSort == null) return null;
+		
+//		String orderParams = new String();
+		String direction;
+		
+		if (theSort.getOrder() != null) direction = theSort.getOrder().toString();
+		else direction = "ASC";
+
+		String orderParam = new String(); // getMyMapper().constructSort(theSort.getParamName(), direction);
+		
+		if (theSort.getParamName().equals(Patient.SP_FAMILY)) {
+			orderParam = "familyName " + direction;
+		} else if (theSort.getParamName().equals(Patient.SP_GIVEN)) {
+			orderParam = "givenName1 " + direction + ",givenName2 " + direction;
+		} else if (theSort.getParamName().equals(Patient.SP_GENDER)) {
+			orderParam = "genderConcept " + direction;
+		} else if (theSort.getParamName().equals(Patient.SP_BIRTHDATE)) {
+			orderParam = "yearOfBirth " + direction + ",monthOfBirth " + direction + ",dayOfBirth " + direction
 					+ ",timeOfBirth " + direction;
 		} else {
-			retv = "id " + direction;
+			orderParam = "id " + direction;
 		}
-
-		return retv;
+		
+//		if (orderParams.isEmpty()) orderParams = orderParams.concat(orderParam);
+//		else orderParams = orderParams.concat(","+orderParam);
+		
+		String orderParams = orderParam;
+		
+		if (theSort.getChain() != null) { 
+			orderParams = orderParams.concat(","+constructOrderParams(theSort.getChain()));
+		}
+		
+		return orderParams;
 	}
 
 	@Override
