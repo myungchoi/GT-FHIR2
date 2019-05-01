@@ -187,7 +187,7 @@ public class RestfulServlet extends RestfulServer {
 		 */
 		
     	String url = System.getenv("SMART_INTROSPECTURL");
-    	String enable_oauth = System.getenv("SMART_ENABLEOAUTH");
+    	String authType = System.getenv("AUTH_TYPE");
     	String client_id = System.getenv("SMART_CLIENTID");
     	String client_secret = System.getenv("SMART_CLIENTSECRET");
     	String read_only = System.getenv("FHIR_READONLY");
@@ -195,8 +195,8 @@ public class RestfulServlet extends RestfulServer {
 
     	if (url == null) 
     		url = getServletConfig().getInitParameter("introspectUrl");
-    	if (enable_oauth == null)
-    		enable_oauth = getServletConfig().getInitParameter("enableOAuth");
+    	if (authType == null)
+    		authType = getServletConfig().getInitParameter("authType");
     	if (client_id == null) 
     		client_id = getServletConfig().getInitParameter("clientId");
     	if (client_secret == null)
@@ -208,7 +208,7 @@ public class RestfulServlet extends RestfulServer {
     	
 		OIDCInterceptor oIDCInterceptor = new OIDCInterceptor();
 		oIDCInterceptor.setIntrospectUrl(url);
-		oIDCInterceptor.setEnableOAuth(enable_oauth);
+		oIDCInterceptor.setAuthType(authType);
 		oIDCInterceptor.setClientId(client_id);
 		oIDCInterceptor.setClientSecret(client_secret);
 		oIDCInterceptor.setLocalByPass(local_bypass);

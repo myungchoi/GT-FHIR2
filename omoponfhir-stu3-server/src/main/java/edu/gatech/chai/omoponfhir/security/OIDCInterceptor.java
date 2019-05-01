@@ -19,6 +19,8 @@ package edu.gatech.chai.omoponfhir.security;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.codec.binary.Base64;
+
 import ca.uhn.fhir.rest.api.RequestTypeEnum;
 import ca.uhn.fhir.rest.api.RestOperationTypeEnum;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
@@ -36,7 +38,7 @@ public class OIDCInterceptor extends InterceptorAdapter {
 
 	private static final org.slf4j.Logger ourLog = org.slf4j.LoggerFactory.getLogger(OIDCInterceptor.class);
 
-	private String enableOAuth;
+	private String authType;
 	private String introspectUrl;	
 	private String clientId;
 	private String clientSecret;
@@ -44,6 +46,7 @@ public class OIDCInterceptor extends InterceptorAdapter {
 	private String readOnly;
 
 	public OIDCInterceptor() {
+		authType = "None";  // Default allows anonymous access
 	}
 
 	@Override
@@ -51,9 +54,21 @@ public class OIDCInterceptor extends InterceptorAdapter {
 			HttpServletResponse theResponse) throws AuthenticationException {
 
 		ourLog.debug("[OAuth] Request from " + theRequest.getRemoteAddr());
+		
+		// check environment variables now as they may have been updated.
 		String readOnlyEnv = System.getenv("FHIR_READONLY");
 		if (readOnlyEnv != null && !readOnlyEnv.isEmpty()) {
 			setReadOnly(readOnlyEnv);
+		}
+		
+		String authTypeEnv = System.getenv("AUTH_TYPE");
+		if (authTypeEnv != null && !authTypeEnv.isEmpty()) {
+			setAuthType(authTypeEnv);
+		}
+		
+		String localByPassEnv = System.getenv("LOCAL_BYPASS");
+		if (localByPassEnv != null && !localByPassEnv.isEmpty()) {
+			setLocalByPass(localByPassEnv);
 		}
 		
 		if (readOnly.equalsIgnoreCase("True")) {
@@ -64,11 +79,6 @@ public class OIDCInterceptor extends InterceptorAdapter {
 				throw new MethodNotAllowedException("Server Running in Read Only", allowedMethod);
 //				return false;
 			}
-		}
-		
-		if (enableOAuth.equalsIgnoreCase("False")) {
-			ourLog.debug("[OAuth] OAuth is disabled. Request from " + theRequest.getRemoteAddr() + "is approved");
-			return true;
 		}
 		
 		if (theRequestDetails.getRestOperationType() == RestOperationTypeEnum.METADATA) {
@@ -118,6 +128,50 @@ public class OIDCInterceptor extends InterceptorAdapter {
 			}
 		}
 
+		if (authType.equalsIgnoreCase("None")) {
+			ourLog.debug("[OAuth] OAuth is disabled. Request from " + theRequest.getRemoteAddr() + "is approved");
+			return true;
+		} 
+		
+		if (authType.startsWith("Basic ")) {
+			String[] basicCredential = authType.substring(6).split(":");
+			if (basicCredential.length != 2) {
+				throw new AuthenticationException("Basic Authorization Setup Incorrectly");
+			}
+			String username = basicCredential[0];
+			String password = basicCredential[1];
+
+			String authHeader = theRequest.getHeader("Authorization");
+			String base64 = authHeader.substring(6);
+
+			String base64decoded = new String(Base64.decodeBase64(base64));
+			String[] parts = base64decoded.split(":");
+
+			if (username.equals(parts[0]) && password.equals(parts[1])) {
+				return true;
+			}
+			
+			return false;
+		} else {
+			// checking Auth
+			ourLog.debug("IntrospectURL:" + getIntrospectUrl() + " clientID:" + getClientId() + " clientSecret:"
+					+ getClientSecret());
+			Authorization myAuth = new Authorization(getIntrospectUrl(), getClientId(), getClientSecret());
+
+			String err_msg = myAuth.introspectToken(theRequest);
+			if (err_msg.isEmpty() == false) {
+				throw new AuthenticationException(err_msg);
+			}
+
+			// Now we have a valid access token. Now, check Token type
+			if (myAuth.checkBearer() == false) {
+				throw new AuthenticationException("Not Token Bearer");
+			}
+
+			// Check scope.
+			return myAuth.allowRequest(theRequestDetails);				
+		}
+		
 		// for test.
 		// String resourceName = theRequestDetails.getResourceName();
 		// String resourceOperationType =
@@ -125,31 +179,14 @@ public class OIDCInterceptor extends InterceptorAdapter {
 		// System.out.println ("resource:"+resourceName+",
 		// resourceOperationType:"+resourceOperationType);
 
-		// checking Auth
-		ourLog.debug("IntrospectURL:" + getIntrospectUrl() + " clientID:" + getClientId() + " clientSecret:"
-				+ getClientSecret());
-		Authorization myAuth = new Authorization(getIntrospectUrl(), getClientId(), getClientSecret());
-
-		String err_msg = myAuth.introspectToken(theRequest);
-		if (err_msg.isEmpty() == false) {
-			throw new AuthenticationException(err_msg);
-		}
-
-		// Now we have a valid access token. Now, check Token type
-		if (myAuth.checkBearer() == false) {
-			throw new AuthenticationException("Not Token Bearer");
-		}
-
-		// Check scope.
-		return myAuth.allowRequest(theRequestDetails);
 	}
 
-	public String getEnableOAuth() {
-		return enableOAuth;
+	public String getAuthType() {
+		return authType;
 	}
 	
-	public void setEnableOAuth(String enableOAuth) {
-		this.enableOAuth = enableOAuth;
+	public void setAuthType(String authType) {
+		this.authType = authType;
 	}
 	
 	public String getIntrospectUrl() {

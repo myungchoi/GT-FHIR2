@@ -305,9 +305,9 @@ public class ObservationResourceProvider implements IResourceProvider {
 			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
 		}
 		
-		String subjectId = subjectReference.getId();
-		if (!subjectId.contentEquals("Patient")) {
-			detailCode.setText("Subject must be Patient resource for OmopOnFHIR");
+		String subjectResource = subjectReference.getReferenceElement().getResourceType();
+		if (!subjectResource.contentEquals("Patient")) {
+			detailCode.setText("Subject ("+subjectResource+") must be Patient resource for OmopOnFHIR");
 			outcome.addIssue().setSeverity(IssueSeverity.FATAL).setDetails(detailCode);
 			throw new UnprocessableEntityException(FhirContext.forDstu3(), outcome);
 		}
