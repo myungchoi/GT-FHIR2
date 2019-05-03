@@ -133,6 +133,7 @@ public class OIDCInterceptor extends InterceptorAdapter {
 			String[] remoteAddrs = theRequest.getRemoteAddr().split(".");
 			String[] localAddrs = theRequest.getLocalAddr().split(".");
 			if (remoteAddrs.length == 4 && localAddrs.length == 4) {
+				ourLog.debug("remoteAddrs[0]="+remoteAddrs[0]+", remoteAddrs[1]="+remoteAddrs[1]+" , localAddrs[0]="+localAddrs[1]+", localAddrs[1]="+localAddrs[1]);
 				if (remoteAddrs[0].equals(localAddrs[0]) && remoteAddrs[1].equals(localAddrs[1])) {
 					return true;
 				}
