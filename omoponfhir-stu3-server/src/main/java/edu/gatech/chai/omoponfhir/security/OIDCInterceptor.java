@@ -136,12 +136,29 @@ public class OIDCInterceptor extends InterceptorAdapter {
 		if (authType.startsWith("Basic ")) {
 			String[] basicCredential = authType.substring(6).split(":");
 			if (basicCredential.length != 2) {
-				throw new AuthenticationException("Basic Authorization Setup Incorrectly");
+				
+				AuthenticationException ex = new AuthenticationException("Basic Authorization Setup Incorrectly");
+				ex.addAuthenticateHeaderForRealm("OmopOnFhir");
+				throw ex;
 			}
 			String username = basicCredential[0];
 			String password = basicCredential[1];
 
 			String authHeader = theRequest.getHeader("Authorization");
+			if (authHeader == null || authHeader.isEmpty() || authHeader.length() < 6) {
+				AuthenticationException ex = new AuthenticationException("No or Invalid Basic Authorization Header");
+				ex.addAuthenticateHeaderForRealm("OmopOnFhir");
+				throw ex;
+			}
+			
+			// Check if basic auth.
+			String prefix = authHeader.substring(0, 6);
+			if (!"basic ".equalsIgnoreCase(prefix)) {
+				AuthenticationException ex = new AuthenticationException("Invalid Basic Authorization Header");
+				ex.addAuthenticateHeaderForRealm("OmopOnFhir");
+				throw ex;
+			}
+			
 			String base64 = authHeader.substring(6);
 
 			String base64decoded = new String(Base64.decodeBase64(base64));
@@ -151,7 +168,9 @@ public class OIDCInterceptor extends InterceptorAdapter {
 				return true;
 			}
 			
-			return false;
+			AuthenticationException ex = new AuthenticationException("Incorrect Username and Password");
+			ex.addAuthenticateHeaderForRealm("OmopOnFhir");
+			throw ex;
 		} else {
 			// checking Auth
 			ourLog.debug("IntrospectURL:" + getIntrospectUrl() + " clientID:" + getClientId() + " clientSecret:"
