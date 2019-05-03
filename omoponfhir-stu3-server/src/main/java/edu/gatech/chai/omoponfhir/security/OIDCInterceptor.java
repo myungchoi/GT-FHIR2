@@ -127,6 +127,16 @@ public class OIDCInterceptor extends InterceptorAdapter {
 			if (theRequest.getLocalAddr().equalsIgnoreCase(theRequest.getRemoteAddr())) {
 				return true;
 			}
+			
+			// When this is deployed in docker container and/or with some proxies, remote and local addresses
+			// can be different. do /16 match of IPv4.
+			String[] remoteAddrs = theRequest.getRemoteAddr().split(".");
+			String[] localAddrs = theRequest.getLocalAddr().split(".");
+			if (remoteAddrs.length == 4 && localAddrs.length == 4) {
+				if (remoteAddrs[0].equals(localAddrs[0]) && remoteAddrs[1].equals(localAddrs[1])) {
+					return true;
+				}
+			}
 		}
 
 		if (authType.equalsIgnoreCase("None")) {
