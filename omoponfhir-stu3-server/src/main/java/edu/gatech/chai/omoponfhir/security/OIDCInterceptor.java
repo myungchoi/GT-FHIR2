@@ -118,6 +118,7 @@ public class OIDCInterceptor extends InterceptorAdapter {
 
 		// Quick Hack for request from localhost overlay site.
 		if (localByPass.equalsIgnoreCase("True")) {
+			ourLog.debug("remoteAddress:"+theRequest.getRemoteAddr()+", localAddress:"+theRequest.getLocalAddr());
 			if (theRequest.getRemoteAddr().equalsIgnoreCase("127.0.0.1")
 					|| theRequest.getRemoteAddr().equalsIgnoreCase("0:0:0:0:0:0:0:1")) {
 				return true;
