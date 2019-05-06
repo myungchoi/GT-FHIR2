@@ -109,10 +109,12 @@
 			<param-name>clientSecret</param-name>
 			<param-value>secret</param-value>
 		</init-param>
+<!-- 
 		<init-param>
 			<param-name>localByPass</param-name>
 			<param-value>True</param-value>
 		</init-param>
+ -->
 		<init-param>
 			<param-name>readOnly</param-name>
 			<param-value>True</param-value>

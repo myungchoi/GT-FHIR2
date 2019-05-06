@@ -191,7 +191,7 @@ public class RestfulServlet extends RestfulServer {
     	String client_id = System.getenv("SMART_CLIENTID");
     	String client_secret = System.getenv("SMART_CLIENTSECRET");
     	String read_only = System.getenv("FHIR_READONLY");
-    	String local_bypass = System.getenv("LOCAL_BYPASS");
+//    	String local_bypass = System.getenv("LOCAL_BYPASS");
 
     	if (url == null) 
     		url = getServletConfig().getInitParameter("introspectUrl");
@@ -201,8 +201,8 @@ public class RestfulServlet extends RestfulServer {
     		client_id = getServletConfig().getInitParameter("clientId");
     	if (client_secret == null)
     		client_secret = getServletConfig().getInitParameter("clientSecret");
-    	if (local_bypass == null) 
-    		local_bypass = getServletConfig().getInitParameter("localByPass");
+//    	if (local_bypass == null) 
+//    		local_bypass = getServletConfig().getInitParameter("localByPass");
     	if (read_only == null) 
     		read_only = getServletConfig().getInitParameter("readOnly");
     	
@@ -211,7 +211,7 @@ public class RestfulServlet extends RestfulServer {
 		oIDCInterceptor.setAuthType(authType);
 		oIDCInterceptor.setClientId(client_id);
 		oIDCInterceptor.setClientSecret(client_secret);
-		oIDCInterceptor.setLocalByPass(local_bypass);
+//		oIDCInterceptor.setLocalByPass(local_bypass);
 		oIDCInterceptor.setReadOnly(read_only);
 		
 		registerInterceptor(oIDCInterceptor);
