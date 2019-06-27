@@ -1,31 +1,41 @@
 package edu.gatech.chai.omoponfhir.omopv5.stu3.provider;
 
 import java.util.List;
+import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.BooleanType;
 import org.hl7.fhir.dstu3.model.CodeType;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.ConceptMap;
-import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Parameters;
 import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.UriType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 
-import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.annotation.Operation;
 import ca.uhn.fhir.rest.annotation.OperationParam;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
+import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.mapping.OmopConceptMap;
 
 public class ConceptMapResourceProvider implements IResourceProvider {
+	private static final Logger logger = LoggerFactory.getLogger(ConceptMapResourceProvider.class);
+
 	private WebApplicationContext myAppCtx;
 	private String myDbType;
 	private OmopConceptMap myMapper;
 	private int preferredPageSize = 30;
+	private FhirContext fhirContext;
 
 	public ConceptMapResourceProvider() {
 		myAppCtx = ContextLoaderListener.getCurrentWebApplicationContext();
@@ -54,13 +64,16 @@ public class ConceptMapResourceProvider implements IResourceProvider {
 		return "ConceptMap";
 	}
 
+	public void setFhirContext(FhirContext fhirContext) {
+		this.fhirContext = fhirContext;
+	}
+	
 	/**
 	 * $translate operation for concept translation.
 	 * 
 	 */
 	@Operation(name = "$translate", idempotent = true)
 	public Parameters translateOperation(RequestDetails theRequestDetails, 
-//			@IdParam IdType thePatientId,
 			@OperationParam(name = "code") CodeType theCode, 
 			@OperationParam(name = "system") UriType theSystem,
 			@OperationParam(name = "version") StringType theVersion, 
@@ -73,6 +86,34 @@ public class ConceptMapResourceProvider implements IResourceProvider {
 
 		Parameters retVal = new Parameters();
 
+		String mappingTerminologyUrl = System.getenv("MAPPING_TERMINOLOGY_URL");
+		if (mappingTerminologyUrl != null && !mappingTerminologyUrl.isEmpty()) {
+			String mappingRequestUrl = theRequestDetails.getCompleteUrl();
+			if (mappingRequestUrl != null && !mappingRequestUrl.isEmpty()) {
+				logger.debug("$translate: RequestDetails - "+theRequestDetails.getCompleteUrl());
+				
+				if (!mappingTerminologyUrl.endsWith("/")) {
+					mappingTerminologyUrl = mappingTerminologyUrl.concat("/");
+				}
+
+				int urlTranslateIndex = mappingRequestUrl.indexOf("$translate");
+				String remoteMappingTerminologyUrl = mappingTerminologyUrl+mappingRequestUrl.substring(urlTranslateIndex);
+
+				RestTemplate restTemplate = new RestTemplate();
+				ResponseEntity<String> response = restTemplate.getForEntity(remoteMappingTerminologyUrl, String.class);
+				if (response.getStatusCode().equals(HttpStatus.OK)) {
+					String result = response.getBody();
+					IParser fhirJsonParser = fhirContext.newJsonParser();
+					Parameters parameters = fhirJsonParser.parseResource(Parameters.class, result);
+					if (parameters != null && !parameters.isEmpty()) {
+						return parameters;
+					}
+					
+					// We got nothing. Just let it flow so we can use our internal one
+				}
+			}
+		}
+		
 		String targetUri;
 		String targetSystem;
 		if (theTarget == null || theTarget.isEmpty()) {
