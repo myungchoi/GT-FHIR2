@@ -4,7 +4,6 @@ import java.util.List;
 
 import edu.gatech.chai.omopv5.model.entity.BaseEntity;
 import edu.gatech.chai.omopv5.model.entity.FactRelationship;
-import edu.gatech.chai.omopv5.model.entity.Measurement;
 import edu.gatech.chai.omopv5.model.entity.Note;
 
 public interface FactRelationshipService extends IService<FactRelationship> {

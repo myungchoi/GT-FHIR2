@@ -1,7 +1,7 @@
 package edu.gatech.chai.omoponfhir.omopv5.stu3.provider;
 
+import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
 import org.hl7.fhir.dstu3.model.BooleanType;
 import org.hl7.fhir.dstu3.model.CodeType;
@@ -13,8 +13,12 @@ import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.UriType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
@@ -24,7 +28,6 @@ import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.annotation.Operation;
 import ca.uhn.fhir.rest.annotation.OperationParam;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import edu.gatech.chai.omoponfhir.omopv5.stu3.mapping.OmopConceptMap;
 
@@ -67,17 +70,15 @@ public class ConceptMapResourceProvider implements IResourceProvider {
 	public void setFhirContext(FhirContext fhirContext) {
 		this.fhirContext = fhirContext;
 	}
-	
+
 	/**
 	 * $translate operation for concept translation.
 	 * 
 	 */
 	@Operation(name = "$translate", idempotent = true)
-	public Parameters translateOperation(RequestDetails theRequestDetails, 
-			@OperationParam(name = "code") CodeType theCode, 
-			@OperationParam(name = "system") UriType theSystem,
-			@OperationParam(name = "version") StringType theVersion, 
-			@OperationParam(name = "source") UriType theSource,
+	public Parameters translateOperation(RequestDetails theRequestDetails,
+			@OperationParam(name = "code") CodeType theCode, @OperationParam(name = "system") UriType theSystem,
+			@OperationParam(name = "version") StringType theVersion, @OperationParam(name = "source") UriType theSource,
 			@OperationParam(name = "coding") Coding theCoding,
 			@OperationParam(name = "codeableConcept") CodeableConcept theCodeableConcept,
 			@OperationParam(name = "target") UriType theTarget,
@@ -90,30 +91,60 @@ public class ConceptMapResourceProvider implements IResourceProvider {
 		if (mappingTerminologyUrl != null && !mappingTerminologyUrl.isEmpty()) {
 			String mappingRequestUrl = theRequestDetails.getCompleteUrl();
 			if (mappingRequestUrl != null && !mappingRequestUrl.isEmpty()) {
-				logger.debug("$translate: RequestDetails - "+theRequestDetails.getCompleteUrl());
-				
+				logger.debug("$translate: RequestDetails - " + theRequestDetails.getCompleteUrl());
+
 				if (!mappingTerminologyUrl.endsWith("/")) {
 					mappingTerminologyUrl = mappingTerminologyUrl.concat("/");
 				}
 
 				int urlTranslateIndex = mappingRequestUrl.indexOf("$translate");
-				String remoteMappingTerminologyUrl = mappingTerminologyUrl+mappingRequestUrl.substring(urlTranslateIndex);
+				if (urlTranslateIndex >= 0) {
+					String remoteMappingTerminologyUrl = mappingTerminologyUrl
+							+ mappingRequestUrl.substring(urlTranslateIndex);
 
-				RestTemplate restTemplate = new RestTemplate();
-				ResponseEntity<String> response = restTemplate.getForEntity(remoteMappingTerminologyUrl, String.class);
-				if (response.getStatusCode().equals(HttpStatus.OK)) {
-					String result = response.getBody();
-					IParser fhirJsonParser = fhirContext.newJsonParser();
-					Parameters parameters = fhirJsonParser.parseResource(Parameters.class, result);
-					if (parameters != null && !parameters.isEmpty()) {
-						return parameters;
+					try {
+						RestTemplate restTemplate = new RestTemplate();
+
+						String authTypeEnv = System.getenv("AUTH_TYPE");
+						ResponseEntity<String> response;
+						HttpEntity<String> entity = null;
+						if (authTypeEnv != null && !authTypeEnv.isEmpty()) {
+							String prefix = authTypeEnv.substring(0, 6);
+							if ("basic ".equalsIgnoreCase(prefix)) {
+								String rawString = authTypeEnv.substring(6);
+								String base64encoded = Base64.getEncoder().encodeToString(rawString.getBytes());
+
+								HttpHeaders headers = new HttpHeaders();
+								headers.set("Authorization", "Basic " + base64encoded);
+								entity = new HttpEntity<String>(headers);
+							}
+						}
+						
+						if (entity == null) {
+							response = restTemplate.getForEntity(remoteMappingTerminologyUrl, String.class);
+						} else {
+							response = restTemplate.exchange(remoteMappingTerminologyUrl, HttpMethod.GET, entity, String.class);
+						}
+						
+						if (response.getStatusCode().equals(HttpStatus.OK)) {
+							String result = response.getBody();
+							IParser fhirJsonParser = fhirContext.newJsonParser();
+							Parameters parameters = fhirJsonParser.parseResource(Parameters.class, result);
+							if (parameters != null && !parameters.isEmpty()) {
+								return parameters;
+							}
+						}
+					} catch (RestClientException e) {
+						// We have an error.
+						logger.error("$translate: Error on connecting to Remote ConceptMap server at "
+								+ remoteMappingTerminologyUrl);
+
+						// We may want not to return empty as we can try our internal server...
 					}
-					
-					// We got nothing. Just let it flow so we can use our internal one
 				}
 			}
 		}
-		
+
 		String targetUri;
 		String targetSystem;
 		if (theTarget == null || theTarget.isEmpty()) {

@@ -74,9 +74,7 @@ public class OIDCInterceptor extends InterceptorAdapter {
 //		}
 		
 		if (readOnly.equalsIgnoreCase("True")) {
-			if (theRequest.getMethod().equalsIgnoreCase("GET")) {
-				return true;
-			} else {
+			if (!theRequest.getMethod().equalsIgnoreCase("GET")) {
 				RequestTypeEnum[] allowedMethod = new RequestTypeEnum[] {RequestTypeEnum.GET};
 				throw new MethodNotAllowedException("Server Running in Read Only", allowedMethod);
 //				return false;

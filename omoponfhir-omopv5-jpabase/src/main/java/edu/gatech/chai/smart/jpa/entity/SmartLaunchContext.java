@@ -24,7 +24,6 @@ import org.json.JSONObject;
 import edu.gatech.chai.omopv5.model.entity.BaseEntity;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 
 
