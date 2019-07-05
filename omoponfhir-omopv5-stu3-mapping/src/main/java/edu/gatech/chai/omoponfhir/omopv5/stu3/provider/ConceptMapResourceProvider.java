@@ -108,7 +108,7 @@ public class ConceptMapResourceProvider implements IResourceProvider {
 						String authTypeEnv = System.getenv("AUTH_TYPE");
 						ResponseEntity<String> response;
 						HttpEntity<String> entity = null;
-						if (authTypeEnv != null && !authTypeEnv.isEmpty()) {
+						if (authTypeEnv != null && !authTypeEnv.isEmpty() && !"none".equalsIgnoreCase(authTypeEnv)) {
 							String prefix = authTypeEnv.substring(0, 6);
 							if ("basic ".equalsIgnoreCase(prefix)) {
 								String rawString = authTypeEnv.substring(6);
@@ -131,6 +131,7 @@ public class ConceptMapResourceProvider implements IResourceProvider {
 							IParser fhirJsonParser = fhirContext.newJsonParser();
 							Parameters parameters = fhirJsonParser.parseResource(Parameters.class, result);
 							if (parameters != null && !parameters.isEmpty()) {
+								logger.debug("$translate: responding parameters from external server, " + remoteMappingTerminologyUrl);
 								return parameters;
 							}
 						}
