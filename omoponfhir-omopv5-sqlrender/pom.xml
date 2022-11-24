@@ -28,7 +28,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<hibernate_version>5.3.1.Final</hibernate_version>
+		<hibernate_version>5.3.20.Final</hibernate_version>
 		<spring_version>5.0.8.RELEASE</spring_version>
 	</properties>
 
